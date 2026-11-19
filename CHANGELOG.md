@@ -5,6 +5,20 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.2] - 2026-11-19
+
+### Added
+- SONG (the sections and their repeats, F5 plays the song), AUTOMATION (the locks and events as a list) and FM6's
+  operator pages
+- MY SOUNDS: 32 user sounds, saved from the selected track and loaded back (MENU's SAVE on the FM-1)
+- the site, in English and Russian: https://xforsa.github.io/kriechstrom-vibe/
+
+### Changed
+- the creep is a discharge: jagged, forking into fine filaments, the strongest grown first
+- the power-on picture shows the name only
+- SAMPLE and SLICE sounds, which play recorded sound this firmware does not carry, are left out of the sound list
+- the core is KRIECHSTROM's main, with the input's hook merged
+
 ## [0.1] - 2026-11-19
 
 ### Added

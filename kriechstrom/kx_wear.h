@@ -44,7 +44,7 @@ static void kx_bg_paint(uint16_t *fb)
         cr_draw_in(250, 70, 300, 260, 0.30f + (float)wear / 40.0f * 0.70f, 0.0f, 0x4A160C, 1);
         vg_begin(fb);
     }
-    k = 170 + (int)(heat * 220.0f) + (int)(kx_fx_hit * 260.0f);
+    k = 105 + (int)(heat * 170.0f) + (int)(kx_fx_hit * 230.0f);
     for (i = 0; i < BG_W * BG_H; i++)
         fb[i] = px_scale(kx_bg[i], k);
 }

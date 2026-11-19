@@ -146,7 +146,7 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
         st_lane(k);
     /* the creep over the master's scope */
     vg_rect(SC_X, SC_Y, SC_S, SC_S - 6, 0x0D0D0F);
-    cr_draw(SC_X, SC_Y, SC_S, SC_S - 6, cr_wear(), heat, C_RED);
+    cr_cache_blit(&cr_stage, fb, w, h, SC_X, SC_Y, cr_wear(), 190 + (int)(heat * 160.0f));
     {
         uint32_t sw = kx_scope_w, i;
         float mid = (float)(SC_Y + SC_S - 50), px = 0, py = 0;

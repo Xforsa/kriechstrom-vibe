@@ -374,7 +374,7 @@ static void kx_draw_master(int x, int y, int w, int h)
     amt[4] = song.g[G_HAUNT] ? song.g[G_HAMT] : 0;
     amt[5] = song.g[G_HISS];
     vg_rect(x, y, cs + 40, cs, 0x0D0D0F);
-    cr_draw(x + 20, y, cs, cs, cr_wear(), heat, C_RED);
+    cr_cache_blit(&cr_master, kx_fb, 480, 320, x + 20, y, cr_wear(), 190 + (int)(heat * 160.0f));
     vg_text("WEAR", x + 6, y + 4, VG_SMALL, C_DIM, VG_LEFT);
     vg_itoa((int)(cr_wear() * 100.0f + 0.5f), b);
     vg_text(b, x + 6, y + 18, VG_BOLD, C_WHITE, VG_LEFT);
@@ -633,7 +633,7 @@ static int kx_splash(void)
         vg_rect_a(0, 118, 480, 86, C_BG, 0.65f * a);
         wk = vg_text("KRIECH", x, 128, VG_BIG | VG_X2, vg_mix(C_BG, C_WHITE, a), VG_LEFT);
         vg_text("STROM", x + wk, 128, VG_BIG | VG_X2, vg_mix(C_BG, C_RED, a), VG_LEFT);
-        vg_text("DARK INDUSTRIAL / EBM  ·  BUILT ON FELUCCA", 240, 182, VG_SMALL, vg_mix(C_BG, 0x8A8A92, a), VG_CENTER);
+        vg_text("BUILT ON FELUCCA", 240, 182, VG_SMALL, vg_mix(C_BG, 0x6A6A72, a), VG_CENTER);
     }
     kx_wear_fx(kx_fb, 480, 320);
     return 1;

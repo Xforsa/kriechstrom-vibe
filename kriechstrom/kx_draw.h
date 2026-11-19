@@ -614,7 +614,7 @@ static void kx_draw_project(int x, int y, int w, int h)
     char nm[16];
     project_cur_name(nm);
     vg_text(nm[0] ? nm : "UNTITLED", x + 4, y, VG_BIG, C_WHITE, VG_LEFT);
-    vg_text("KEPT BY ITSELF.  ENC 1 SLOT  ENTER LOAD  F5 SAVE  SHIFT+F5 NEW", x + 4, y + 28,
+    vg_text("ENC 1 SLOT  ENTER LOAD  F5 SAVE  SHIFT+F5 NEW  SHIFT+ENTER DEMO", x + 4, y + 28,
             VG_SMALL, C_DIM, VG_LEFT);
     for (i = 0; i < 4u; i++) {
         int bx = x + (int)i * (w / 4), used = kx_slot_used[i];

@@ -5,6 +5,13 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.3] - 2026-11-19
+
+### Added
+- a demo song to start from: four project slots in E minor at 100 BPM (THEME, DRIVE, BREAK, WEIGHT, with ROOM, ROT,
+  GATE and SLAB KIT) and a SONG over them; the first start plays it on PLAY, SEQ > SONG and F5 plays the whole song,
+  MENU > PROJECT and SHIFT + ENTER brings it back (into the empty slots); made by tools/make_demo.c
+
 ## [0.2] - 2026-11-19
 
 ### Added

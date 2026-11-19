@@ -8,6 +8,7 @@ NODE="${NODE:-node}"
 fail=0
 ok() { printf '%-64s %s\n' "$1" "$2"; [ "$2" = ok ] || fail=1; }
 sh tools/build.sh >/dev/null
+sh tools/make_demo.sh >/dev/null
 ok "build: build/kriechstrom.wasm" ok
 # 1. the core at 44.1 kHz, bit for bit: the firmware against the core built for this computer
 cc -O2 -w -D_FORTIFY_SOURCE=0 -Ibuild/gen -Ikriechstrom/gen -Ikriechstrom -o build/core_ref tests/core_ref.c -lm

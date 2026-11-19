@@ -37,6 +37,7 @@ static void kx_snap_poll_audio(void)
     __atomic_store_n(&kx_snap_done, req, __ATOMIC_RELEASE);
 }
 
+static project_store_t kx_rd;                     /* (a file read in, the demo's copy) */
 /* the PROJECT page's slots, as the audio flow last saw them (names and whether used) */
 static uint8_t kx_slot_used[4];
 static char kx_slot_name[4][16];
@@ -119,8 +120,33 @@ static void kx_store_save_now(void)
     kx_store_poll(1);
 }
 
+/* the demo song (gen/kx_demo.h, tools/make_demo.c): its four slots into the empty ones, its music now. At the first
+ * start (no session yet), and from PROJECT (SHIFT + ENTER); a slot the player saved stays theirs */
+#include "kx_demo.h"
+static int kx_demo_load(int boot)
+{
+    static const uint8_t *const D[4] = {KX_DEMO_A, KX_DEMO_B, KX_DEMO_C, KX_DEMO_D};
+    uint32_t i;
+    for (i = 0; i < 4u; i++)
+        if (!project_used(i)) {
+            memcpy(&proj_slot[i], D[i], sizeof(project_store_t));
+            if (boot)
+                memcpy(&kx_slot_out[i], D[i], sizeof(project_store_t));
+            else
+                kx_slot_saved(i);
+        }
+    memcpy(&kx_rd, KX_DEMO_NOW, sizeof kx_rd);
+    if (!proj_import(&proj_scratch, &kx_rd, (int)sizeof kx_rd))
+        return 0;
+    proj_bound(&proj_scratch);
+    project_restore_runtime(&proj_scratch);
+    transport_req = 0;
+    ui.msg_t = 0;
+    kx_slot_info();
+    return 1;
+}
+
 /* vibe_on_init (alone, before any audio): the files back into the core */
-static project_store_t kx_rd;
 static void kx_store_boot(void)
 {
     int n, i;
@@ -143,7 +169,8 @@ static void kx_store_boot(void)
         project_restore_runtime(&proj_scratch);
         transport_req = 0;
         ui.msg_t = 0;                             /* (no "LOADED" at every start) */
-    }
+    } else
+        kx_demo_load(1);                          /* the first start: the demo song */
     kx_slot_info();
     kx_snap_sig = autosave_sig();                 /* (what is there now is what is stored) */
     proj_kept_now();

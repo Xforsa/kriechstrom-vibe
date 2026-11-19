@@ -40,6 +40,8 @@ mark grows behind every page as the master wears the mix out.
   has its control on the device.
 - **The DAW:** each track's mixer (the SDK's `mix_<n>_*`), its sound, envelope and sends, the master's effects as
   parameters; its transport and tempo; projects and settings stored with the DAW project.
+- **A demo song:** the first start holds a song in four slots (E minor, 100 BPM): PLAY plays its theme, SEQ > SONG
+  and F5 the whole song, MENU > PROJECT and SHIFT + ENTER bring it back.
 - **Storage:** the music as it is now is kept by itself (`session.krp`), four project slots that SONG plays in a chain,
   32 user sounds. The files are KRIECHSTROM's FM-1 formats.
 

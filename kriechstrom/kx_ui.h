@@ -574,7 +574,7 @@ static void kx_button(uint32_t b, int down)
         if (kx_page == PG_GRID)
             kx_post(KXC_STEP, song.sel, ui.cursor, drum_track(TSEL) ? ui.lane : 255u, 0);
         else if (kx_page == PG_PROJECT)
-            kx_post(KXC_SLOT, (uint32_t)kx_slot_pick, 0, 0, 0);
+            kx_post(kx_shift ? KXC_DEMO : KXC_SLOT, (uint32_t)kx_slot_pick, 0, 0, 0);
         else if (kx_page == PG_USER)
             kx_post(KXC_USER, (uint32_t)kx_user_pick, 0, 0, 0);
         else if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_EVENTS)

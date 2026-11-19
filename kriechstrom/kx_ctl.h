@@ -30,6 +30,7 @@ enum {
     KXC_ACT,          /* a = PAGES index: its picked action (ui_input.c act_do: AUTOMATION's PLAY, CLEAR, ADD ..) */
     KXC_SONG,         /* SONG: play the chain from its first section, or stop */
     KXC_USER,         /* a = user sound slot, b: 0 load, 1 save (named by itself), 2 erase */
+    KXC_DEMO,         /* the demo song into the empty slots, and as the music now */
     KXC_INCFG,        /* a = IC_*, v = detents (b = 1: v is the value): the audio input's settings (kx_input.h) */
 };
 static int kx_silent_engine(uint32_t e) { return e == ENGI_SAMPLE || (FELUCCA_SLICE && e == 13u); }
@@ -39,6 +40,7 @@ static void kx_daw_apply(uint32_t j, float v);    /* kx_daw.h */
 static void kx_slot_saved(uint32_t s);            /* kx_store.h */
 static void kx_slot_info(void);
 static void kx_user_saved(void);
+static int kx_demo_load(int boot);
 static void kx_tool(track_t *t, uint32_t p)
 {
     const char *m;
@@ -278,6 +280,12 @@ static void kx_apply(const kx_cmd *k)
         }
         break;
     }
+    case KXC_DEMO:
+        if (chain_busy() || song.playing)
+            transport_req = 2;
+        kx_demo_load(0);
+        ui_message("DEMO SONG: SEQ > SONG, F5");
+        break;
     case KXC_INCFG:
         if (k->a < IC_N)
             kx_ic[k->a] = (int16_t)clamp(k->b ? k->v : kx_ic[k->a] + k->v, IC_DESC[k->a].min, IC_DESC[k->a].max);

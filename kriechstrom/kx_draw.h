@@ -58,6 +58,10 @@ static void kx_draw_header(void)
     else
         vg_rect(431, 8, 11, 11, 0x55555C);
     vg_circle(462, 14, 5, song.rec & (1u << song.sel) ? C_RED : 0x2A2A2E);
+    if (kx_shift) {
+        vg_round(330, 5, 44, 18, 3, C_RED);
+        vg_text("SHIFT", 352, 7, VG_SMALL, C_WHITE, VG_CENTER);
+    }
 }
 
 /* the four tracks: a line in its colour that is its level as it plays, its sound under it */
@@ -115,6 +119,14 @@ static void kx_draw_cards(int pg, int y)
             vg_rect(x - 5, y + 2, 1, 66, 0x26262A);
         if (!c.on)
             continue;
+        {   /* the value just turned: its card lights up and fades over 0.6 s */
+            float age = (float)(vibe_frames() - kx_card_hot[k]) / (kx_sr * 0.6f);
+            if (kx_card_hot[k] && age < 1.0f) {
+                float a = (1.0f - age) * (1.0f - age);
+                vg_rect_a(x - 4, y - 2, w + 8, 72, col, 0.22f * a);
+                vg_rect(x - 4, y - 3, (int)((float)(w + 8) * a), 2, col);
+            }
+        }
         vg_text(c.label, x, y + 2, VG_SMALL, 0x6A6A72, VG_LEFT);
         if (vg_text_width(c.val, f) > w - 4)
             f = VG_BIG;
@@ -215,6 +227,12 @@ static void kx_draw_lfo(int x, int y, int w, int h, const track_t *t, uint32_t c
             kx_gline(px, py, (float)(x + i), mid - v * amp, 2.0f, col);
         px = (float)(x + i);
         py = mid - v * amp;
+    }
+    {   /* where the LFO is now: its phase, on the first cycle drawn */
+        float f = (float)(t->lfo_ph >> 8) / 16777216.0f, lx = (float)x + f / cyc * (float)w;
+        float ly = mid - ((float)t->lfo_val / 32768.0f) * amp;
+        vg_rect((int)lx, y, 1, h, vg_mix(C_BG, col, 0.5f));
+        kx_draw_dot(lx, ly < (float)y ? (float)y : ly > (float)(y + h) ? (float)(y + h) : ly, col);
     }
 }
 
@@ -353,6 +371,17 @@ static void kx_draw_grid(int x, int y, int w, int h)
             }
         }
     }
+    /* the playhead's trail: the steps it just left, fading */
+    if (song.playing) {
+        uint32_t k;
+        for (k = 1; k <= 4u; k++) {
+            uint32_t s = (play + len - k) % len;
+            if (s / 16u == bank)
+                vg_rect_a(lx + (int)(s % 16u) * cw, gy, cw, gh, col, 0.20f / (float)k);
+        }
+        if (play / 16u == bank)
+            vg_rect_a(lx + (int)(play % 16u) * cw, gy, cw, gh, C_WHITE, 0.12f);
+    }
     /* the playhead and the cursor */
     if (song.playing && play / 16u == bank)
         vg_rect(lx + (int)(play % 16u) * cw, gy, cw, 2, C_WHITE), vg_rect(lx + (int)(play % 16u) * cw, gy + gh - 2, cw, 2, C_WHITE);
@@ -379,6 +408,15 @@ static void kx_draw_master(int x, int y, int w, int h)
     vg_itoa((int)(cr_wear() * 100.0f + 0.5f), b);
     vg_text(b, x + 6, y + 18, VG_BOLD, C_WHITE, VG_LEFT);
     kx_draw_scope(x + cs + 48, y, w - cs - 48, cs, C_RED, 1.0f + (float)amt[1] / 64.0f);
+    {   /* the signal along the chain: sparks running left to right, as many and as fast as the mix is loud */
+        float tm = (float)vibe_frames() / kx_sr;
+        int n = 3 + (int)(heat * 14.0f), j;
+        for (j = 0; j < n; j++) {
+            float f = tm * (0.25f + heat * 0.6f) + (float)j / (float)n;
+            float sx = (float)x + (f - (float)(int)f) * (float)w;
+            vg_circle(sx, (float)(y + h - 47), 1.5f + heat * 1.5f, vg_mix(C_RED, C_WHITE, heat));
+        }
+    }
     for (i = 0; i < 6; i++) {
         int bx = x + i * (bw + 4), by = y + h - 44;
         float a = (float)clamp(amt[i], 0, 127) / 127.0f;
@@ -400,7 +438,7 @@ static void kx_draw_browse(int x, int y, int w, int h)
     vg_text(CAT_NAME[track_cat(t) % CAT_N], x + 10 + vg_text_width(ENGINES[eng_idx(t->eng_req)]->name, VG_BOLD), y,
             VG_BOLD, C_DIM, VG_LEFT);
     vg_text(nm, x + 2, y + 18, vg_text_width(nm, VG_BIG | VG_X2) < lx - x - 12 ? VG_BIG | VG_X2 : VG_BIG, C_WHITE, VG_LEFT);
-    kx_draw_scope(x + 4, y + 70, lx - x - 16, h - 72, col, 1.6f);
+    kx_draw_spectrum(x + 4, y + 64, lx - x - 16, h - 66, col);
     vg_rect(lx - 6, y, 1, h, C_LINE);
     for (r = 0; r < 7u && total; r++) {
         uint32_t n = preset_visible(cur, total, r), k, e;
@@ -639,6 +677,45 @@ static void kx_draw_help(void)
     vg_controls("KRIECHSTROM", R, (int)(sizeof R / sizeof R[0] / 2));
 }
 
+/* SHIFT held or tapped: what the pads and the other controls do with it */
+static void kx_draw_shift(void)
+{
+    static const char *const ROW[4] = {"SELECT", "MOOD", "", "KICK SNARE CLAP HAT"};
+    uint32_t r, k;
+    int x = 250, y = 94;
+    vg_rect_a(x - 8, y - 4, 238, 118, 0x000000, 0.82f);
+    vg_frame(x - 8, y - 4, 238, 118, 1, C_RED);
+    vg_text(kx_shift_latch ? "SHIFT (FOR THE NEXT ONE)" : "SHIFT", x, y, VG_BOLD, C_RED, VG_LEFT);
+    for (r = 0; r < 4u; r++)
+        for (k = 0; k < 4u; k++) {
+            int px = x + (int)k * 26, py = y + 20 + (int)r * 22;
+            uint32_t col = r == 0u ? TRK_RGB[k] : r == 1u ? C_RED : 0x3A3A40;
+            vg_round(px, py, 22, 18, 3, vg_mix(C_BG, col, r < 2u ? 0.8f : 0.4f));
+        }
+    for (r = 0; r < 4u; r++)
+        vg_text(r == 2u ? "(hold: effects)" : ROW[r], x + 110, y + 21 + (int)r * 22, VG_SMALL, r < 2u ? C_WHITE : C_DIM, VG_LEFT);
+}
+
+/* the start: where you left it, the demo song, or nothing */
+static void kx_draw_start(void)
+{
+    static const char *const T[3] = {"WHERE YOU LEFT IT", "THE DEMO SONG", "AN EMPTY PROJECT"};
+    static const char *const W[3] = {"the music as it was", "E minor, 100 BPM: four parts and a SONG", "four tracks, no steps"};
+    uint32_t i;
+    vg_rect_a(0, 30, 480, 256, 0x000000, 0.86f);
+    vg_text("START WITH", 24, 60, VG_BOLD, C_RED, VG_LEFT);
+    for (i = 0; i < 3u; i++) {
+        int y = 88 + (int)i * 56, on = (int)i == kx_start_sel, off = i == 0u && !kx_had_session;
+        char f[3] = {'F', (char)('1' + i), 0};
+        vg_rect(24, y, 432, 48, on ? vg_mix(C_BG, C_RED, 0.3f) : 0x141416);
+        vg_rect(24, y, 4, 48, on ? C_RED : 0x2A2A2E);
+        vg_text(f, 40, y + 14, VG_BOLD, off ? 0x3A3A40 : C_RED, VG_LEFT);
+        vg_text(T[i], 74, y + 6, VG_BIG, off ? 0x3A3A40 : C_WHITE, VG_LEFT);
+        vg_text(off ? "nothing kept yet" : W[i], 74, y + 30, VG_SMALL, off ? 0x3A3A40 : C_DIM, VG_LEFT);
+    }
+    vg_text("DATA + ENTER, OR F1 F2 F3.  THE KEYS AND PADS PLAY AT ONCE", 240, 262, VG_SMALL, 0x55555C, VG_CENTER);
+}
+
 static void kx_draw_toast(void)
 {
     uint32_t s1 = __atomic_load_n(&kx_msg_seq, __ATOMIC_ACQUIRE);
@@ -792,9 +869,13 @@ static void kx_ui_draw(void)
     } else if (pg >= 0 && pg < (int)NPAGES) {
         const page_t *p = &PAGES[pg];
         switch (p->graph) {
-        case GR_ADSR:
+        case GR_ADSR: {
+            float ex, ey;
             kx_draw_adsr(12, 98, 456, 104, t->p[p->id[0]], t->p[p->id[1]], t->p[p->id[2]], t->p[p->id[3]], col);
+            if (p->id[0] == P_ATK && kx_env_pos(t, 12, 98, 456, 104, &ex, &ey))
+                kx_draw_dot(ex, ey, col);         /* (where the newest note is on it now) */
             break;
+        }
         case GR_LFO: kx_draw_lfo(12, 100, 456, 100, t, col); break;
         case GR_FX: kx_draw_sends(12, 96, 456, 110, t, col); break;
         case GR_SCALE: kx_draw_scale(12, 98, 456, 104, t); break;
@@ -808,8 +889,18 @@ static void kx_ui_draw(void)
     }
     if (pg != PG_MIXER)
         kx_draw_cards(kp, 210);
+    {
+        static int last_order;
+        int order = (int)kx_fam * 64 + (int)kx_fpage[kx_fam];
+        kx_transition(kx_fb, pg, order > last_order ? 1 : -1);
+        last_order = order;
+    }
     kx_draw_soft();
     kx_wear_fx(kx_fb, 480, 320);
+    if (kx_shift && !kx_start)
+        kx_draw_shift();
+    if (kx_start)
+        kx_draw_start();
     kx_draw_toast();
     {   /* FOCUS (SDK 10): DATA walks, ENTER presses; each spot stands for a control of the device */
         uint32_t i, x = 120;

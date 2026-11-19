@@ -44,7 +44,8 @@ static void kx_bg_paint(uint16_t *fb)
         cr_draw_in(250, 70, 300, 260, 0.30f + (float)wear / 40.0f * 0.70f, 0.0f, 0x4A160C, 1);
         vg_begin(fb);
     }
-    k = 105 + (int)(heat * 170.0f) + (int)(kx_fx_hit * 230.0f);
+    k = kx_ic[IC_SCREEN] == 2 ? 105 + (int)(heat * 170.0f) + (int)(kx_fx_hit * 230.0f) :
+        kx_ic[IC_SCREEN] == 1 ? 100 + (int)(heat * 80.0f) : 100;   /* (LOW: it breathes with the level, no flashes) */
     for (i = 0; i < BG_W * BG_H; i++)
         fb[i] = px_scale(kx_bg[i], k);
 }
@@ -55,7 +56,7 @@ static void kx_wear_fx(uint16_t *fb, int w, int h)
     static uint16_t row[1280];
     float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
     int dmg = song.g[G_DMG], chr = song.g[G_DMGC], spl = song.g[G_SPLICE], hiss = song.g[G_HISS];
-    int wall = song.g[G_WALL], y, x, i;
+    int wall = song.g[G_WALL], y, x, i, lvl = kx_ic[IC_SCREEN];   /* 0 OFF, 1 LOW (the default), 2 FULL */
     if (w == 480) {                               /* (once a frame: the display's call) */
         static uint32_t seen;
         uint32_t hn = __atomic_load_n(&kx_hits, __ATOMIC_ACQUIRE);
@@ -78,6 +79,17 @@ static void kx_wear_fx(uint16_t *fb, int w, int h)
         } else
             kx_fx_hit *= 0.7f;
         kx_fx_prev = heat;
+    }
+    if (!lvl)
+        return;
+    if (lvl == 1) {                               /* LOW: a hint of each, easy on the eyes */
+        dmg = dmg * 2 / 5;
+        chr = chr > 96 ? chr : 0;
+        spl = spl / 3;
+        hiss = hiss / 4;
+        wall = wall / 3;
+        if (kx_fx_hit > 0.0f && (fx_rand() & 3u))
+            kx_fx_hit = 0.0f;                     /* (one hit in four tears it) */
     }
     /* DAMAGE: torn bands on the hits, sideways; digital: stepped */
     if (dmg > 8 && kx_fx_hit > 0.15f) {

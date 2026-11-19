@@ -24,9 +24,12 @@ mark grows behind every page as the master wears the mix out.
   resampled.
 - **The 480 x 320 display:** pages for SOUND, ENV, LFO, ARP, FX and SEQ, the four values on encoders 1-4, the four
   tracks with their levels, a piano roll or a drum grid of the 16 steps on the pads, the whole pattern above it.
+- **The start:** where you left it, the demo song or an empty project.
 - **The display wears with the sound:** the creep figure grows with DAMAGE and WALL and pulses with the level; DAMAGE
   tears the picture on the drum hits, CHAR towards DIGITAL splits its colours, SPLICE cuts bands of it, HAUNT's DRAG
-  sags it over the last beat of a bar, HISS adds grain.
+  sags it over the last beat of a bar, HISS adds grain. MENU > DISPLAY sets how much: OFF, LOW (the default), FULL.
+  The pages slide, a value turned lights up, and the pages move with the sound: the spectrum, the envelope and the
+  LFO where they are, the playhead's trail.
 - **The pads:** mute and DICE per track, hold effects (repeat 1/16, tape stop, freeze, gate), four drum lanes with
   velocity; on the SEQ page the pads are the 16 steps shown, lit as they play.
 - **The audio input (IN 1, IN 2):** a guitar, a voice or a drum machine into the mix and through the whole master,
@@ -65,7 +68,8 @@ mark grows behind every page as the master wears the mix out.
 | F1-F4 | select track 1-4 |
 | F5 | the page's action: OOPS on SOUND, DICE on SEQ (SHIFT: MOOD), SAVE on PROJECT, the input's type on INPUT |
 | F6 | UNDO |
-| MENU | the mixer, the project slots, MIDI OUT and CV, the clock |
+| MENU | the mixer, the project slots, MIDI OUT and CV, the display, the clock |
+| SHIFT | held or tapped (then it holds for the next control); the pads' second functions are shown |
 | PLAY, STOP, REC | the transport; REC arms the selected track for live recording |
 | ENTER | on SEQ: the cursor's step on or off; on PROJECT: load the slot |
 | HOME | what every control does; RETURN goes back to SOUND |

@@ -147,6 +147,7 @@ static int kx_demo_load(int boot)
 }
 
 /* vibe_on_init (alone, before any audio): the files back into the core */
+static int kx_had_session;                        /* the start found the last session (the start screen offers it) */
 static void kx_store_boot(void)
 {
     int n, i;
@@ -169,6 +170,7 @@ static void kx_store_boot(void)
         project_restore_runtime(&proj_scratch);
         transport_req = 0;
         ui.msg_t = 0;                             /* (no "LOADED" at every start) */
+        kx_had_session = 1;
     } else
         kx_demo_load(1);                          /* the first start: the demo song */
     kx_slot_info();

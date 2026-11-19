@@ -13,15 +13,17 @@
  * The host's rate in, 44.1 kHz for the core: resampled as the output is (kx_audio.h), about 1.5 ms of delay. */
 
 enum { IC_LEVEL, IC_DRIVE, IC_PAN, IC_CHO, IC_DLY, IC_REV, IC_GATE, IC_FEED, IC_MODE,
-       IC_MOUT, IC_MCH, IC_CLK, IC_CV, IC_N };   /* (the last four: MIDI OUT and CV, kx_midi.h) */
+       IC_MOUT, IC_MCH, IC_CLK, IC_CV, IC_SCREEN, IC_N };   /* (IC_SCREEN: the display's wear, kx_wear.h) */   /* (the last four: MIDI OUT and CV, kx_midi.h) */
 static const struct { const char *label; int16_t min, max, def; } IC_DESC[IC_N] = {
     {"LEVEL", 0, 127, 100}, {"DRIVE", 0, 127, 0}, {"PAN", -64, 63, 0}, {"CHO", 0, 127, 0}, {"DLY", 0, 127, 0},
     {"REV", 0, 127, 24}, {"GATE", 0, NTRK, 0}, {"FEEDS", 0, NTRK, 0}, {"INPUT", 0, 2, 0},
     {"MIDI OUT", 0, 1, 1}, {"CHANNEL", 1, 13, 1}, {"CLOCK", 0, 1, 0}, {"CV TRACK", 0, NTRK, 1},
+    {"SCREEN WEAR", 0, 2, 1},
 };
 static int16_t kx_ic[IC_N];                       /* the audio flow writes them (KXC_INCFG); the display reads */
 static const char *const IC_TRK[NTRK + 1] = {"OFF", "T1", "T2", "T3", "T4"};
 static const char *const IC_MODE_N[3] = {"LINE", "MIC", "HI-Z"};
+static const char *const IC_WEAR_N[3] = {"OFF", "LOW", "FULL"};
 
 /* ---- host rate -> 44.1 kHz ---------------------------------------------------------------------------------------- */
 #define KX_HIN 4096u                              /* the host's input frames kept */

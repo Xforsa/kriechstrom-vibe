@@ -49,7 +49,12 @@ static void kx_tool(track_t *t, uint32_t p)
         return;
     }
     m = tl_do(t, p, ui.lane);
-    if (m)
+    if (m && p == TL_DICE) {                      /* "T2 NEW PART: GRIND": which track, in which MOOD */
+        char b[24] = {'T', (char)('1' + trk_index(t)), 0};
+        str_cpy(b + 2, " NEW PART: ", sizeof b - 2);
+        str_cpy(b + str_len(b), MOOD_NAME[dice_mood % MOOD_N], sizeof b - str_len(b));
+        ui_message(b);
+    } else if (m)
         ui_message(m);
 }
 

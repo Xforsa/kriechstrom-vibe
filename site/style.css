@@ -195,3 +195,10 @@ header.top { position: sticky; top: 0; z-index: 5; background: rgba(0, 0, 0, 0.8
 .cap { color: var(--mid); font-size: 16px; margin: 0 0 18px; }
 .also { border: 1px solid var(--line); border-left: 3px solid var(--red); background: var(--surf); border-radius: 6px;
   padding: 14px 18px; margin: 24px 0; }
+
+/* one time, as they come into view (vibe.js): nothing moves on its own after that */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+ul.feats > li { transition: border-color 0.2s, background 0.2s; }
+ul.feats > li:hover { border-left-color: #fff; background: #1a0a09; }

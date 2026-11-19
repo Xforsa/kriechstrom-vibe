@@ -23,14 +23,18 @@ static const uint32_t TRK_RGB[NTRK] = {0xE0301C, 0xE8A23A, 0xD9D2C2, 0x7896B0}; 
 enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
-enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER };
-#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : 2)
-#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI)
+enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER, PG_DISPLAY };
+#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : 3)
+#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY)
 #define PG_MAX 24
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
 static int kx_page = PG_BROWSE;                   /* the page shown */
 static int kx_help, kx_shift, kx_in_asked, kx_slot_pick, kx_boot_done, kx_user_pick;
+static int kx_shift_latch, kx_shift_used;         /* SHIFT tapped: it holds for the next control (a mouse has one button) */
+static uint64_t kx_shift_t;
+static int kx_start = 1, kx_start_sel;
+static uint64_t kx_card_hot[4];                   /* when encoder 1-4 last moved its value (the card lights up) */            /* the start screen: 0 where you left it, 1 the demo song, 2 empty */
 static float kx_enc_acc[VE_COUNT];
 static uint32_t kx_toast_seq;
 static char kx_toast[24];
@@ -107,6 +111,7 @@ static void kx_family_pages(uint32_t fa)
         ADD(PG_MIXER);
         ADD(PG_PROJECT);
         ADD(PG_MIDI);
+        ADD(PG_DISPLAY);
         i = (uint32_t)kx_page_index("CLOCK");
         ADD(i);
         break;
@@ -145,6 +150,7 @@ static const char *kx_title(int pg)
     case PG_INPUT2: return "INPUT SENDS";
     case PG_MIDI: return "MIDI OUT & CV";
     case PG_USER: return "MY SOUNDS";
+    case PG_DISPLAY: return "DISPLAY";
     }
     if (pg >= 0 && pg < (int)NPAGES) {
         const page_t *p = &PAGES[pg];
@@ -175,18 +181,23 @@ static int kx_knob_page(void)
 }
 
 typedef struct { const char *label; char val[12]; const char *unit; float pos; int bip, on; } kx_card;
-static const uint8_t IN_SLOTS[3][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
-                                       {IC_MOUT, IC_MCH, IC_CLK, IC_CV}};
+static const uint8_t IN_SLOTS[4][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
+                                       {IC_MOUT, IC_MCH, IC_CLK, IC_CV}, {IC_SCREEN, 255, 255, 255}};
 static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 {
     if (IS_IC_PAGE(pg)) {                         /* the audio input's, MIDI OUT's (kx_input.h, kx_midi.h) */
         uint32_t f = IN_SLOTS[IC_PAGE(pg)][slot & 3u];
-        int v = kx_ic[f];
+        int v;
         memset(c, 0, sizeof *c);
+        if (f >= IC_N)
+            return;
+        v = kx_ic[f];
         c->on = 1;
         c->label = IC_DESC[f].label;
         if (f == IC_GATE || f == IC_FEED || f == IC_CV)
             str_cpy(c->val, IC_TRK[clamp(v, 0, NTRK)], sizeof c->val);
+        else if (f == IC_SCREEN)
+            str_cpy(c->val, IC_WEAR_N[clamp(v, 0, 2)], sizeof c->val);
         else if (f == IC_MOUT || f == IC_CLK)
             str_cpy(c->val, v ? "ON" : "OFF", sizeof c->val);
         else if (f == IC_MCH) {
@@ -499,6 +510,8 @@ static void kx_turn(uint32_t enc, float detents)
     if (!n)
         return;
     kx_enc_acc[enc] -= (float)n;
+    if (enc <= VE_4)
+        kx_card_hot[enc] = vibe_frames();
     if (enc <= VE_4) {
         int pg = kx_knob_page();
         if (kx_page == PG_USER) {
@@ -513,7 +526,8 @@ static void kx_turn(uint32_t enc, float detents)
             kx_post(KXC_PARAM, enc, id & 0xFFu, id >> 8, clamp(trk[enc].p[id] + n, d->min, d->max));
         } else if (IS_IC_PAGE(kx_page)) {
             uint32_t f = IN_SLOTS[IC_PAGE(kx_page)][enc];
-            kx_post(KXC_INCFG, f, 0, 0, IC_DESC[f].max - IC_DESC[f].min < 20 ? (n > 0 ? 1 : -1) : n);
+            if (f < IC_N)
+                kx_post(KXC_INCFG, f, 0, 0, IC_DESC[f].max - IC_DESC[f].min < 20 ? (n > 0 ? 1 : -1) : n);
         } else if (pg >= 0)
             kx_post(KXC_EDIT, (uint32_t)pg, enc, 0, n);
         if (kx_page == PG_GRID && enc == VE_1) {
@@ -542,8 +556,20 @@ static void kx_turn(uint32_t enc, float detents)
 
 static void kx_button(uint32_t b, int down)
 {
-    if (b == VB_SHIFT) {
-        kx_shift = down;
+    if (b == VB_SHIFT) {                          /* held: as long as it is down; tapped: for the next control */
+        if (down) {
+            if (kx_shift_latch) {
+                kx_shift_latch = kx_shift = 0;    /* (tapped again: off) */
+                kx_shift_used = 1;
+                return;
+            }
+            kx_shift = 1;
+            kx_shift_used = 0;
+            kx_shift_t = vibe_frames();
+        } else if (!kx_shift_used && vibe_frames() - kx_shift_t < (uint64_t)(kx_sr * 0.5f))
+            kx_shift_latch = 1;
+        else
+            kx_shift = kx_shift_latch = 0;
         return;
     }
     if (!down)
@@ -589,6 +615,7 @@ static void kx_ui_init(void)
     vf_mode(VF_ON_HOLD);                          /* (DATA is the sounds' here: ENTER held 0.6 s = FOCUS) */
     vf_clicks(1);
     kx_open(FA_SOUND, 0);
+    kx_start_sel = kx_had_session ? 0 : 1;
 }
 
 static void kx_ui_event(const vibe_event *e)
@@ -596,8 +623,36 @@ static void kx_ui_event(const vibe_event *e)
     int fid;
     if (e->type == VIBE_EV_BUTTON || e->type == VIBE_EV_PAD || e->type == VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE)
         kx_boot_done = 1;                         /* (the power-on picture ends at the first touch) */
+    if (kx_start && kx_boot_done && e->type == VIBE_EV_BUTTON && e->down) {   /* the start screen */
+        uint32_t b = e->id;
+        int pick = -1;
+        if (b == VB_F1 || b == VB_F2 || b == VB_F3)
+            pick = (int)(b - VB_F1);
+        else if (b == VB_ENTER || b == VB_DATA_PUSH)
+            pick = kx_start_sel;
+        else if (b == VB_RETURN || b == VB_HOME)
+            pick = 0;
+        if (pick >= 0) {
+            if (pick == 1)
+                kx_post(KXC_DEMO, 0, 0, 0, 0);
+            else if (pick == 2)
+                kx_post(KXC_SLOT, 0, 2, 0, 0);
+            kx_start = 0;
+            return;
+        }
+    }
+    if (kx_start && kx_boot_done && e->type == VIBE_EV_ENCODER && e->id == VE_DATA) {
+        kx_start_sel = (kx_start_sel + (e->value > 0 ? 1 : 2)) % 3;
+        return;
+    }
+    if (kx_start && kx_boot_done && (e->type == VIBE_EV_PAD || e->type == VIBE_EV_NOTE ||
+                                     (e->type == VIBE_EV_BUTTON && e->id == VB_PLAY)))
+        kx_start = 0;                             /* (played instead: what is there now stays) */
     if (vf_event(e, &fid) != VF_NO)               /* FOCUS first (SDK 10) */
         return;
+    if (kx_shift && ((e->type == VIBE_EV_BUTTON && e->id != VB_SHIFT && e->down) || (e->type == VIBE_EV_PAD && e->down) ||
+                     e->type == VIBE_EV_ENCODER))
+        kx_shift_used = 1;
     switch (e->type) {
     case VIBE_EV_NOTE: {
         uint32_t vel = (uint32_t)(e->value * 127.0f + 0.5f);
@@ -626,6 +681,10 @@ static void kx_ui_event(const vibe_event *e)
     }
     default:
         break;
+    }
+    if (kx_shift_latch && kx_shift_used) {        /* (a tapped SHIFT did its one control) */
+        kx_shift = kx_shift_latch = 0;
+        kx_shift_used = 0;
     }
 }
 

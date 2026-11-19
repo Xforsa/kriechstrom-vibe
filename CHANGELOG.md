@@ -5,6 +5,21 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.4] - 2026-11-19
+
+### Added
+- the start asks: where you left it, the demo song or an empty project (F1 F2 F3, or DATA and ENTER; the keys, pads
+  and PLAY go on with what is there)
+- SHIFT tapped holds for the next control (with a mouse in the browser or the plugin); while SHIFT is on, the pads'
+  second functions are shown
+- the pages slide from one to the next; a value turned lights its card; the SOUND page shows the master's spectrum,
+  ENV and LFO where the newest note and the LFO are now, SEQ the playhead's trail, MASTER the signal along the chain
+- MENU > DISPLAY: SCREEN WEAR OFF, LOW, FULL
+
+### Changed
+- the display's wear is LOW by default: a hint of the tears, the grain and the split colours (FULL as before)
+- DICE says which track got the new part and in which MOOD
+
 ## [0.3] - 2026-11-19
 
 ### Added

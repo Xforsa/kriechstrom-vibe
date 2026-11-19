@@ -26,6 +26,7 @@ enum {
     KXC_FOLLOW,       /* a = 1: the SEQ cursor follows the playhead (follow_poll) */
     KXC_DAW,          /* a b: the DAW's parameter (a | b << 8), v: its value (a float's bits) */
     KXC_SLOT,         /* a = slot 0..3, b: 0 load, 1 save, 2 clear the music (project_new) */
+    KXC_INCFG,        /* a = IC_*, v = detents (b = 1: v is the value): the audio input's settings (kx_input.h) */
 };
 static inline int32_t kx_fbits(float f) { union { float f; int32_t i; } u; u.f = f; return u.i; }
 static inline float kx_bitsf(int32_t i) { union { float f; int32_t i; } u; u.i = i; return u.f; }
@@ -208,6 +209,10 @@ static void kx_apply(const kx_cmd *k)
             project_load(k->a & 3u);
         else
             project_new();
+        break;
+    case KXC_INCFG:
+        if (k->a < IC_N)
+            kx_ic[k->a] = (int16_t)clamp(k->b ? k->v : kx_ic[k->a] + k->v, IC_DESC[k->a].min, IC_DESC[k->a].max);
         break;
     case KXC_FOLLOW:
         if (k->a)

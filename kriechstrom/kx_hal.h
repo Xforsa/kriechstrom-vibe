@@ -56,3 +56,7 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
             kx_fm1_screen[(y + j) * 240u + x + i] = p[j * w + i];
 }
 static struct { uint32_t stage; } felucca_dbg;
+
+/* the core's hook for the audio input (fx.c mix_block): kx_input.h */
+static void kx_in_mix(uint32_t n);
+#define KRST_EXT_MIX(n) kx_in_mix(n)

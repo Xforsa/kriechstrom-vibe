@@ -23,12 +23,12 @@ static const uint32_t TRK_RGB[NTRK] = {0xE0301C, 0xE8A23A, 0xD9D2C2, 0x7896B0}; 
 enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
-enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT };
+enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2 };
 #define PG_MAX 24
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
 static int kx_page = PG_BROWSE;                   /* the page shown */
-static int kx_help, kx_shift;
+static int kx_help, kx_shift, kx_in_asked;
 static float kx_enc_acc[VE_COUNT];
 static uint32_t kx_toast_seq;
 static char kx_toast[24];
@@ -84,6 +84,8 @@ static void kx_family_pages(uint32_t fa)
         break;
     case FA_FX:
         ADD(PG_MASTER);
+        ADD(PG_INPUT);
+        ADD(PG_INPUT2);
         for (i = 0; i < NPAGES; i++)
             if (PAGES[i].fam == FAM_FX && kx_page_ok(i))
                 ADD(i);
@@ -130,6 +132,8 @@ static const char *kx_title(int pg)
     case PG_GRID: return "STEPS";
     case PG_MIXER: return "MIXER";
     case PG_PROJECT: return "PROJECT";
+    case PG_INPUT: return "INPUT";
+    case PG_INPUT2: return "INPUT SENDS";
     }
     if (pg >= 0 && pg < (int)NPAGES) {
         const page_t *p = &PAGES[pg];
@@ -146,6 +150,8 @@ static const char *kx_title(int pg)
 /* the page whose knobs the encoders turn (our pages lend one of KRIECHSTROM's), -1 none */
 static int kx_knob_page(void)
 {
+    if (kx_page == PG_INPUT || kx_page == PG_INPUT2)
+        return kx_page;
     if (kx_page >= 0 && kx_page < (int)NPAGES)
         return kx_page;
     if (kx_page == PG_BROWSE)
@@ -158,8 +164,24 @@ static int kx_knob_page(void)
 }
 
 typedef struct { const char *label; char val[12]; const char *unit; float pos; int bip, on; } kx_card;
+static const uint8_t IN_SLOTS[2][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV}};
 static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 {
+    if (pg == PG_INPUT || pg == PG_INPUT2) {      /* the audio input's (kx_input.h) */
+        uint32_t f = IN_SLOTS[pg == PG_INPUT2][slot & 3u];
+        int v = kx_ic[f];
+        memset(c, 0, sizeof *c);
+        c->on = 1;
+        c->label = IC_DESC[f].label;
+        if (f == IC_GATE || f == IC_FEED)
+            str_cpy(c->val, IC_TRK[clamp(v, 0, NTRK)], sizeof c->val);
+        else
+            vg_itoa(v, c->val);
+        c->unit = "";
+        c->bip = IC_DESC[f].min < 0;
+        c->pos = (float)(v - IC_DESC[f].min) / (float)(IC_DESC[f].max - IC_DESC[f].min);
+        return;
+    }
     const page_t *p;
     const param_desc_t *d;
     int16_t *vp;
@@ -298,7 +320,14 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
     switch (kx_fam) {                             /* F5: the page's action */
     case FA_SOUND: kx_post(KXC_OOPS, song.sel, 0, 0, 0); break;
     case FA_SEQ: kx_post(KXC_TOOL, song.sel, kx_shift ? TL_MOOD : TL_DICE, 0, 0); break;
-    case FA_FX: kx_post(KXC_PERF, PF_TAPE, 1, 0, 0); break;
+    case FA_FX:
+        if (kx_page == PG_INPUT || kx_page == PG_INPUT2) {
+            int m = (kx_ic[IC_MODE] + 1) % 3;
+            kx_post(KXC_INCFG, IC_MODE, 1, 0, m);
+            vibe_input_mode(0, m);
+            vibe_input_mode(1, m);
+        }
+        break;
     default: break;
     }
 }
@@ -307,6 +336,7 @@ static const char *kx_f5_name(void)
     switch (kx_fam) {
     case FA_SOUND: return "OOPS";
     case FA_SEQ: return kx_shift ? "MOOD" : "DICE";
+    case FA_FX: return kx_page == PG_INPUT || kx_page == PG_INPUT2 ? IC_MODE_N[kx_ic[IC_MODE] % 3] : "";
     default: return "";
     }
 }
@@ -325,6 +355,9 @@ static void kx_turn(uint32_t enc, float detents)
             uint32_t id = kx_shift ? P_PAN : P_LEVEL;
             const param_desc_t *d = &TP[id];
             kx_post(KXC_PARAM, enc, id & 0xFFu, id >> 8, clamp(trk[enc].p[id] + n, d->min, d->max));
+        } else if (kx_page == PG_INPUT || kx_page == PG_INPUT2) {
+            uint32_t f = IN_SLOTS[kx_page == PG_INPUT2][enc];
+            kx_post(KXC_INCFG, f, 0, 0, (f == IC_GATE || f == IC_FEED) ? (n > 0 ? 1 : -1) : n);
         } else if (pg >= 0)
             kx_post(KXC_EDIT, (uint32_t)pg, enc, 0, n);
         if (kx_page == PG_GRID && enc == VE_1) {
@@ -737,6 +770,45 @@ static void kx_draw_mixer(int x, int y, int w, int h)
     (void)h;
 }
 
+/* INPUT: what comes in (its scope and level), where it goes */
+static void kx_draw_input(int x, int y, int w, int h)
+{
+    uint32_t i, kw = kx_kin_w;
+    float mid = (float)y + (float)(h - 28) * 0.5f, k = (float)(h - 28) * 0.45f / 32768.0f, px = 0, py = 0;
+    if (!kx_in_on) {
+        vg_text("NO INPUT", x + w / 2, y + 20, VG_BIG, C_DIM, VG_CENTER);
+        vg_text("CONNECT IN 1 / IN 2, OR ALLOW THE MICROPHONE", x + w / 2, y + 52, VG_SMALL, C_DIM, VG_CENTER);
+    }
+    vg_rect(x, (int)mid, w - 30, 1, C_LINE);
+    for (i = 0; i < (uint32_t)(w - 30); i++) {
+        int32_t a = kx_kin[0][(kw - (uint32_t)(w - 30) * 2u + i * 2u) & (KX_KIN - 1u)];
+        float yy = mid - (float)a * k;
+        if (i)
+            vg_line(px, py, (float)(x + (int)i), yy, 1.4f, C_WHITE);
+        px = (float)(x + (int)i);
+        py = yy;
+    }
+    {
+        int mh = (int)(kx_in_peak * (float)(h - 28));
+        vg_rect(x + w - 20, y, 14, h - 28, C_PANEL);
+        vg_rect(x + w - 20, y + (h - 28) - mh, 14, mh, kx_in_peak > 0.9f ? C_RED : C_TEXT);
+    }
+    {
+        char b[48];
+        str_cpy(b, "IN > ", sizeof b);
+        if (kx_ic[IC_GATE])
+            str_cpy(b + str_len(b), "GATE BY T", sizeof b - str_len(b)), b[str_len(b) + 1] = 0, b[str_len(b)] = (char)('0' + kx_ic[IC_GATE]);
+        str_cpy(b + str_len(b), kx_ic[IC_GATE] ? " > MIX > MASTER" : "MIX > MASTER", sizeof b - str_len(b));
+        vg_text(b, x, y + h - 20, VG_SMALL, C_DIM, VG_LEFT);
+        if (kx_ic[IC_FEED]) {
+            str_cpy(b, "ALSO INFECT SOURCE AS T", sizeof b);
+            b[str_len(b) + 1] = 0;
+            b[str_len(b)] = (char)('0' + kx_ic[IC_FEED]);
+            vg_text(b, x + w, y + h - 20, VG_SMALL, C_RED, VG_RIGHT);
+        }
+    }
+}
+
 static void kx_draw_project(int x, int y, int w, int h)
 {
     vg_text("PROJECT", x + w / 2, y + h / 2 - 20, VG_BIG, C_DIM, VG_CENTER);
@@ -833,6 +905,10 @@ static void kx_ui_draw(void)
         kx_view_bank = -1;                        /* (the pads' bank follows the playhead again after 3 s) */
     kx_labels();
     kx_leds();
+    if ((pg == PG_INPUT || pg == PG_INPUT2) && !kx_in_asked) {
+        kx_in_asked = 1;                          /* (the browser asks for the microphone now, not at every start) */
+        vibe_request(VIBE_REQ_AUDIO_INPUT);
+    }
     if (kx_help) {
         kx_draw_help();
         return;
@@ -848,6 +924,8 @@ static void kx_ui_draw(void)
         kx_draw_master(4, 78, 472, 130);
     } else if (pg == PG_MIXER) {
         kx_draw_mixer(4, 78, 472, 200);
+    } else if (pg == PG_INPUT || pg == PG_INPUT2) {
+        kx_draw_input(4, 80, 472, 124);
     } else if (pg == PG_PROJECT) {
         kx_draw_project(4, 78, 472, 200);
     } else if (pg >= 0 && pg < (int)NPAGES) {

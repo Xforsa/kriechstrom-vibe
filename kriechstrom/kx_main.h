@@ -9,6 +9,7 @@ void vibe_on_init(float sample_rate)
     kx_power_on();
     kx_store_boot();
     kx_audio_start(sample_rate);
+    kx_input_start();
     vibe_notes(VIBE_NOTES);
     kx_daw_init();
     kx_ui_init();

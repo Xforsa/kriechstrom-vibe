@@ -93,15 +93,12 @@ static float kx_bessel_i0(float x)
     return s;
 }
 
-static void kx_resampler_init(float sr)
+/* a kernel: cutoff fc of the slower side's Nyquist, in the input's samples (unity gain at DC in every phase) */
+static void kx_kernel(float (*kern)[KX_TAPS], float fc)
 {
     const float beta = 8.0f;
-    float fc = sr < 44100.0f ? sr / 44100.0f : 1.0f;   /* the cutoff, of the core's Nyquist */
     int p, k;
     fc *= 0.94f;
-    kx_sr = sr;
-    kx_step = 44100.0 / (double)sr;
-    kx_bypass = sr > 44099.0f && sr < 44101.0f;
     for (p = 0; p <= KX_PH; p++) {
         float frac = (float)p / (float)KX_PH, sum = 0.0f;
         for (k = 0; k < KX_TAPS; k++) {
@@ -110,12 +107,20 @@ static void kx_resampler_init(float sr)
             float s = sx == 0.0f ? 1.0f : vd_sin(sx * 0.5f) / (VD_PI * sx);   /* sin(pi sx) / (pi sx): turns */
             w = w < -1.0f ? -1.0f : w > 1.0f ? 1.0f : w;
             win = kx_bessel_i0(beta * vd_sqrt(1.0f - w * w)) / kx_bessel_i0(beta);
-            kx_kern[p][k] = s * fc * win;
-            sum += kx_kern[p][k];
+            kern[p][k] = s * fc * win;
+            sum += kern[p][k];
         }
         for (k = 0; k < KX_TAPS; k++)
-            kx_kern[p][k] /= sum;                  /* unity gain at DC in every phase */
+            kern[p][k] /= sum;
     }
+}
+
+static void kx_resampler_init(float sr)
+{
+    kx_sr = sr;
+    kx_step = 44100.0 / (double)sr;
+    kx_bypass = sr > 44099.0f && sr < 44101.0f;
+    kx_kernel(kx_kern, sr < 44100.0f ? sr / 44100.0f : 1.0f);
     kx_pos = 0.0;
 }
 
@@ -190,10 +195,11 @@ static void kx_daw_transport(void);
 static void kx_daw_sync(void);
 static void kx_snap_poll_audio(void);               /* kx_ctl.h: the core's MIDI OUT queue to the host */
 
+static void kx_input_push(const float *a, const float *b, int frames);   /* kx_input.h */
 void vibe_on_audio(const float *in, float *out_l, float *out_r, int frames)
 {
     int j;
-    (void)in;
+    kx_input_push(in, in ? vibe_input(1) : 0, frames);
     kx_daw_transport();
     kx_commands();
     kx_snap_poll_audio();

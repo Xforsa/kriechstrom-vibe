@@ -10,6 +10,11 @@ void vibe_on_init(float sample_rate)
     kx_store_boot();
     kx_audio_start(sample_rate);
     kx_input_start();
+    kx_cfg_boot();
+    if (kx_ic[IC_MODE]) {
+        vibe_input_mode(0, kx_ic[IC_MODE]);
+        vibe_input_mode(1, kx_ic[IC_MODE]);
+    }
     vibe_notes(VIBE_NOTES);
     kx_daw_init();
     kx_ui_init();

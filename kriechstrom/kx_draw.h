@@ -104,7 +104,7 @@ static void kx_draw_cards(int pg, int y)
 {
     uint32_t k;
     uint32_t col = TRK_RGB[song.sel];
-    if ((pg >= 0 && pg < (int)NPAGES && PAGES[pg].scope == SC_GLOBAL) || pg == PG_INPUT || pg == PG_INPUT2)
+    if ((pg >= 0 && pg < (int)NPAGES && PAGES[pg].scope == SC_GLOBAL) || IS_IC_PAGE(pg))
         col = C_RED;
     vg_rect(8, y - 4, 464, 1, 0x26262A);
     for (k = 0; k < 4u; k++) {
@@ -484,6 +484,26 @@ static void kx_draw_input(int x, int y, int w, int h)
     }
 }
 
+/* MIDI OUT: the four tracks, each on its channel, its notes lit as they go out */
+static void kx_draw_midi(int x, int y, int w, int h)
+{
+    uint32_t k, i;
+    for (k = 0; k < NTRK; k++) {
+        int ry = y + (int)k * (h / 4), ch = (kx_ic[IC_MCH] - 1 + (int)k) % 16 + 1;
+        char b[8];
+        vg_text("CH", x, ry + 4, VG_SMALL, 0x55555C, VG_LEFT);
+        vg_itoa(ch, b);
+        vg_text(b, x + 22, ry + 2, VG_BOLD, kx_ic[IC_MOUT] ? TRK_RGB[k] : 0x3A3A40, VG_LEFT);
+        vg_rect(x + 52, ry + h / 8, w - 120, 1, 0x26262A);
+        for (i = 0; i < kx_mo_n[k] && i < 16u; i++) {
+            int nx = x + 52 + (int)kx_mo_on[k][i] * (w - 120) / 128;
+            vg_rect(nx - 2, ry + 3, 5, h / 4 - 8, TRK_RGB[k]);
+        }
+        if (kx_ic[IC_CV] == (int)k + 1)
+            vg_text(kx_mo_n[k] ? "CV  GATE" : "CV", x + w, ry + 4, VG_SMALL, C_RED, VG_RIGHT);
+    }
+}
+
 static void kx_draw_project(int x, int y, int w, int h)
 {
     static const char *const SL[4] = {"A", "B", "C", "D"};
@@ -615,6 +635,8 @@ static void kx_ui_draw(void)
         kx_draw_mixer(4, 96, 472, 186);
     } else if (pg == PG_PROJECT) {
         kx_draw_project(4, 98, 472, 110);
+    } else if (pg == PG_MIDI) {
+        kx_draw_midi(8, 98, 464, 108);
     } else if (pg == PG_INPUT || pg == PG_INPUT2) {
         kx_draw_input(4, 96, 472, 110);
     } else if (pg >= 0 && pg < (int)NPAGES) {

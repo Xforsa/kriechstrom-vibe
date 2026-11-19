@@ -23,7 +23,9 @@ static const uint32_t TRK_RGB[NTRK] = {0xE0301C, 0xE8A23A, 0xD9D2C2, 0x7896B0}; 
 enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
-enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2 };
+enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI };
+#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : 2)
+#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI)
 #define PG_MAX 24
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
@@ -98,6 +100,7 @@ static void kx_family_pages(uint32_t fa)
     default:
         ADD(PG_MIXER);
         ADD(PG_PROJECT);
+        ADD(PG_MIDI);
         i = (uint32_t)kx_page_index("CLOCK");
         ADD(i);
         break;
@@ -134,6 +137,7 @@ static const char *kx_title(int pg)
     case PG_PROJECT: return "PROJECT";
     case PG_INPUT: return "INPUT";
     case PG_INPUT2: return "INPUT SENDS";
+    case PG_MIDI: return "MIDI OUT & CV";
     }
     if (pg >= 0 && pg < (int)NPAGES) {
         const page_t *p = &PAGES[pg];
@@ -150,7 +154,7 @@ static const char *kx_title(int pg)
 /* the page whose knobs the encoders turn (our pages lend one of KRIECHSTROM's), -1 none */
 static int kx_knob_page(void)
 {
-    if (kx_page == PG_INPUT || kx_page == PG_INPUT2)
+    if (IS_IC_PAGE(kx_page))
         return kx_page;
     if (kx_page >= 0 && kx_page < (int)NPAGES)
         return kx_page;
@@ -164,17 +168,25 @@ static int kx_knob_page(void)
 }
 
 typedef struct { const char *label; char val[12]; const char *unit; float pos; int bip, on; } kx_card;
-static const uint8_t IN_SLOTS[2][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV}};
+static const uint8_t IN_SLOTS[3][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
+                                       {IC_MOUT, IC_MCH, IC_CLK, IC_CV}};
 static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 {
-    if (pg == PG_INPUT || pg == PG_INPUT2) {      /* the audio input's (kx_input.h) */
-        uint32_t f = IN_SLOTS[pg == PG_INPUT2][slot & 3u];
+    if (IS_IC_PAGE(pg)) {                         /* the audio input's, MIDI OUT's (kx_input.h, kx_midi.h) */
+        uint32_t f = IN_SLOTS[IC_PAGE(pg)][slot & 3u];
         int v = kx_ic[f];
         memset(c, 0, sizeof *c);
         c->on = 1;
         c->label = IC_DESC[f].label;
-        if (f == IC_GATE || f == IC_FEED)
+        if (f == IC_GATE || f == IC_FEED || f == IC_CV)
             str_cpy(c->val, IC_TRK[clamp(v, 0, NTRK)], sizeof c->val);
+        else if (f == IC_MOUT || f == IC_CLK)
+            str_cpy(c->val, v ? "ON" : "OFF", sizeof c->val);
+        else if (f == IC_MCH) {
+            char *q = vg_itoa(v, c->val);
+            str_cpy(q + str_len(q), "-", 2);
+            vg_itoa(v + 3, q + str_len(q));
+        }
         else
             vg_itoa(v, c->val);
         c->unit = "";
@@ -363,9 +375,9 @@ static void kx_turn(uint32_t enc, float detents)
             uint32_t id = kx_shift ? P_PAN : P_LEVEL;
             const param_desc_t *d = &TP[id];
             kx_post(KXC_PARAM, enc, id & 0xFFu, id >> 8, clamp(trk[enc].p[id] + n, d->min, d->max));
-        } else if (kx_page == PG_INPUT || kx_page == PG_INPUT2) {
-            uint32_t f = IN_SLOTS[kx_page == PG_INPUT2][enc];
-            kx_post(KXC_INCFG, f, 0, 0, (f == IC_GATE || f == IC_FEED) ? (n > 0 ? 1 : -1) : n);
+        } else if (IS_IC_PAGE(kx_page)) {
+            uint32_t f = IN_SLOTS[IC_PAGE(kx_page)][enc];
+            kx_post(KXC_INCFG, f, 0, 0, IC_DESC[f].max - IC_DESC[f].min < 20 ? (n > 0 ? 1 : -1) : n);
         } else if (pg >= 0)
             kx_post(KXC_EDIT, (uint32_t)pg, enc, 0, n);
         if (kx_page == PG_GRID && enc == VE_1) {

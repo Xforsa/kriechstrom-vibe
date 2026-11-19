@@ -79,8 +79,10 @@ static void kx_store_write(const char *name, const void *p, int n)
 }
 
 /* now = 1: everything that changed, at once (VIBE_EV_SAVE); else the session a second after its last change */
+static void kx_cfg_poll(void);
 static void kx_store_poll(int now)
 {
+    kx_cfg_poll();
     uint32_t s = __atomic_load_n(&kx_snap_seq, __ATOMIC_ACQUIRE), i;
     uint64_t ms = vibe_frames() * 1000u / (uint64_t)(kx_sr > 0 ? kx_sr : 48000.0f);
     if (s != kx_snap_seen) {
@@ -145,4 +147,36 @@ static void kx_store_boot(void)
     kx_slot_info();
     kx_snap_sig = autosave_sig();                 /* (what is there now is what is stored) */
     proj_kept_now();
+}
+
+/* vibe.cfg: the VIBE's own settings (the audio input, MIDI OUT, CV), not the FM-1 project's: "KXC1", their count, the
+ * values (int16, little-endian) in IC_* order. A newer firmware adds settings at the end: an older file keeps the rest */
+static int16_t kx_ic_wrote[IC_N];
+static int kx_ic_loaded;
+static void kx_cfg_boot(void)                     /* vibe_on_init, after kx_input_start */
+{
+    uint8_t b[8 + 2 * 64];
+    int n = vibe_store_read("vibe.cfg", b, (int)sizeof b), i, c;
+    if (n >= 8 && b[0] == 'K' && b[1] == 'X' && b[2] == 'C' && b[3] == '1') {
+        c = b[4] | b[5] << 8;
+        for (i = 0; i < c && i < IC_N && 8 + 2 * i + 1 < n; i++)
+            kx_ic[i] = (int16_t)clamp((int16_t)(b[8 + 2 * i] | b[9 + 2 * i] << 8), IC_DESC[i].min, IC_DESC[i].max);
+    }
+    memcpy(kx_ic_wrote, kx_ic, sizeof kx_ic_wrote);
+    kx_ic_loaded = 1;
+}
+static void kx_cfg_poll(void)                     /* control flow */
+{
+    uint8_t b[8 + 2 * IC_N];
+    int i;
+    if (!kx_ic_loaded || !memcmp(kx_ic_wrote, kx_ic, sizeof kx_ic_wrote))
+        return;
+    memcpy(kx_ic_wrote, kx_ic, sizeof kx_ic_wrote);
+    memset(b, 0, sizeof b);
+    b[0] = 'K', b[1] = 'X', b[2] = 'C', b[3] = '1', b[4] = IC_N;
+    for (i = 0; i < IC_N; i++) {
+        b[8 + 2 * i] = (uint8_t)(kx_ic_wrote[i] & 0xFF);
+        b[9 + 2 * i] = (uint8_t)((uint16_t)kx_ic_wrote[i] >> 8);
+    }
+    kx_store_write("vibe.cfg", b, (int)sizeof b);
 }

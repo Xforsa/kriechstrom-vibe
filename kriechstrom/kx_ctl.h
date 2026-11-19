@@ -225,17 +225,11 @@ static void kx_apply(const kx_cmd *k)
     }
 }
 
-/* the core's MIDI OUT (bsp/chip/usb.c midi_out_q: the sequencer's and the keys' notes, its clock) to the host, from
- * the audio flow only (the SDK's MIDI queue has one writer) */
+/* the core's own MIDI OUT queue (bsp/chip/usb.c midi_out_q: the keys' notes, their pressure): emptied, as the FM-1's USB
+ * would. What goes out to the host is kx_midi.h's: every track's notes as they sound, the keys' among them */
 static void kx_midi_out(int frame)
 {
-    while (mo_r != mo_w) {
-        uint32_t pkt = midi_out_q[mo_r % MQ];
-        uint32_t st = (pkt >> 8) & 0xFFu;
-        mo_r++;
-        if (st >= 0x80u)
-            vibe_midi_send((uint8_t)st, (uint8_t)((pkt >> 16) & 0x7Fu), (uint8_t)((pkt >> 24) & 0x7Fu));
-    }
+    mo_r = mo_w;
     (void)frame;
 }
 

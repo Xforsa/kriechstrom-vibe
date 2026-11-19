@@ -46,6 +46,8 @@ static float kx_hit_amt;                          /* .. how hard, 0..1 */
 static float kx_env_f, kx_env_s;
 static uint32_t kx_hit_hold;
 
+static void kx_midi_block(void);                  /* kx_midi.h */
+
 /* ---- the core at 44.1 kHz ------------------------------------------------------------------------------------- */
 #define KX_RB 1024u                               /* core frames kept for the resampler (a power of two) */
 static float kx_rb[2][KX_RB];
@@ -57,6 +59,7 @@ static void kx_core_block(void)
     int32_t o[2 * CTL];
     uint32_t i;
     mix_block(o, CTL);
+    kx_midi_block();
     for (i = 0; i < CTL; i++) {
         int32_t l = o[2u * i], r = o[2u * i + 1u];
         uint32_t at = (kx_rb_w + i) & (KX_RB - 1u);
@@ -214,6 +217,7 @@ static void kx_commands(void)
 static void kx_midi_out(int frame);
 static void kx_daw_transport(void);
 static void kx_daw_sync(void);
+static void kx_midi_audio(void);
 static void kx_snap_poll_audio(void);               /* kx_ctl.h: the core's MIDI OUT queue to the host */
 
 static void kx_input_push(const float *a, const float *b, int frames);   /* kx_input.h */
@@ -238,4 +242,5 @@ void vibe_on_audio(const float *in, float *out_l, float *out_r, int frames)
     kx_peak[1] *= 0.97f;
     kx_daw_sync();
     kx_midi_out(0);
+    kx_midi_audio();
 }

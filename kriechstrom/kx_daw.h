@@ -172,6 +172,16 @@ static void kx_daw_init(void)
     vibe_params(kx_params, DW_N);
     vibe_param_groups(kx_groups);
     vibe_editor_accent(0xE01818);
+    {   /* the Editor: a tab per track (its mixer, sound, envelope, sends), the master's last */
+        static const vibe_card CARDS[] = {{"TRACK", 3, 0}, {"SOUND", 9, "the engine's eight, as its EDIT pages"},
+                                          {"ENVELOPE", 6, 0}, {"SENDS", 6, 0}, {"MASTER", 12, "the whole mix"}};
+        vibe_editor_cards(CARDS, (int)(sizeof CARDS / sizeof CARDS[0]));
+        vibe_editor_tab_color("T1", 0xE0301C);
+        vibe_editor_tab_color("T2", 0xE8A23A);
+        vibe_editor_tab_color("T3", 0xD9D2C2);
+        vibe_editor_tab_color("T4", 0x7896B0);
+        vibe_editor_tab_color("MASTER", 0xE01818);
+    }
     for (j = 0; j < DW_N; j++) {
         kx_dawv[j] = kx_daw_of(j);
         vibe_param_set((int)j, kx_dawv[j]);

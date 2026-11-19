@@ -25,7 +25,4 @@ if [ ! -f "$stamp" ]; then
     "$PY" "$K/tools/gen_words.py" "$K/firmware/words.tsv" build/words "$G/ann_words.h" >/dev/null
     touch "$stamp"
 fi
-if [ -z "$ZIG" ] && ! command -v zig >/dev/null 2>&1 && [ -x "$HOME/.local/zig/zig-macos-aarch64-0.13.0/zig" ]; then
-    ZIG="$HOME/.local/zig/zig-macos-aarch64-0.13.0/zig"; export ZIG
-fi
 exec sh tools/vibe-build.sh "$DIR"

@@ -59,11 +59,12 @@ static void cr_init(void)
 }
 
 /* the figure in a box: `wear` 0..1 how much of it shows (by its order), `heat` 0..1 how hot (the level) */
-static void cr_draw(int bx, int by, int bw, int bh, float wear, float heat, uint32_t col)
+static void cr_draw_in(int bx, int by, int bw, int bh, float wear, float heat, uint32_t col, int bg)
 {
     uint32_t i, pass;
     float sx = (float)bw / 1024.0f, sy = (float)bh / 1024.0f, lim = 6.0f + wear * 250.0f;
-    uint32_t core = vg_mix(col, 0xFFF4EA, 0.55f + 0.45f * heat), dim = vg_mix(0x0A0A0B, 0x8A2A14, 0.85f);
+    uint32_t core = bg ? vg_mix(col, 0xC04020, 0.5f) : vg_mix(col, 0xFFF4EA, 0.55f + 0.45f * heat);
+    uint32_t dim = bg ? vg_mix(0x0A0A0B, col, 0.55f) : vg_mix(0x0A0A0B, 0x8A2A14, 0.85f);
     for (pass = heat > 0.05f ? 0u : 1u; pass < 2u; pass++)
     for (i = 0; i < cr_n; i++) {
         const cr_seg *s = &cr[i];
@@ -84,6 +85,11 @@ static void cr_draw(int bx, int by, int bw, int bh, float wear, float heat, uint
             vg_mix(col, dim, (float)(s->depth - 1) * 0.28f);
         vg_line((float)bx + s->x0 * sx, (float)by + s->y0 * sy, (float)bx + s->x1 * sx, (float)by + s->y1 * sy, w, c);
     }
+}
+
+static void cr_draw(int bx, int by, int bw, int bh, float wear, float heat, uint32_t col)
+{
+    cr_draw_in(bx, by, bw, bh, wear, heat, col, 0);
 }
 
 /* how far the mix is worn: DAMAGE and WALL, a little of the others */

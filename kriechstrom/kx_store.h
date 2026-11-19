@@ -37,6 +37,22 @@ static void kx_snap_poll_audio(void)
     __atomic_store_n(&kx_snap_done, req, __ATOMIC_RELEASE);
 }
 
+/* the PROJECT page's slots, as the audio flow last saw them (names and whether used) */
+static uint8_t kx_slot_used[4];
+static char kx_slot_name[4][16];
+static void kx_slot_info(void)                    /* audio flow (or init): project_info uses proj_scratch */
+{
+    uint32_t i;
+    for (i = 0; i < 4u; i++) {
+        char b[PROJ_NAME_LEN + 1u];
+        int u = project_name(i, b);
+        if (u && !b[0])
+            str_cpy(b, "NO NAME", sizeof b);
+        str_cpy(kx_slot_name[i], b, sizeof kx_slot_name[i]);
+        kx_slot_used[i] = (uint8_t)(u != 0);
+    }
+}
+
 /* the audio flow, after a command that saved a slot or a user sound */
 static void kx_slot_saved(uint32_t s)
 {
@@ -126,6 +142,7 @@ static void kx_store_boot(void)
         transport_req = 0;
         ui.msg_t = 0;                             /* (no "LOADED" at every start) */
     }
+    kx_slot_info();
     kx_snap_sig = autosave_sig();                 /* (what is there now is what is stored) */
     proj_kept_now();
 }

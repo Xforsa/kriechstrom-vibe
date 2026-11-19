@@ -32,6 +32,7 @@ static inline int32_t kx_fbits(float f) { union { float f; int32_t i; } u; u.f =
 static inline float kx_bitsf(int32_t i) { union { float f; int32_t i; } u; u.i = i; return u.f; }
 static void kx_daw_apply(uint32_t j, float v);    /* kx_daw.h */
 static void kx_slot_saved(uint32_t s);            /* kx_store.h */
+static void kx_slot_info(void);
 static void kx_tool(track_t *t, uint32_t p)
 {
     const char *m;
@@ -209,6 +210,7 @@ static void kx_apply(const kx_cmd *k)
             project_load(k->a & 3u);
         else
             project_new();
+        kx_slot_info();
         break;
     case KXC_INCFG:
         if (k->a < IC_N)

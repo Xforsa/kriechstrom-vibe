@@ -41,6 +41,10 @@ static float kx_peak[2];                          /* the output's peak, decaying
 #define KX_SCOPE 2048u
 static int16_t kx_scope[KX_SCOPE];                /* the master, at 44.1 kHz (mono sum), for the display and the stage */
 static uint32_t kx_scope_w;
+static uint32_t kx_hits;                          /* +1 per hit heard in the mix (a fast level over a slow one) */
+static float kx_hit_amt;                          /* .. how hard, 0..1 */
+static float kx_env_f, kx_env_s;
+static uint32_t kx_hit_hold;
 
 /* ---- the core at 44.1 kHz ------------------------------------------------------------------------------------- */
 #define KX_RB 1024u                               /* core frames kept for the resampler (a power of two) */
@@ -60,6 +64,23 @@ static void kx_core_block(void)
         kx_rb[1][at] = (float)r * (1.0f / 32768.0f);
         if (i & 1u)
             kx_scope[kx_scope_w++ & (KX_SCOPE - 1u)] = (int16_t)((l + r) >> 1);
+    }
+    {   /* hits: the block's level against its slow average (the display's tears follow the drums) */
+        float e = 0.0f;
+        for (i = 0; i < CTL; i++) {
+            float v = kx_rb[0][(kx_rb_w + i) & (KX_RB - 1u)];
+            e += v < 0 ? -v : v;
+        }
+        e *= 1.0f / (float)CTL;
+        kx_env_f = e > kx_env_f ? e : kx_env_f * 0.8f;
+        kx_env_s += (e - kx_env_s) * 0.01f;
+        if (kx_hit_hold)
+            kx_hit_hold--;
+        else if (kx_env_f > kx_env_s * 1.8f + 0.02f) {
+            kx_hit_amt = kx_env_f > 0.5f ? 1.0f : kx_env_f * 2.0f;
+            __atomic_store_n(&kx_hits, kx_hits + 1u, __ATOMIC_RELEASE);
+            kx_hit_hold = 120;                    /* (~90 ms before the next) */
+        }
     }
     kx_rb_w += CTL;
     kx_blocks++;

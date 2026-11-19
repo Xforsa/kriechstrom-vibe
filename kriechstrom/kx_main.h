@@ -36,6 +36,7 @@ void vibe_on_event(const vibe_event *e)
 
 void vibe_on_draw(uint16_t *fb)
 {
+    kx_fb = fb;
     vg_begin(fb);
     kx_ui_draw();
     kx_store_poll(0);

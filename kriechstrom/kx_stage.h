@@ -126,7 +126,6 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
     uint32_t k;
     char b[16];
     float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
-    (void)fb; (void)w; (void)h;
     kx_stage_on = 1;
     vg_clear(C_BG);
     /* the head: the name, the transport, the tempo */
@@ -175,6 +174,7 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
         vg_text(SK_HOW[k], x + SR_W / 2 - 2, SR_Y + 92, VG_SMALL, 0x45454B, VG_CENTER);
     }
 
+    kx_wear_fx(fb, w, h);
 }
 
 /* the stage's input: clicks, drags and the wheel, in stage pixels */

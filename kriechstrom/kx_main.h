@@ -13,6 +13,7 @@ void vibe_on_init(float sample_rate)
     vibe_notes(VIBE_NOTES);
     kx_daw_init();
     kx_ui_init();
+    kx_stage_init();
 }
 
 void vibe_on_event(const vibe_event *e)
@@ -26,7 +27,10 @@ void vibe_on_event(const vibe_event *e)
             kx_post(KXC_DAW, e->id & 0xFFu, (uint32_t)e->id >> 8, 0, kx_fbits(e->value));
         return;
     }
-    kx_ui_event(e);
+    if (e->type == VIBE_EV_STAGE)
+        kx_stage_event(e);
+    else
+        kx_ui_event(e);
     kx_store_poll(0);
 }
 

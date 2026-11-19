@@ -49,4 +49,6 @@
 #include "kx_store.h"
 #include "kx_daw.h"
 #include "kx_ui.h"
+#include "kx_creep.h"
+#include "kx_stage.h"
 #include "kx_main.h"

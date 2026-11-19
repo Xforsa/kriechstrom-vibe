@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRIECHSTROM for VIBE FM</title>
+<link rel="icon" type="image/png" href="media/icon-32.png">
+<link rel="apple-touch-icon" href="media/icon-180.png">
+<meta name="description" content="KRIECHSTROM for VIBE FM: the dark industrial and EBM groovebox of the M-VAVE FM-1 as a native Vibe, with audio in, MIDI out, a stage and a display that wears with the sound.">
+<link rel="stylesheet" href="style.css">
+<script src="vibe.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="index.html">KRIECH<b>STROM</b></a>
+  <nav><a href="https://play.thefirmwarehub.com/">Play</a><a href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest">Download</a><a href="https://xforsa.github.io/kriechstrom/">For the FM-1</a><a href="https://github.com/Xforsa/kriechstrom-vibe">GitHub</a><a href="ru.html">По-русски</a></nav>
+</header>
+<main>
+<div class="hero"><canvas id="creep" aria-hidden="true"></canvas><h1>KRIECH<span class="red">STROM</span></h1><p class="sub">FOR VIBE FM</p></div>
+<p class="lead">The dark industrial and EBM groovebox of the M-VAVE FM-1, as a native Vibe: the same sound engine, on the
+big screen, with pads, an audio input, MIDI out, CV and a stage.</p>
+<p>
+  <a class="btn" href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest/download/kriechstrom.wasm">kriechstrom.wasm</a>
+  <a class="btn ghost" href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest/download/kriechstrom.zip">kriechstrom.zip for VIBE FM VST</a>
+  <a class="btn ghost" href="https://play.thefirmwarehub.com/">Open the Playground</a>
+</p>
+<p class="cap">In the browser: open the Playground and drop <code>kriechstrom.wasm</code> onto the device, then press PLAY.
+In a DAW: drop <code>kriechstrom.zip</code> onto the VIBE FM VST window.</p>
+
+<img class="screen" src="media/wear.webp" alt="The VIBE's display while DAMAGE, CHAR, HISS and WALL are turned up" width="480" height="320">
+<p class="cap">The display wears with the sound: DAMAGE tears it on the drum hits, CHAR splits its colours, HISS adds
+grain, and the discharge behind the page grows with the wear.</p>
+<audio controls preload="none" src="media/wear.m4a"></audio><span class="demo">The same moment: the four tracks as they
+start, DAMAGE, CHAR, HISS and WALL turned up.</span>
+
+<h2>What the VIBE adds</h2>
+<ul class="feats">
+  <li><b>The 480 x 320 display.</b> Pages for SOUND, ENV, LFO, ARP, FX and SEQ, the four values on encoders 1-4 in big
+    type, the four tracks with their levels always at the top; a piano roll or an eight-lane drum grid of the steps,
+    the whole pattern above it; SONG, AUTOMATION, FM6's operators, the mixer, the project slots.</li>
+  <li><b>A display that wears.</b> Kriechstrom is the leakage current that crawls across worn insulation and leaves a
+    branching mark. That mark grows behind every page as far as DAMAGE and WALL wear the mix; DAMAGE tears the picture
+    on the hits, CHAR towards DIGITAL splits its colours, SPLICE cuts bands of it, HAUNT's DRAG sags it, HISS adds grain.</li>
+  <li><b>The pads.</b> Mute and DICE per track, hold effects (repeat 1/16, tape stop, freeze, gate), four drum lanes
+    with velocity. On the SEQ page they are the 16 steps shown, lit as they play.</li>
+  <li><b>The audio input.</b> A guitar, a voice or a drum machine into the mix and through the whole master, with
+    DRIVE and sends; a GATE opened by a track's notes (the drums chop the guitar); and as a track's stand-in for
+    INFECT, so a voice talks through the pad with VOX or a guitar ducks the bass.</li>
+  <li><b>MIDI OUT and CV.</b> Each track's notes on its own channel, DICE's parts on another synth, 24 PPQ clock with
+    START and STOP; one track's notes on CV and GATE.</li>
+  <li><b>The stage.</b> A second picture, 960 x 540: the four patterns at once with their playheads, the discharge over
+    the master's scope, the master's chain as knobs to drag.</li>
+  <li><b>The DAW.</b> The mixer, each track's sound, envelope and sends and the master's effects as automatable
+    parameters, the DAW's transport and tempo; the music and the settings are kept with the DAW project.</li>
+</ul>
+
+<img class="wide" src="shots/stage.png" alt="The stage: four patterns, the discharge, the master's chain" width="960" height="540">
+<p class="cap">The stage.</p>
+
+<div class="shots">
+  <figure><img src="shots/sound.png" alt="SOUND"><figcaption>Sounds</figcaption></figure>
+  <figure><img src="shots/seq.png" alt="SEQ"><figcaption>The steps as a piano roll</figcaption></figure>
+  <figure><img src="shots/seq-drum.png" alt="SEQ drums"><figcaption>The drum lanes</figcaption></figure>
+  <figure><img src="shots/master.png" alt="MASTER"><figcaption>The master, worn</figcaption></figure>
+</div>
+
+<h2>The same KRIECHSTROM</h2>
+<p>The sound is the FM-1 firmware's own code: four tracks, the GLCH engine and the rest of Felucca's, six drum kits of
+its own, the sequencer with locks, conditions and ratchets, DICE in eight moods, OOPS, INFECT, RESONATE, SPLICE and
+HAUNT. At 44.1 kHz the VIBE plays exactly what the FM-1 plays, sample for sample. The
+<a href="https://xforsa.github.io/kriechstrom/manual/en.html">FM-1 manual</a> describes the sounds and the effects;
+on the VIBE, HOME shows what every control does on the page.</p>
+<p class="also">KRIECHSTROM for the <b>M-VAVE FM-1</b> is its own firmware, with an installer in the browser:
+<a href="https://xforsa.github.io/kriechstrom/">xforsa.github.io/kriechstrom</a>.</p>
+
+<h2>Controls</h2>
+<div class="tw"><table>
+<tr><th>Control</th><th>What it does</th></tr>
+<tr><td>keys</td><td>play the selected track</td></tr>
+<tr><td>pads 1-4 / 5-8</td><td>mute a track (SHIFT: select) / DICE a new part (SHIFT: the next MOOD)</td></tr>
+<tr><td>pads 9-12 / 13-16</td><td>hold an effect / KICK SNARE CLAP HAT with velocity</td></tr>
+<tr><td>SOUND ENV LFO ARP FX SEQ</td><td>the pages; again: the next page of the family</td></tr>
+<tr><td>encoders 1-4</td><td>the four values on the page</td></tr>
+<tr><td>DATA</td><td>the sounds (SHIFT: the engine); on SEQ the step</td></tr>
+<tr><td>A / B</td><td>the track's level / DAMAGE (SHIFT + B: WALL)</td></tr>
+<tr><td>F1-F4, F5, F6</td><td>select a track, the page's action (OOPS, DICE, SAVE ..), UNDO</td></tr>
+<tr><td>MENU</td><td>the mixer, the project slots, MIDI OUT and CV, the clock</td></tr>
+<tr><td>HOME</td><td>what every control does</td></tr>
+</table></div>
+
+<h2 id="source">Built on</h2>
+<p>KRIECHSTROM for VIBE FM is free software (GPL-3.0). It runs the code of
+<a href="https://github.com/Xforsa/kriechstrom">KRIECHSTROM</a> for the FM-1, which is built on
+<a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita (Hügelton Instruments), with parts of
+<a href="https://github.com/erikdevos/glitchbox">Glitchbox</a> by erikdevos. Built with the
+<a href="https://github.com/Vibe-FM-SDK/vibe-fm-sdk">VIBE FM SDK</a>.
+<a href="https://github.com/Xforsa/kriechstrom-vibe">Source, credits and licences on GitHub</a>.</p>
+</main>
+<footer>KRIECHSTROM for VIBE FM @VERSION@ by Grigorii Bezborodov · on KRIECHSTROM and Felucca · GPL-3.0 · <a href="https://github.com/Xforsa/kriechstrom-vibe">source on GitHub</a></footer>
+</body>
+</html>

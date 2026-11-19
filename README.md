@@ -10,6 +10,8 @@ the screen, the controls, the audio input, MIDI OUT and the stage are new.
 
 ![KRIECHSTROM on the VIBE FM display](docs/sound.png)
 
+Site: https://xforsa.github.io/kriechstrom-vibe/ · for the FM-1: https://xforsa.github.io/kriechstrom/
+
 Kriechstrom is German for creepage current: the leakage across worn insulation that leaves a branching mark. Here that
 mark grows behind every page as the master wears the mix out.
 
@@ -101,6 +103,7 @@ sh tests/run.sh            # the tests, vibe-check among them
   [VIBE FM SDK](https://github.com/Vibe-FM-SDK/vibe-fm-sdk) (Apache-2.0, `sdk/VERSION` names its commit);
   `tools/vibe-build.sh` adds the generated headers' folders, `tools/kx-test.mjs` is `wasmtest.mjs` that also saves the
   stage.
+- `site/` the site (GitHub Pages, `tools/make_site.sh`), in English and Russian.
 - `tests/` the host tests: the core at 44.1 kHz against the FM-1 build, vibe-check, other rates, the input, MIDI OUT,
   storage.
 

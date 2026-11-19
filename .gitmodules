@@ -1,0 +1,3 @@
+[submodule "core/kriechstrom"]
+	path = core/kriechstrom
+	url = https://github.com/Xforsa/kriechstrom

@@ -10,7 +10,32 @@ enum {
     KXC_SEL,           /* a: the track to select */
     KXC_PARAM,         /* a: track (4 = global), b c: the parameter id (b | c << 8), v: the new value */
     KXC_PANIC,
+    KXC_EDIT,         /* a = PAGES index, b = its knob 0..3, v = detents: the page's knob, as the FM-1's (edit_param) */
+    KXC_PRESET,       /* v = detents: the selected track's sound, one list over every engine (preset_step) */
+    KXC_ENGINE,       /* v = detents: the selected track's engine (select_engine) */
+    KXC_TOOL,         /* a = track, b = TL_*: SEQ TOOLS (ui_tools.c tl_do: DICE, CLEAR, REVERSE ..), one undo */
+    KXC_OOPS,         /* a = track: HAPPY ACCIDENT (krst_dice.c accident_of) */
+    KXC_UNDO,         /* the last edit back (ui.c undo_swap: SAVE held on the FM-1) */
+    KXC_MUTE,         /* a = track, b: 0 toggle, 1 mute, 2 unmute */
+    KXC_PERF,         /* a = PF_* effect, b = 1 held / 0 let go (perform.c: the FX layer's effects) */
+    KXC_STEP,         /* a = track, b = step, c = lane (DRUM) or 255 (a note step: on with the last note / off) */
+    KXC_CURSOR,       /* v = the SEQ cursor's step */
+    KXC_LANE,         /* a = the DRUM lane the SEQ page edits */
+    KXC_REC,          /* the selected track armed for live recording, or not */
+    KXC_HIT,          /* a = track, b = note, v = velocity 1..127 (0: off): a drum pad on any track */
+    KXC_FOLLOW,       /* a = 1: the SEQ cursor follows the playhead (follow_poll) */
 };
+static void kx_tool(track_t *t, uint32_t p)
+{
+    const char *m;
+    if (chain_busy()) {
+        ui_message("STOP TO EDIT");
+        return;
+    }
+    m = tl_do(t, p, ui.lane);
+    if (m)
+        ui_message(m);
+}
 
 /* the VIBE's notes (keys, pads as notes) on the selected track, as the FM-1's keys play (seq.c key_on / key_off): the
  * chord keys, the arpeggiator, live recording and MIDI OUT all as there. kx_kb: the notes each note started */
@@ -69,8 +94,7 @@ static void kx_apply(const kx_cmd *k)
             transport_req = k->a;
         break;
     case KXC_SEL:
-        if (k->a < NTRK)
-            song.sel = k->a;
+        track_select(k->a);
         break;
     case KXC_PARAM: {
         uint32_t id = k->b | (uint32_t)k->c << 8;
@@ -82,6 +106,96 @@ static void kx_apply(const kx_cmd *k)
     }
     case KXC_PANIC:
         panic_req = (1u << NTRK) - 1u;
+        break;
+    case KXC_EDIT:
+        if (k->a < NPAGES) {
+            ui.home = 0;
+            ui.menu = 0;
+            ui.confirm = 0;
+            if (ui.page != k->a) {
+                ui.page = k->a;
+                ui.act = 0;
+            }
+            edit_param(k->b & 3u, k->v);
+        }
+        break;
+    case KXC_PRESET:
+        preset_step(k->v);
+        break;
+    case KXC_ENGINE:
+        select_engine(eng_step(TSEL->eng_req, k->v));
+        break;
+    case KXC_TOOL:
+        if (k->b == TL_MOOD)
+            ui_message(mood_next());
+        else
+            kx_tool(&trk[k->a % NTRK], k->b);
+        break;
+    case KXC_OOPS:
+        if (chain_busy())
+            ui_message("STOP TO EDIT");
+        else
+            ui_message(accident_of(&trk[k->a % NTRK]));
+        break;
+    case KXC_UNDO:
+        undo_swap();
+        break;
+    case KXC_MUTE: {
+        track_t *t = &trk[k->a % NTRK];
+        t->p[P_MUTE] = (int16_t)(k->b == 1u ? 1 : k->b == 2u ? 0 : !t->p[P_MUTE]);
+        break;
+    }
+    case KXC_PERF:
+        if (k->a < PF_NFX)
+            perf_press(k->a, k->b);
+        break;
+    case KXC_STEP: {
+        track_t *t = &trk[k->a % NTRK];
+        step_t *st = &t->step[k->b % NSTEP];
+        if (chain_busy()) {
+            ui_message("STOP TO EDIT");
+            break;
+        }
+        step_undo_take(t, 0x5000u | k->b);
+        if (k->c < NLANE)
+            grid_hit(t, k->b, k->c, 2);
+        else if (step_on(st))
+            step_clear(st);
+        else {
+            uint8_t ch[CHORD_MAX];
+            int32_t r;
+            uint16_t mask;
+            uint32_t n = chord_make(t, last_note ? last_note : 48u, ch, &r, &mask), i;
+            step_clear(st);
+            st->time = ST_NOTE;
+            for (i = 0; i < n && i < 4u && (i == 0u || !(t->p[P_VOICE] && !ENGINES[t->engine]->oneshot)); i++)
+                st->note[st->n++] = ch[i];
+        }
+        motion_undo_done(t);
+        break;
+    }
+    case KXC_CURSOR:
+        cursor_set(k->v);
+        break;
+    case KXC_LANE:
+        ui.lane = (uint8_t)(k->a % NLANE);
+        break;
+    case KXC_REC:
+        song.rec ^= (uint8_t)(1u << song.sel);
+        break;
+    case KXC_HIT: {
+        track_t *t = &trk[k->a % NTRK];
+        if (k->v)
+            input_on(t, k->b & 127u, (uint32_t)k->v & 127u);
+        else
+            input_off(t, k->b & 127u);
+        break;
+    }
+    case KXC_FOLLOW:
+        if (k->a)
+            follow.hold = 0;
+        else
+            follow_hold();
         break;
     }
 }

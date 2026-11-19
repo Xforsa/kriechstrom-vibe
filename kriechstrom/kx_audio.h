@@ -166,6 +166,9 @@ static void kx_audio_start(float sr)
     kx_pos = kx_bypass ? 0.0 : (double)(KX_TAPS / 2);
 }
 
+/* the core's messages (ui.c ui_say: "DICE: GRIND", "STOP TO EDIT") to the display: a seqlock, odd while written */
+static char kx_msg[24];
+static uint32_t kx_msg_seq;
 static void kx_commands(void)
 {
     uint32_t w = __atomic_load_n(&kx_qw, __ATOMIC_ACQUIRE), r = kx_qr;
@@ -174,6 +177,12 @@ static void kx_commands(void)
         r++;
     }
     __atomic_store_n(&kx_qr, r, __ATOMIC_RELEASE);
+    if (ui.msg_t) {
+        __atomic_store_n(&kx_msg_seq, kx_msg_seq + 1u, __ATOMIC_RELEASE);
+        str_cpy(kx_msg, ui.msg, sizeof kx_msg);
+        __atomic_store_n(&kx_msg_seq, kx_msg_seq + 1u, __ATOMIC_RELEASE);
+        ui.msg_t = 0;
+    }
 }
 
 static void kx_midi_out(int frame);               /* kx_ctl.h: the core's MIDI OUT queue to the host */

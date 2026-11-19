@@ -179,10 +179,19 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
 
 /* the stage's input: clicks, drags and the wheel, in stage pixels */
 static int st_drag = -1;
-static int st_drag_y;
+static int st_drag_y, st_last_x = -1, st_last_y = -1;
 static void kx_stage_event(const vibe_event *e)
 {
-    int x = VIBE_STAGE_X(e), y = VIBE_STAGE_Y(e);
+    int x, y;
+    if (e->id == VIBE_STAGE_WHEEL) {              /* (its value is the steps: it works where the last click was) */
+        x = st_last_x;
+        y = st_last_y;
+    } else {
+        x = VIBE_STAGE_X(e);
+        y = VIBE_STAGE_Y(e);
+        if (e->id == VIBE_STAGE_DOWN || e->id == VIBE_STAGE_MOVE)
+            st_last_x = x, st_last_y = y;
+    }
     if (e->id == VIBE_STAGE_SHOWN || e->id == VIBE_STAGE_HIDDEN) {
         kx_stage_on = e->id == VIBE_STAGE_SHOWN;
         return;
@@ -196,7 +205,7 @@ static void kx_stage_event(const vibe_event *e)
         if (k >= SK_N)
             return;
         if (e->id == VIBE_STAGE_WHEEL)
-            sk_turn(k, (int)e->value * 4);
+            sk_turn(k, e->value > 0 ? 4 : e->value < 0 ? -4 : 0);   /* (the wheel's steps may be fractional) */
         else if (e->id == VIBE_STAGE_DOWN) {
             st_drag = k;
             st_drag_y = y;

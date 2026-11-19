@@ -1,0 +1,131 @@
+/* SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2026 Grigorii Bezborodov
+ * KRIECHSTROM for VIBE FM: storage. Files in the firmware's own space (vibe_store_*: in a DAW project per instance,
+ * the browser's storage, the VIBE's card), in KRIECHSTROM's own formats, so an FM-1's project loads as it is:
+ *   session.krp      the music as it is now (written a moment after a change, and when the DAW saves)
+ *   slot-a .. -d.krp the four PROJECT slots (SONG plays them in a chain), written when saved
+ *   user.krs         the 32 user sounds (both banks)
+ * The core's state is the audio flow's: it packs a copy (kx_snap) when something changed; the control flow writes the
+ * copy. Files are written from vibe_on_event and vibe_on_draw only, never from the audio. */
+
+#define KX_SNAP_SZ ((int)sizeof(project_store_t))
+static project_store_t kx_snap;                   /* the newest copy */
+static uint32_t kx_snap_seq;                      /* a seqlock: odd while the audio flow writes kx_snap */
+static uint32_t kx_snap_sig, kx_snap_poll;
+static uint32_t kx_snap_req, kx_snap_done;        /* a copy asked for now (VIBE_EV_SAVE): the control flow's, the audio's */
+static project_store_t kx_slot_out[4];
+static uint32_t kx_slot_seq[4];                   /* +1 when a slot was saved (the audio flow copied it into kx_slot_out) */
+static up_bank_t kx_up_out[UP_SLOTS / UP_PER_BANK];
+static uint32_t kx_up_seq;
+
+/* the audio flow, every block: a new copy when the music changed (checked every ~0.25 s), or at once when asked */
+static void kx_snap_poll_audio(void)
+{
+    uint32_t sig, req = __atomic_load_n(&kx_snap_req, __ATOMIC_ACQUIRE);
+    if (req == kx_snap_done && kx_blocks - kx_snap_poll < 344u)
+        return;
+    kx_snap_poll = kx_blocks;
+    sig = autosave_sig();
+    if (sig != kx_snap_sig || req != kx_snap_done) {
+        project_capture(&proj_scratch);
+        __atomic_store_n(&kx_snap_seq, kx_snap_seq + 1u, __ATOMIC_RELEASE);
+        if (!proj_pack(&kx_snap, &proj_scratch))
+            sig = kx_snap_sig;
+        __atomic_store_n(&kx_snap_seq, kx_snap_seq + 1u, __ATOMIC_RELEASE);
+        kx_snap_sig = sig;
+    }
+    __atomic_store_n(&kx_snap_done, req, __ATOMIC_RELEASE);
+}
+
+/* the audio flow, after a command that saved a slot or a user sound */
+static void kx_slot_saved(uint32_t s)
+{
+    memcpy(&kx_slot_out[s & 3u], &proj_slot[s & 3u], sizeof(project_store_t));
+    __atomic_store_n(&kx_slot_seq[s & 3u], kx_slot_seq[s & 3u] + 1u, __ATOMIC_RELEASE);
+}
+static void kx_user_saved(void)
+{
+    memcpy(kx_up_out, up_bank, sizeof kx_up_out);
+    __atomic_store_n(&kx_up_seq, kx_up_seq + 1u, __ATOMIC_RELEASE);
+}
+
+/* ---- the control flow ---------------------------------------------------------------------------------------- */
+static uint32_t kx_snap_wrote, kx_slot_wrote[4], kx_up_wrote;
+static uint64_t kx_snap_seen_t;
+static uint32_t kx_snap_seen;
+static const char *const KX_SLOT_FILE[4] = {"slot-a.krp", "slot-b.krp", "slot-c.krp", "slot-d.krp"};
+static int kx_store_ok = 1;                       /* 0: the host keeps no files (a write failed) */
+
+static void kx_store_write(const char *name, const void *p, int n)
+{
+    if (vibe_store_write(name, p, n) != 0)
+        kx_store_ok = 0;
+}
+
+/* now = 1: everything that changed, at once (VIBE_EV_SAVE); else the session a second after its last change */
+static void kx_store_poll(int now)
+{
+    uint32_t s = __atomic_load_n(&kx_snap_seq, __ATOMIC_ACQUIRE), i;
+    uint64_t ms = vibe_frames() * 1000u / (uint64_t)(kx_sr > 0 ? kx_sr : 48000.0f);
+    if (s != kx_snap_seen) {
+        kx_snap_seen = s;
+        kx_snap_seen_t = ms;
+    }
+    if (!(s & 1u) && s != kx_snap_wrote && (now || ms - kx_snap_seen_t > 1000u)) {
+        static project_store_t b;
+        memcpy(&b, &kx_snap, sizeof b);
+        if (__atomic_load_n(&kx_snap_seq, __ATOMIC_ACQUIRE) == s) {   /* (not torn by a copy made meanwhile) */
+            kx_store_write("session.krp", &b, KX_SNAP_SZ);
+            kx_snap_wrote = s;
+        }
+    }
+    for (i = 0; i < 4u; i++) {
+        uint32_t q = __atomic_load_n(&kx_slot_seq[i], __ATOMIC_ACQUIRE);
+        if (q != kx_slot_wrote[i]) {
+            kx_store_write(KX_SLOT_FILE[i], &kx_slot_out[i], KX_SNAP_SZ);
+            kx_slot_wrote[i] = q;
+        }
+    }
+    i = __atomic_load_n(&kx_up_seq, __ATOMIC_ACQUIRE);
+    if (i != kx_up_wrote) {
+        kx_store_write("user.krs", kx_up_out, (int)sizeof kx_up_out);
+        kx_up_wrote = i;
+    }
+}
+
+/* VIBE_EV_SAVE: the host keeps the state now. The audio may not run until it is done (a DAW saving): the newest copy
+ * the audio flow made is written (it is at most ~0.25 s old), and a fresh one is asked for the next autosave */
+static void kx_store_save_now(void)
+{
+    __atomic_store_n(&kx_snap_req, kx_snap_req + 1u, __ATOMIC_RELEASE);
+    kx_store_poll(1);
+}
+
+/* vibe_on_init (alone, before any audio): the files back into the core */
+static project_store_t kx_rd;
+static void kx_store_boot(void)
+{
+    int n, i;
+    for (i = 0; i < 4; i++) {
+        n = vibe_store_read(KX_SLOT_FILE[i], &kx_rd, KX_SNAP_SZ);
+        if (n > 0 && proj_import(&proj_scratch, &kx_rd, n)) {
+            memcpy(&proj_slot[i], &kx_rd, sizeof kx_rd);
+            memcpy(&kx_slot_out[i], &kx_rd, sizeof kx_rd);
+        }
+    }
+    n = vibe_store_read("user.krs", kx_up_out, (int)sizeof kx_up_out);
+    if (n == (int)sizeof kx_up_out) {
+        memcpy(up_bank, kx_up_out, sizeof up_bank);
+        for (i = 0; i < (int)(UP_SLOTS / UP_PER_BANK); i++)
+            up_bank_check((uint32_t)i, (int)sizeof up_bank[i]);
+    }
+    n = vibe_store_read("session.krp", &kx_rd, KX_SNAP_SZ);
+    if (n > 0 && proj_import(&proj_scratch, &kx_rd, n)) {
+        proj_bound(&proj_scratch);
+        project_restore_runtime(&proj_scratch);
+        transport_req = 0;
+        ui.msg_t = 0;                             /* (no "LOADED" at every start) */
+    }
+    kx_snap_sig = autosave_sig();                 /* (what is there now is what is stored) */
+    proj_kept_now();
+}

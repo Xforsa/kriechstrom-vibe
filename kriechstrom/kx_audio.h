@@ -185,13 +185,18 @@ static void kx_commands(void)
     }
 }
 
-static void kx_midi_out(int frame);               /* kx_ctl.h: the core's MIDI OUT queue to the host */
+static void kx_midi_out(int frame);
+static void kx_daw_transport(void);
+static void kx_daw_sync(void);
+static void kx_snap_poll_audio(void);               /* kx_ctl.h: the core's MIDI OUT queue to the host */
 
 void vibe_on_audio(const float *in, float *out_l, float *out_r, int frames)
 {
     int j;
     (void)in;
+    kx_daw_transport();
     kx_commands();
+    kx_snap_poll_audio();
     kx_pull(out_l, out_r, frames);
     for (j = 0; j < frames; j++) {
         float a = out_l[j] < 0 ? -out_l[j] : out_l[j], b = out_r[j] < 0 ? -out_r[j] : out_r[j];
@@ -204,5 +209,6 @@ void vibe_on_audio(const float *in, float *out_l, float *out_r, int frames)
     }
     kx_peak[0] *= 0.97f;
     kx_peak[1] *= 0.97f;
+    kx_daw_sync();
     kx_midi_out(0);
 }

@@ -24,7 +24,13 @@ enum {
     KXC_REC,          /* the selected track armed for live recording, or not */
     KXC_HIT,          /* a = track, b = note, v = velocity 1..127 (0: off): a drum pad on any track */
     KXC_FOLLOW,       /* a = 1: the SEQ cursor follows the playhead (follow_poll) */
+    KXC_DAW,          /* a b: the DAW's parameter (a | b << 8), v: its value (a float's bits) */
+    KXC_SLOT,         /* a = slot 0..3, b: 0 load, 1 save, 2 clear the music (project_new) */
 };
+static inline int32_t kx_fbits(float f) { union { float f; int32_t i; } u; u.f = f; return u.i; }
+static inline float kx_bitsf(int32_t i) { union { float f; int32_t i; } u; u.i = i; return u.f; }
+static void kx_daw_apply(uint32_t j, float v);    /* kx_daw.h */
+static void kx_slot_saved(uint32_t s);            /* kx_store.h */
 static void kx_tool(track_t *t, uint32_t p)
 {
     const char *m;
@@ -191,6 +197,18 @@ static void kx_apply(const kx_cmd *k)
             input_off(t, k->b & 127u);
         break;
     }
+    case KXC_DAW:
+        kx_daw_apply(k->a | (uint32_t)k->b << 8, kx_bitsf(k->v));
+        break;
+    case KXC_SLOT:
+        if (k->b == 1u) {
+            if (!project_save_as(k->a & 3u, 0))
+                kx_slot_saved(k->a & 3u);
+        } else if (k->b == 0u)
+            project_load(k->a & 3u);
+        else
+            project_new();
+        break;
     case KXC_FOLLOW:
         if (k->a)
             follow.hold = 0;

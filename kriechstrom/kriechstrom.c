@@ -45,5 +45,7 @@
 /* ---- the VIBE side -------------------------------------------------------------------------------------------- */
 #include "kx_audio.h"
 #include "kx_ctl.h"
+#include "kx_store.h"
+#include "kx_daw.h"
 #include "kx_ui.h"
 #include "kx_main.h"

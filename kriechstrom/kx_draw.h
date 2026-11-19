@@ -287,9 +287,9 @@ static void kx_draw_grid(int x, int y, int w, int h)
         uint32_t l, rh = (uint32_t)gh / NLANE;
         for (l = 0; l < NLANE; l++) {
             int ry = gy + (int)((NLANE - 1u - l) * rh), sel = l == ui.lane;
-            vg_text(drum_lane_abbr(t, l), x, ry + (int)rh / 2 - 8, VG_SMALL, sel ? C_WHITE : C_DIM, VG_LEFT);
-            if (sel)
-                vg_rect(lx - 6, ry + 2, 3, (int)rh - 4, C_RED);
+            vg_rect(lx - 8, ry + (int)rh / 2 - 1, sel ? 6 : 3, 2, sel ? C_RED : 0x3A3A40);
+            if (sel)                              /* (the rows are too low for eight names: the lane edited, named) */
+                vg_text(drum_lane_abbr(t, l), x, clamp(ry + (int)rh / 2 - 8, gy, gy + gh - 16), VG_BOLD, C_WHITE, VG_LEFT);
             for (i = 0; i < 16u; i++) {
                 uint32_t s = bank * 16u + i;
                 const step_t *st = &t->step[s % NSTEP];
@@ -451,8 +451,9 @@ static void kx_draw_input(int x, int y, int w, int h)
     uint32_t i, kw = kx_kin_w;
     float mid = (float)y + (float)(h - 28) * 0.5f, k = (float)(h - 28) * 0.45f / 32768.0f, px = 0, py = 0;
     if (!kx_in_on) {
-        vg_text("NO INPUT", x + w / 2, y + 20, VG_BIG, C_DIM, VG_CENTER);
-        vg_text("CONNECT IN 1 / IN 2, OR ALLOW THE MICROPHONE", x + w / 2, y + 52, VG_SMALL, C_DIM, VG_CENTER);
+        vg_text("NO INPUT", x + w / 2, y + 2, VG_BIG, C_DIM, VG_CENTER);
+        vg_text("CONNECT IN 1 / IN 2, OR ALLOW THE MICROPHONE", x + w / 2, y + 30, VG_SMALL, C_DIM, VG_CENTER);
+        return;
     }
     vg_rect(x, (int)mid, w - 30, 1, C_LINE);
     for (i = 0; i < (uint32_t)(w - 30); i++) {
@@ -511,14 +512,16 @@ static void kx_draw_project(int x, int y, int w, int h)
     char nm[16];
     project_cur_name(nm);
     vg_text(nm[0] ? nm : "UNTITLED", x + 4, y, VG_BIG, C_WHITE, VG_LEFT);
-    vg_text("THE MUSIC NOW (KEPT BY ITSELF)", x + 4, y + 28, VG_SMALL, C_DIM, VG_LEFT);
+    vg_text("KEPT BY ITSELF.  ENC 1 SLOT  ENTER LOAD  F5 SAVE  SHIFT+F5 NEW", x + 4, y + 28,
+            VG_SMALL, C_DIM, VG_LEFT);
     for (i = 0; i < 4u; i++) {
         int bx = x + (int)i * (w / 4), used = kx_slot_used[i];
-        vg_round(bx + 4, y + 56, w / 4 - 8, h - 60, 6, (uint32_t)kx_slot_pick == i ? vg_mix(C_PANEL, C_RED, 0.25f) : C_PANEL);
-        if ((uint32_t)kx_slot_pick == i)
-            vg_frame(bx + 4, y + 56, w / 4 - 8, h - 60, 1, C_RED);
-        vg_text(SL[i], bx + w / 8, y + 64, VG_BIG | VG_X2, used ? C_WHITE : 0x34343A, VG_CENTER);
-        vg_text(used ? kx_slot_name[i] : "EMPTY", bx + w / 8, y + h - 30, VG_SMALL, used ? C_TEXT : C_DIM, VG_CENTER);
+        int pick = (uint32_t)kx_slot_pick == i;
+        vg_rect(bx + 4, y + 52, w / 4 - 8, h - 52, pick ? vg_mix(C_BG, C_RED, 0.22f) : 0x111113);
+        vg_rect(bx + 4, y + 52, w / 4 - 8, 2, pick ? C_RED : 0x2A2A2E);
+        vg_text(SL[i], bx + 12, y + 58, VG_BIG, used ? C_WHITE : 0x3A3A40, VG_LEFT);
+        vg_text(used ? kx_slot_name[i] : "EMPTY", bx + 12, y + 84, VG_SMALL, used ? C_TEXT : 0x55555C, VG_LEFT);
+        (void)h;
     }
 }
 

@@ -409,6 +409,8 @@ static void kx_draw_browse(int x, int y, int w, int h)
         if (n >= total)
             continue;
         e = preset_at(n, &k);
+        if (kx_silent_engine(e))
+            continue;
         if (e == NENGINES)
             up_name(k, b);
         else
@@ -502,6 +504,106 @@ static void kx_draw_midi(int x, int y, int w, int h)
         }
         if (kx_ic[IC_CV] == (int)k + 1)
             vg_text(kx_mo_n[k] ? "CV  GATE" : "CV", x + w, ry + 4, VG_SMALL, C_RED, VG_RIGHT);
+    }
+}
+
+/* SONG: the sections, each track's pattern slot (A..D, - silent) and its repeats; the one playing lit */
+static void kx_draw_song(int x, int y, int w, int h)
+{
+    uint32_t n = chain_config.count, sel = ui.song_row, first, r, k;
+    int rh = 18, rows = h / rh;
+    first = sel + 1u > (uint32_t)rows ? sel + 1u - (uint32_t)rows : 0u;
+    for (k = 0; k < NTRK; k++)
+        vg_text(k == 0 ? "T1" : k == 1 ? "T2" : k == 2 ? "T3" : "T4", x + 70 + (int)k * 60, y, VG_SMALL, TRK_RGB[k], VG_LEFT);
+    vg_text("REPS", x + 330, y, VG_SMALL, C_DIM, VG_LEFT);
+    for (r = first; r <= n && r < first + (uint32_t)rows - 1u && r < CHAIN_ROWS; r++) {
+        int ry = y + 16 + (int)(r - first) * rh, on = r == sel, play = chain.running && r == chain.row;
+        char b[8];
+        if (on)
+            vg_rect(x, ry - 1, w, rh - 1, vg_mix(C_BG, C_RED, 0.18f));
+        if (play)
+            vg_tri((float)x, (float)ry + 2, (float)x, (float)ry + 12, (float)x + 8, (float)ry + 7, C_WHITE);
+        if (r == n) {
+            vg_text("+ ADD", x + 14, ry, VG_SMALL, on ? C_WHITE : C_DIM, VG_LEFT);
+            continue;
+        }
+        vg_itoa((int)r + 1, b);
+        vg_text(b, x + 14, ry, VG_BOLD, on ? C_WHITE : C_TEXT, VG_LEFT);
+        for (k = 0; k < NTRK; k++) {
+            uint32_t sl = chain_config.row[r].slot[k];
+            char s2[2] = {sl < 4u ? (char)('A' + sl) : '-', 0};
+            vg_text(s2, x + 74 + (int)k * 60, ry, VG_BOLD, sl < 4u ? (on && k == ui.song_trk ? C_WHITE : TRK_RGB[k]) : 0x3A3A40,
+                    VG_LEFT);
+        }
+        b[0] = 'x';
+        vg_itoa(chain_config.row[r].repeat, b + 1);
+        vg_text(b, x + 330, ry, VG_BOLD, C_TEXT, VG_LEFT);
+    }
+    if (!n)
+        vg_text("TURN KNOB 3 TO ADD A SECTION. F5 PLAYS THE SONG", x + w, y + h - 16, VG_SMALL, C_DIM, VG_RIGHT);
+}
+
+/* AUTOMATION: the rows around the one picked (PLAY, QUANTIZE, each step's CHANCE / RATCH / NUDGE / VEL, each recorded
+ * lock or event, + ADD) */
+static void kx_draw_events(int x, int y, int w, int h)
+{
+    const track_t *t = TSEL;
+    uint16_t rw[EV_ROWS];
+    uint32_t n = ev_list(rw), cur = ev_row(n), first, r;
+    int rh = 17, rows = h / rh;
+    first = cur > (uint32_t)rows / 2u ? cur - (uint32_t)rows / 2u : 0u;
+    for (r = first; r < n && r < first + (uint32_t)rows; r++) {
+        uint32_t cc = rw[r], kk = cc >> 8, step = ev_step_of(cc), id;
+        int ry = y + (int)(r - first) * rh, on = r == cur;
+        char b[24], nm[12];
+        if (on)
+            vg_rect(x, ry - 1, w, rh - 1, vg_mix(C_BG, C_RED, 0.18f));
+        if (kk == EVK_TOP) {
+            vg_text(motion_enabled(t) ? "PLAY ON" : "PLAY OFF", x + 6, ry, VG_BOLD, on ? C_WHITE : C_TEXT, VG_LEFT);
+            continue;
+        }
+        if (kk == EVK_QNT) {
+            vg_text(t->p[P_SQNT] ? "QUANTIZE ON" : "QUANTIZE OFF", x + 6, ry, VG_BOLD, on ? C_WHITE : C_TEXT, VG_LEFT);
+            continue;
+        }
+        if (kk == EVK_ADD) {
+            vg_text("+ ADD", x + 6, ry, VG_BOLD, on ? C_WHITE : C_DIM, VG_LEFT);
+            continue;
+        }
+        id = kk == EVK_REC ? MOTION_ID(&motion.event[cc & 0xFFu]) : kk == EVK_CHANCE ? EV_CHANCE : kk == EVK_RATCH ?
+             EV_RATCH : kk == EVK_VEL ? EV_VEL : EV_NUDGE;
+        str_cpy(b, "STEP ", sizeof b);
+        vg_itoa((int)step + 1, b + 5);
+        vg_text(b, x + 6, ry, VG_SMALL, C_DIM, VG_LEFT);
+        ev_name(t, id, nm);
+        vg_text(nm, x + 80, ry, VG_BOLD, on ? C_WHITE : TRK_RGB[song.sel], VG_LEFT);
+        if (kk == EVK_REC) {
+            const param_desc_t *d = track_desc(t, id);
+            const char *un = "";
+            param_format(d, motion.event[cc & 0xFFu].value, b, &un);
+            vg_text((motion.event[cc & 0xFFu].param & MOTION_LOCK) ? "LOCK" : "AUTO", x + 200, ry, VG_SMALL, C_DIM, VG_LEFT);
+            vg_text(b, x + 250, ry, VG_BOLD, C_TEXT, VG_LEFT);
+        }
+    }
+}
+
+/* MY SOUNDS: the 32 user slots, their names; ENC 1 picks, ENTER loads, F5 saves the selected track's sound there */
+static void kx_draw_user(int x, int y, int w, int h)
+{
+    uint32_t s;
+    int cw = w / 4, rh = h / 8;
+    for (s = 0; s < UP_SLOTS; s++) {
+        int cx = x + (int)(s / 8u) * cw, cy = y + (int)(s % 8u) * rh, on = s == (uint32_t)kx_user_pick;
+        char b[16], l[4];
+        up_slot_label(l, s);
+        if (on)
+            vg_rect(cx, cy, cw - 4, rh - 1, vg_mix(C_BG, C_RED, 0.25f));
+        vg_text(l, cx + 4, cy, VG_SMALL, on ? C_WHITE : 0x55555C, VG_LEFT);
+        if (up_used(s)) {
+            up_name(s, b);
+            b[10] = 0;
+            vg_text(b, cx + 34, cy, VG_SMALL, on ? C_WHITE : C_TEXT, VG_LEFT);
+        }
     }
 }
 
@@ -648,6 +750,14 @@ static void kx_ui_draw(void)
         kx_view_bank = -1;                        /* (the pads' bank follows the playhead again after 3 s) */
     kx_labels();
     kx_leds();
+    {
+        static int viewed = -1;
+        int kp2 = kx_knob_page();
+        if (kp2 != viewed && kp2 >= 0 && kp2 < (int)NPAGES) {
+            viewed = kp2;
+            kx_post(KXC_VIEW, (uint32_t)kp2, 0, 0, 0);
+        }
+    }
     if ((pg == PG_INPUT || pg == PG_INPUT2) && !kx_in_asked) {
         kx_in_asked = 1;                          /* (the browser asks for the microphone now, not at every start) */
         vibe_request(VIBE_REQ_AUDIO_INPUT);
@@ -673,6 +783,8 @@ static void kx_ui_draw(void)
         kx_draw_mixer(4, 96, 472, 186);
     } else if (pg == PG_PROJECT) {
         kx_draw_project(4, 98, 472, 110);
+    } else if (pg == PG_USER) {
+        kx_draw_user(8, 96, 464, 110);
     } else if (pg == PG_MIDI) {
         kx_draw_midi(8, 98, 464, 108);
     } else if (pg == PG_INPUT || pg == PG_INPUT2) {
@@ -687,6 +799,8 @@ static void kx_ui_draw(void)
         case GR_FX: kx_draw_sends(12, 96, 456, 110, t, col); break;
         case GR_SCALE: kx_draw_scale(12, 98, 456, 104, t); break;
         case GR_ARP: kx_draw_arp(12, 98, 456, 104, t, col); break;
+        case GR_SONG: kx_draw_song(8, 96, 464, 110); break;
+        case GR_EVENTS: kx_draw_events(8, 98, 464, 108); break;
         default:
             kx_draw_scope(4, 98, 472, 106, p->scope == SC_GLOBAL ? C_RED : col, 1.2f);
             break;

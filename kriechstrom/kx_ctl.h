@@ -26,13 +26,19 @@ enum {
     KXC_FOLLOW,       /* a = 1: the SEQ cursor follows the playhead (follow_poll) */
     KXC_DAW,          /* a b: the DAW's parameter (a | b << 8), v: its value (a float's bits) */
     KXC_SLOT,         /* a = slot 0..3, b: 0 load, 1 save, 2 clear the music (project_new) */
+    KXC_VIEW,         /* a = the PAGES index on the display: the core's page follows (its cards and knobs depend on it) */
+    KXC_ACT,          /* a = PAGES index: its picked action (ui_input.c act_do: AUTOMATION's PLAY, CLEAR, ADD ..) */
+    KXC_SONG,         /* SONG: play the chain from its first section, or stop */
+    KXC_USER,         /* a = user sound slot, b: 0 load, 1 save (named by itself), 2 erase */
     KXC_INCFG,        /* a = IC_*, v = detents (b = 1: v is the value): the audio input's settings (kx_input.h) */
 };
+static int kx_silent_engine(uint32_t e) { return e == ENGI_SAMPLE || (FELUCCA_SLICE && e == 13u); }
 static inline int32_t kx_fbits(float f) { union { float f; int32_t i; } u; u.f = f; return u.i; }
 static inline float kx_bitsf(int32_t i) { union { float f; int32_t i; } u; u.i = i; return u.f; }
 static void kx_daw_apply(uint32_t j, float v);    /* kx_daw.h */
 static void kx_slot_saved(uint32_t s);            /* kx_store.h */
 static void kx_slot_info(void);
+static void kx_user_saved(void);
 static void kx_tool(track_t *t, uint32_t p)
 {
     const char *m;
@@ -127,12 +133,27 @@ static void kx_apply(const kx_cmd *k)
             edit_param(k->b & 3u, k->v);
         }
         break;
-    case KXC_PRESET:
-        preset_step(k->v);
+    case KXC_PRESET: {                            /* (SAMPLE and SLICE play recorded sound, which is not in this
+                                                   * firmware: their sounds are skipped, as silent) */
+        uint32_t total, n;
+        preset_pos(&total);
+        for (n = 0; n < total + 1u; n++) {
+            preset_step(k->v > 0 ? 1 : -1);
+            if (!kx_silent_engine(TSEL->eng_req))
+                break;
+        }
         break;
-    case KXC_ENGINE:
-        select_engine(eng_step(TSEL->eng_req, k->v));
+    }
+    case KXC_ENGINE: {
+        uint32_t e = TSEL->eng_req, n;
+        for (n = 0; n < NENGINES; n++) {
+            e = eng_step(e, k->v);
+            if (!kx_silent_engine(e))
+                break;
+        }
+        select_engine(e);
         break;
+    }
     case KXC_TOOL:
         if (k->b == TL_MOOD)
             ui_message(mood_next());
@@ -212,6 +233,51 @@ static void kx_apply(const kx_cmd *k)
             project_new();
         kx_slot_info();
         break;
+    case KXC_VIEW:
+        if (k->a < NPAGES && ui.page != k->a) {
+            ui.home = ui.menu = ui.confirm = 0;
+            ui.page = k->a;
+            ui.act = 0;
+        }
+        break;
+    case KXC_ACT:
+        if (k->a < NPAGES) {
+            ui.home = ui.menu = ui.confirm = 0;
+            ui.page = k->a;
+            act_do();
+            ui.confirm = 0;                       /* (no FM-1 dialog here: what needs one is not offered) */
+        }
+        break;
+    case KXC_SONG:
+        if (song.playing || chain_busy() || seq_counting())
+            transport_req = 2;
+        else if (chain_config.count)
+            chain_play_ui();
+        else
+            ui_message("NO SECTIONS: TURN KNOB 3");
+        break;
+    case KXC_USER: {
+        uint32_t s = k->a % UP_SLOTS;
+        if (k->b == 0u) {
+            if (up_used(s))
+                up_load(s);
+            else
+                ui_message("EMPTY SLOT");
+        } else if (k->b == 1u) {
+            char nm[16];
+            int rc;
+            up_auto_name(nm, TSEL->eng_req, s);
+            rc = up_store(s, nm);                 /* (no flash here: 3, kept in RAM, which kx_store.h writes out) */
+            ui_message(rc == 0 || rc == 3 ? "SOUND SAVED" : "SAVE ERROR");
+            if (rc == 0 || rc == 3)
+                kx_user_saved();
+        } else if (up_used(s)) {
+            int rc = up_put(s, 0);
+            ui_message(rc == 0 || rc == 3 ? "ERASED" : "ERASE ERROR");
+            kx_user_saved();
+        }
+        break;
+    }
     case KXC_INCFG:
         if (k->a < IC_N)
             kx_ic[k->a] = (int16_t)clamp(k->b ? k->v : kx_ic[k->a] + k->v, IC_DESC[k->a].min, IC_DESC[k->a].max);

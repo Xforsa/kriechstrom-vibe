@@ -23,14 +23,14 @@ static const uint32_t TRK_RGB[NTRK] = {0xE0301C, 0xE8A23A, 0xD9D2C2, 0x7896B0}; 
 enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
-enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI };
+enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER };
 #define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : 2)
 #define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI)
 #define PG_MAX 24
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
 static int kx_page = PG_BROWSE;                   /* the page shown */
-static int kx_help, kx_shift, kx_in_asked, kx_slot_pick, kx_boot_done;
+static int kx_help, kx_shift, kx_in_asked, kx_slot_pick, kx_boot_done, kx_user_pick;
 static float kx_enc_acc[VE_COUNT];
 static uint32_t kx_toast_seq;
 static char kx_toast[24];
@@ -52,9 +52,10 @@ static int kx_page_ok(uint32_t i)                 /* a PAGES page this port show
     uint32_t g = PAGES[i].graph;
     if (!page_visible(i))
         return 0;
-    return g != GR_FMOP && g != GR_FMOP2 && g != GR_FMENV && g != GR_SLICES && g != GR_EVENTS && g != GR_USER &&
-           g != GR_PATS && g != GR_SLOTS && g != GR_TOOLS && g != GR_BROWSE && g != GR_SONG && g != GR_TRK &&
-           PAGES[i].scope != SC_STEP;
+    if (fop_page(g))
+        return fop_ok();
+    return g != GR_SLICES && g != GR_USER && g != GR_PATS && g != GR_SLOTS && g != GR_TOOLS && g != GR_BROWSE &&
+           g != GR_TRK && PAGES[i].scope != SC_STEP;
 }
 
 static void kx_family_pages(uint32_t fa)
@@ -68,6 +69,7 @@ static void kx_family_pages(uint32_t fa)
         for (i = 0; i < NPAGES; i++)
             if (PAGES[i].fam == FAM_EDIT && kx_page_ok(i))
                 ADD(i);
+        ADD(PG_USER);
         break;
     case FA_ENV:
         for (i = 0; i < NPAGES; i++)
@@ -95,6 +97,10 @@ static void kx_family_pages(uint32_t fa)
     case FA_SEQ:
         ADD(PG_GRID);
         i = (uint32_t)kx_page_index("DETAIL");
+        ADD(i);
+        i = (uint32_t)kx_page_index("AUTOMATION");
+        ADD(i);
+        i = (uint32_t)kx_page_index("SONG");
         ADD(i);
         break;
     default:
@@ -138,6 +144,7 @@ static const char *kx_title(int pg)
     case PG_INPUT: return "INPUT";
     case PG_INPUT2: return "INPUT SENDS";
     case PG_MIDI: return "MIDI OUT & CV";
+    case PG_USER: return "MY SOUNDS";
     }
     if (pg >= 0 && pg < (int)NPAGES) {
         const page_t *p = &PAGES[pg];
@@ -200,9 +207,122 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
     const char *u = "";
     memset(c, 0, sizeof *c);
     c->label = "";
+    if (pg == PG_USER) {                          /* MY SOUNDS: the slot, its sound */
+        static const char *const L[4] = {"SLOT", "SOUND", "ENGINE", ""};
+        uint32_t s = (uint32_t)kx_user_pick % UP_SLOTS;
+        c->on = slot < 3u;
+        c->label = L[slot & 3u];
+        if (slot == 0u)
+            up_slot_label(c->val, s), c->pos = (float)s / (float)(UP_SLOTS - 1u);
+        else if (slot == 1u)
+            str_cpy(c->val, up_used(s) ? "USED" : "EMPTY", sizeof c->val);
+        else if (slot == 2u)
+            str_cpy(c->val, up_used(s) ? ENGINES[up_engine(s) % NENGINES]->name : "-", sizeof c->val);
+        return;
+    }
     if (pg < 0 || pg >= (int)NPAGES)
         return;
     p = &PAGES[pg];
+    if (fop_page(p->graph)) {                     /* FM6's operators (ui_fm6op.c) */
+        const char *lb, *un;
+        int32_t r;
+        uint32_t ic;
+        char v[16];
+        if (!fop_ok())
+            return;
+        c->on = 1;
+        fop_card(slot, &lb, v, &un, &r, &ic);
+        c->label = lb;
+        str_cpy(c->val, v, sizeof c->val);
+        c->unit = un;
+        c->pos = r < 0 ? 0.0f : (float)r / 1000.0f;
+        return;
+    }
+    if (p->graph == GR_SONG) {                    /* SECTION, TRACK, its PAT (A..D, -), REPS */
+        static const char *const L[4] = {"SECTION", "TRACK", "PAT", "REPS"};
+        uint32_t row = ui.song_row < CHAIN_ROWS ? ui.song_row : CHAIN_ROWS - 1u, k = ui.song_trk % NTRK, sl;
+        int used = row < chain_config.count;
+        c->on = 1;
+        c->label = L[slot];
+        if (slot == 0u)
+            used ? vg_itoa((int)row + 1, c->val) : (void)str_cpy(c->val, "+ ADD", sizeof c->val);
+        else if (slot == 1u)
+            c->val[0] = 'T', c->val[1] = (char)('1' + k), c->val[2] = 0;
+        else if (slot == 2u) {
+            sl = used ? chain_config.row[row].slot[k] : CHAIN_SILENT;
+            c->val[0] = used ? (sl < 4u ? (char)('A' + sl) : '-') : '-';
+            c->val[1] = 0;
+        } else if (used)
+            vg_itoa(chain_config.row[row].repeat, c->val);
+        else
+            str_cpy(c->val, "-", sizeof c->val);
+        return;
+    }
+    if (p->graph == GR_EVENTS) {                  /* AUTOMATION (ui_events.c): ROW STEP PARAM VALUE */
+        const track_t *t = TSEL;
+        uint16_t rw[EV_ROWS];
+        uint32_t n, cc = ev_cur(rw, &n), r = ev_row(n), kk = cc >> 8, step, id;
+        static const char *const L[4] = {"ROW", "STEP", "PARAM", "VALUE"};
+        c->on = 1;
+        c->label = L[slot];
+        if (kk == EVK_TOP || kk == EVK_QNT) {
+            static const char *const T[4] = {"ROW", "EVENTS", "LOCKS", "PLAY"}, *const Q[4] = {"ROW", "NUDGED", "", "QNTZ"};
+            c->label = kk == EVK_TOP ? T[slot] : Q[slot];
+            if (slot == 0u)
+                str_cpy(c->val, "ALL", sizeof c->val);
+            else if (slot == 1u)
+                vg_itoa(kk == EVK_TOP ? (int)(motion_count(t) - motion_lock_count(t)) : (int)ev_nudged(t), c->val);
+            else if (slot == 2u && kk == EVK_TOP)
+                vg_itoa((int)motion_lock_count(t), c->val);
+            else if (slot == 3u)
+                str_cpy(c->val, kk == EVK_TOP ? (motion_enabled(t) ? "ON" : "OFF") : (t->p[P_SQNT] ? "ON" : "OFF"),
+                        sizeof c->val);
+            return;
+        }
+        step = ev_step_of(cc);
+        id = kk == EVK_REC ? MOTION_ID(&motion.event[cc & 0xFFu]) : kk == EVK_ADD ? ui.ev_id :
+             kk == EVK_CHANCE ? EV_CHANCE : kk == EVK_RATCH ? EV_RATCH : kk == EVK_VEL ? EV_VEL : EV_NUDGE;
+        if (slot == 0u) {
+            if (kk == EVK_ADD)
+                str_cpy(c->val, "ADD", sizeof c->val);
+            else {
+                char *q = vg_itoa((int)r - 1, c->val);
+                str_cpy(q + str_len(q), "/", 2);
+                vg_itoa((int)n - 3, q + str_len(q));
+            }
+        } else if (slot == 1u)
+            vg_itoa((int)step + 1, c->val);
+        else if (!ev_id_ok(t, id))
+            str_cpy(c->val, "-", sizeof c->val);
+        else if (slot == 2u) {
+            char nm[12];
+            ev_name(t, id, nm);
+            str_cpy(c->val, nm, sizeof c->val);
+        } else if (id == EV_CHANCE || id == EV_RATCH || id == EV_NUDGE || id == EV_VEL) {
+            const step_t *cs = &t->step[step % NSTEP];
+            uint32_t sk = ev_skind(id);
+            int32_t sv = kk == EVK_ADD ? ev_sadd(sk) : ev_sval(cs, sk);
+            if (sk == EVK_CHANCE)
+                c->unit = ev_chance_fmt(c->val, sv);
+            else if (sk == EVK_NUDGE)
+                ev_nudge_fmt(c->val, sv);
+            else if (sk == EVK_RATCH)
+                c->val[0] = 'x', c->val[1] = (char)('0' + sv), c->val[2] = 0;
+            else
+                vg_itoa(sv, c->val);
+        } else {
+            int16_t v = kk == EVK_REC ? motion.event[cc & 0xFFu].value : motion_base_value(t, id);
+            const param_desc_t *d = track_desc(t, id);
+            const char *un = "";
+            param_format(d, v, c->val, &un);
+            c->unit = un;
+            c->label = kk == EVK_REC && (motion.event[cc & 0xFFu].param & MOTION_LOCK) ? "LOCK" : "AUTO";
+            c->pos = d->max > d->min ? (float)(v - d->min) / (float)(d->max - d->min) : 0.0f;
+        }
+        if (ui.act == slot + 1u && act_col() == slot + 1u)
+            c->unit = "ENTER";                    /* (the action this knob picked: ENTER does it) */
+        return;
+    }
     if (p->scope == SC_STEP) {                    /* STEP: the cursor's step (ui_input.c step_edit) */
         const track_t *t = TSEL;
         const step_t *st = &t->step[ui.cursor % NSTEP];
@@ -330,8 +450,18 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
         return;
     }
     switch (kx_fam) {                             /* F5: the page's action */
-    case FA_SOUND: kx_post(KXC_OOPS, song.sel, 0, 0, 0); break;
-    case FA_SEQ: kx_post(KXC_TOOL, song.sel, kx_shift ? TL_MOOD : TL_DICE, 0, 0); break;
+    case FA_SOUND:
+        if (kx_page == PG_USER)
+            kx_post(KXC_USER, (uint32_t)kx_user_pick, kx_shift ? 2u : 1u, 0, 0);
+        else
+            kx_post(KXC_OOPS, song.sel, 0, 0, 0);
+        break;
+    case FA_SEQ:
+        if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_SONG)
+            kx_post(KXC_SONG, 0, 0, 0, 0);
+        else
+            kx_post(KXC_TOOL, song.sel, kx_shift ? TL_MOOD : TL_DICE, 0, 0);
+        break;
     case FA_FX:
         if (kx_page == PG_INPUT || kx_page == PG_INPUT2) {
             int m = (kx_ic[IC_MODE] + 1) % 3;
@@ -350,8 +480,11 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
 static const char *kx_f5_name(void)
 {
     switch (kx_fam) {
-    case FA_SOUND: return "OOPS";
-    case FA_SEQ: return kx_shift ? "MOOD" : "DICE";
+    case FA_SOUND: return kx_page == PG_USER ? (kx_shift ? "ERASE" : "SAVE") : "OOPS";
+    case FA_SEQ:
+        if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_SONG)
+            return song.playing ? "STOP" : "PLAY";
+        return kx_shift ? "MOOD" : "DICE";
     case FA_MENU: return kx_page == PG_PROJECT ? (kx_shift ? "NEW" : "SAVE") : "";
     case FA_FX: return kx_page == PG_INPUT || kx_page == PG_INPUT2 ? IC_MODE_N[kx_ic[IC_MODE] % 3] : "";
     default: return "";
@@ -368,7 +501,10 @@ static void kx_turn(uint32_t enc, float detents)
     kx_enc_acc[enc] -= (float)n;
     if (enc <= VE_4) {
         int pg = kx_knob_page();
-        if (kx_page == PG_PROJECT) {
+        if (kx_page == PG_USER) {
+            if (enc == VE_1)
+                kx_user_pick = clamp(kx_user_pick + n, 0, UP_SLOTS - 1);
+        } else if (kx_page == PG_PROJECT) {
             if (enc == VE_1)
                 kx_slot_pick = clamp(kx_slot_pick + (n > 0 ? 1 : -1), 0, 3);
         } else if (kx_page == PG_MIXER) {                /* the four tracks' LEVEL (SHIFT: PAN) */
@@ -439,6 +575,10 @@ static void kx_button(uint32_t b, int down)
             kx_post(KXC_STEP, song.sel, ui.cursor, drum_track(TSEL) ? ui.lane : 255u, 0);
         else if (kx_page == PG_PROJECT)
             kx_post(KXC_SLOT, (uint32_t)kx_slot_pick, 0, 0, 0);
+        else if (kx_page == PG_USER)
+            kx_post(KXC_USER, (uint32_t)kx_user_pick, 0, 0, 0);
+        else if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_EVENTS)
+            kx_post(KXC_ACT, (uint32_t)kx_page, 0, 0, 0);
         break;
     default: break;
     }

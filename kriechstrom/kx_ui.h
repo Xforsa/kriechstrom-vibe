@@ -30,7 +30,7 @@ enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_I
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
 static int kx_page = PG_BROWSE;                   /* the page shown */
-static int kx_help, kx_shift, kx_in_asked, kx_slot_pick;
+static int kx_help, kx_shift, kx_in_asked, kx_slot_pick, kx_boot_done;
 static float kx_enc_acc[VE_COUNT];
 static uint32_t kx_toast_seq;
 static char kx_toast[24];
@@ -446,11 +446,18 @@ static void kx_button(uint32_t b, int down)
 
 static void kx_ui_init(void)
 {
+    vf_mode(VF_ON_HOLD);                          /* (DATA is the sounds' here: ENTER held 0.6 s = FOCUS) */
+    vf_clicks(1);
     kx_open(FA_SOUND, 0);
 }
 
 static void kx_ui_event(const vibe_event *e)
 {
+    int fid;
+    if (e->type == VIBE_EV_BUTTON || e->type == VIBE_EV_PAD || e->type == VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE)
+        kx_boot_done = 1;                         /* (the power-on picture ends at the first touch) */
+    if (vf_event(e, &fid) != VF_NO)               /* FOCUS first (SDK 10) */
+        return;
     switch (e->type) {
     case VIBE_EV_NOTE: {
         uint32_t vel = (uint32_t)(e->value * 127.0f + 0.5f);

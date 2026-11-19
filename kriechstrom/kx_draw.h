@@ -603,6 +603,39 @@ static void kx_labels(void)
     vibe_label(VB_F6, "UNDO");
 }
 
+/* the power-on picture: the creep grows across the screen and the name burns in; any control ends it at once (the
+ * keys and pads play from the first moment) */
+static uint64_t kx_boot_t;
+static int kx_splash(void)
+{
+    uint64_t now = kx_now_ms();
+    float t, heat;
+    int w;
+    if (kx_boot_done)
+        return 0;
+    if (!kx_boot_t)
+        kx_boot_t = now ? now : 1;
+    t = (float)(now - kx_boot_t) / 2200.0f;
+    if (t >= 1.0f) {
+        kx_boot_done = 1;
+        return 0;
+    }
+    heat = 0.4f + 0.6f * (float)(fx_rand() & 255u) / 255.0f * (1.0f - t);
+    vg_clear(C_BG);
+    cr_draw(90, 10, 300, 300, t < 0.7f ? t / 0.7f : 1.0f, heat, C_RED);
+    w = vg_text_width("KRIECHSTROM", VG_BIG | VG_X2);
+    if (t > 0.35f) {
+        float a = t < 0.55f ? (t - 0.35f) / 0.2f : 1.0f;
+        int x = 240 - w / 2, wk;
+        vg_rect_a(0, 118, 480, 86, C_BG, 0.65f * a);
+        wk = vg_text("KRIECH", x, 128, VG_BIG | VG_X2, vg_mix(C_BG, C_WHITE, a), VG_LEFT);
+        vg_text("STROM", x + wk, 128, VG_BIG | VG_X2, vg_mix(C_BG, C_RED, a), VG_LEFT);
+        vg_text("DARK INDUSTRIAL / EBM  ·  BUILT ON FELUCCA", 240, 182, VG_SMALL, vg_mix(C_BG, 0x8A8A92, a), VG_CENTER);
+    }
+    kx_wear_fx(kx_fb, 480, 320);
+    return 1;
+}
+
 static void kx_ui_draw(void)
 {
     int pg = kx_page, kp = kx_knob_page();
@@ -620,6 +653,8 @@ static void kx_ui_draw(void)
         kx_draw_help();
         return;
     }
+    if (kx_splash())
+        return;
     kx_bg_paint(kx_fb);
     kx_draw_header();
     kx_draw_tracks();
@@ -659,4 +694,22 @@ static void kx_ui_draw(void)
     kx_draw_soft();
     kx_wear_fx(kx_fb, 480, 320);
     kx_draw_toast();
+    {   /* FOCUS (SDK 10): DATA walks, ENTER presses; each spot stands for a control of the device */
+        uint32_t i, x = 120;
+        static const char *const K[6] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ"};
+        vf_begin();
+        for (i = 0; i < 6u; i++) {
+            int w = vg_text_width(K[i], VG_SMALL);
+            vf_key(VB_K1 + (int)i, (int)x - 3, 3, w + 6, 22);
+            x += (uint32_t)w + 12u;
+        }
+        for (i = 0; i < NTRK; i++)
+            vf_key(VB_F1 + (int)i, 8 + (int)i * 118, 30, 110, 44);
+        if (pg != PG_MIXER)
+            for (i = 0; i < 4u; i++)
+                vf_encoder(VE_1 + (int)i, 6 + (int)i * 118, 204, 114, 74);
+        for (i = 0; i < 6u; i++)
+            vf_key(VB_F1 + (int)i, 4 + (int)i * 80, 286, 74, 32);
+        vf_end(C_WHITE);
+    }
 }

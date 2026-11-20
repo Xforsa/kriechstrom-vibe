@@ -1033,9 +1033,15 @@ static void kx_draw_idle(void)
 {
     float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
     vg_clear(C_BG);
+    kx_lt_idle = 1;                               /* (the lightning from every edge, on the hits; alone in silence) */
+    kx_hits_frame();
+    if (vibe_frames() - kx_lt_last > (uint64_t)(kx_sr * (song.playing ? 1.6f : 0.9f)))
+        kx_lt_spawn(lt_u() < 0.5f ? 2 : 1, 0.35f + lt_u() * 0.4f);
+    kx_lt_draw();
     cr_draw(60, 10, 360, 300, 0.4f + cr_wear() * 0.6f, heat, C_RED);
     kx_draw_scope(0, 200, 480, 100, C_WHITE, 1.0f);
     kx_logo(16, 286, VG_BOLD);
+    kx_lt_idle = 0;
 }
 
 static int kx_streq(const char *a, const char *b)

@@ -43,6 +43,8 @@ static inline uint16_t px_scale(uint16_t p, int k)   /* k: 256 = as it is */
 typedef struct { int16_t x0, y0, x1, y1; uint8_t w; } lt_seg;   /* (w: quarter pixels) */
 static struct { lt_seg s[LT_SEG]; int n; uint64_t t0; float amt; } kx_lt[LT_N];
 static int kx_lt_next;
+static int kx_lt_idle;                            /* the idle screen: from every edge and corner, hotter */
+static uint64_t kx_lt_last;                      /* the last one's time (the idle screen sparks on its own in silence) */
 static uint32_t lt_rng = 0x13579BDFu;
 static float lt_u(void)
 {
@@ -89,7 +91,20 @@ static void kx_lt_spawn(int kind, float amt)
     kx_lt[i].t0 = vibe_frames() ? vibe_frames() : 1;
     kx_lt[i].amt = amt;
     lt_rng ^= (uint32_t)vibe_frames() * 2654435761u;
-    switch (kind) {
+    kx_lt_last = kx_lt[i].t0;
+    if (kx_lt_idle) {                             /* (the idle screen: the corners, the top, the sides, the floor) */
+        int side = (int)(lt_u() * 4.0f);
+        float r = lt_u();
+        if (kind == 0)
+            side = 3;
+        switch (side) {
+        case 0: x = r < 0.5f ? -2.0f : 482.0f, y = -2.0f, ang = r < 0.5f ? 0.125f : 0.375f; break;   /* a top corner */
+        case 1: x = 40.0f + lt_u() * 400.0f, y = -2.0f, ang = 0.25f; break;                       /* the top */
+        case 2: x = r < 0.5f ? -2.0f : 482.0f, y = 40.0f + lt_u() * 200.0f, ang = r < 0.5f ? 0.0f : 0.5f; break;
+        default: x = 20.0f + lt_u() * 440.0f, y = 322.0f, ang = -0.25f; break;                    /* the floor */
+        }
+        len = (kind == 2 ? 60.0f : 110.0f) + 170.0f * amt, wid = 1.6f + 3.0f * amt;
+    } else switch (kind) {
     case 0: x = 250.0f + lt_u() * 210.0f, y = 322.0f, ang = -0.25f, len = 90.0f + 140.0f * amt, wid = 2.2f + 2.6f * amt; break;
     case 1: x = 482.0f, y = 120.0f + lt_u() * 150.0f, ang = 0.5f, len = 70.0f + 90.0f * amt, wid = 1.6f + 1.6f * amt; break;
     case 2: x = 280.0f + lt_u() * 190.0f, y = 26.0f, ang = 0.25f, len = 24.0f + 36.0f * amt, wid = 0.9f + 0.6f * amt; break;
@@ -120,8 +135,9 @@ static void kx_lt_draw(void)                      /* the background, under the p
         }
         b = (1.0f - u) * (1.0f - u) * (0.45f + 0.55f * kx_lt[i].amt);
         for (pass = 0; pass < 2; pass++) {
-            uint32_t c = pass ? (kx_ic[IC_SCREEN] == 2 ? vg_mix(0x3A0C08, 0xFFB090, b) : vg_mix(0x2A0806, 0xA02A16, b))
-                              : vg_mix(C_BG, kx_ic[IC_SCREEN] == 2 ? 0x701A10 : 0x4A120A, b);
+            int hot = kx_ic[IC_SCREEN] == 2 || kx_lt_idle;
+            uint32_t c = pass ? (hot ? vg_mix(0x3A0C08, 0xFFB090, b) : vg_mix(0x2A0806, 0xA02A16, b))
+                              : vg_mix(C_BG, hot ? 0x701A10 : 0x4A120A, b);
             for (j = 0; j < kx_lt[i].n; j++) {
                 const lt_seg *g = &kx_lt[i].s[j];
                 float w = (float)g->w * 0.25f;
@@ -150,14 +166,9 @@ static void kx_bg_paint(uint16_t *fb)
     kx_lt_draw();
 }
 
-/* after the page: the wear of the picture (fb is w x h: the display or the stage) */
-static void kx_wear_fx(uint16_t *fb, int w, int h)
+static void kx_hits_frame(void)                   /* the hits of this frame: the tears' strength, the lightning */
 {
-    static uint16_t row[1280];
-    float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
-    int dmg = song.g[G_DMG], chr = song.g[G_DMGC], spl = song.g[G_SPLICE], hiss = song.g[G_HISS];
-    int wall = song.g[G_WALL], y, x, i, lvl = kx_ic[IC_SCREEN];   /* 0 OFF, 1 LOW (the default), 2 FULL */
-    if (w == 480) {                               /* (once a frame: the display's call) */
+    float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];                               /* (once a frame: the display's call) */
         static uint32_t seen;
         uint32_t hn = __atomic_load_n(&kx_hits, __ATOMIC_ACQUIRE);
         static uint32_t dstep = 0xFFFFFFFFu;
@@ -190,6 +201,16 @@ static void kx_wear_fx(uint16_t *fb, int w, int h)
             kx_fx_hit *= 0.7f;
         kx_fx_prev = heat;
     }
+
+/* after the page: the wear of the picture (fb is w x h: the display or the stage) */
+static void kx_wear_fx(uint16_t *fb, int w, int h)
+{
+    static uint16_t row[1280];
+    float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
+    int dmg = song.g[G_DMG], chr = song.g[G_DMGC], spl = song.g[G_SPLICE], hiss = song.g[G_HISS];
+    int wall = song.g[G_WALL], y, x, i, lvl = kx_ic[IC_SCREEN];   /* 0 OFF, 1 LOW (the default), 2 FULL */
+    if (w == 480)                                 /* (once a frame: the display's call) */
+        kx_hits_frame();
     if (!lvl)
         return;
     if (lvl == 1) {                               /* LOW: a hint of each, easy on the eyes */

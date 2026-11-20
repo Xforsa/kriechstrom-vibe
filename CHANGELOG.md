@@ -5,6 +5,14 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.9] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- the idle screen lives: discharges strike from the corners, the top, the sides and the floor on the hits, and on
+  their own now and then in silence (MENU > DISPLAY > LIGHTNING switches them off)
+
 ## [0.5.8] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

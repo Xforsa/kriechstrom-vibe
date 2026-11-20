@@ -185,7 +185,14 @@ header.top { position: sticky; top: 0; z-index: 5; background: rgba(0, 0, 0, 0.8
 }
 
 /* KRIECHSTROM for VIBE FM: the discharge in the hero (vibe.js), the screens and the stage */
-.hero canvas { display: block; width: 100%; height: clamp(300px, 52vw, 520px); }
+.hero { overflow: hidden; }
+.hero .bolt { display: block; width: 100%; height: clamp(300px, 46vw, 560px); object-fit: cover; object-position: 60% 50%; }
+/* the discharge strikes again now and then (twice, short), and when the pointer comes over it */
+.hero .flash { position: absolute; inset: 0; opacity: 0; mix-blend-mode: screen; animation: strike 9s 3s infinite; }
+.hero:hover .flash { animation: strike-now 0.7s 1; }
+@keyframes strike { 0%, 90% { opacity: 0; } 91% { opacity: 0.95; } 92.5% { opacity: 0.15; } 94% { opacity: 0.8; } 100% { opacity: 0; } }
+@keyframes strike-now { 0% { opacity: 0; } 12% { opacity: 0.95; } 25% { opacity: 0.15; } 40% { opacity: 0.8; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .hero .flash { animation: none; } }
 .hero .sub { position: absolute; left: 18px; bottom: calc(6% - 4px); transform: translateY(100%); margin: 0;
   font: 700 clamp(15px, 2.4vw, 22px)/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.3em; color: var(--mid); }
 .hero h1 { bottom: 14%; }

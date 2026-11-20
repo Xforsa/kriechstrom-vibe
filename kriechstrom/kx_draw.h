@@ -898,16 +898,76 @@ static void kx_draw_idle(void)
     kx_logo(16, 286, VG_BOLD);
 }
 
+static int kx_streq(const char *a, const char *b)
+{
+    while (*a && *a == *b)
+        a++, b++;
+    return *a == *b;
+}
 static void kx_draw_help(void)
 {
-    static const char *const R[] = {
+    /* HOME: the left column is this page (what encoders 1-4 turn here, DATA, ENTER, F5), the right one the controls
+     * that are the same everywhere */
+    static const char *const G[] = {
         "KEYS", "the selected track", "PADS 1-4", "mute (SHIFT: select)", "PADS 5-8", "DICE (SHIFT: MOOD)",
-        "PADS 9-12", "hold: 1/16 STOP FRZ GATE", "PADS 13-16", "KICK SNARE CLAP HAT",
-        "K1-K6", "SOUND ENV LFO ARP FX SEQ", "ENC 1-4", "the four values", "DATA", "sounds (SHIFT: engine)",
-        "A", "track level", "B", "DAMAGE (SHIFT: WALL)", "F1-F4", "select a track", "F5", "the page's action",
-        "F6", "UNDO", "MENU", "mixer, project, clock", "< >", "the family's pages", "REC", "record the track",
+        "PADS 9-12", "hold: live effects", "PADS 13-16", "kick snare clap hat", "K1-K6", "the page families",
+        "A", "track level", "B", "DMG (SHIFT: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "mixer, project, MIDI",
+        "SHIFT", "hold, or tap once",
     };
-    vg_controls("KRIECHSTROM", R, (int)(sizeof R / sizeof R[0] / 2));
+    static char lab[4][24];
+    const char *r[44];
+    int n = 0, pg = kx_page, kp = kx_knob_page(), k;
+    const char *f5 = kx_f5_name(), *f5w = "", *dw = "sound (SHIFT: engine)", *ew = "";
+    for (k = 0; k < 4; k++) {
+        kx_card c;
+        static const char *const EN[4] = {"ENC 1", "ENC 2", "ENC 3", "ENC 4"};
+        memset(&c, 0, sizeof c);
+        if (kp < 0 && !IS_PED_PAGE(pg) && !IS_IC_PAGE(pg))
+            break;
+        kx_card_of(kp, (uint32_t)k, &c);
+        if (!c.label || !c.label[0])
+            continue;
+        str_cpy(lab[k], c.label, sizeof lab[k]);
+        if (IS_PED_PAGE(pg) && k == 0)
+            str_cpy(lab[k], "PEDAL (SHIFT: MIX)", sizeof lab[k]);
+        r[n++] = EN[k], r[n++] = lab[k];
+    }
+    if (IS_PED_PAGE(pg) && n == 2)
+        r[n++] = "ENC 2-4", r[n++] = "the pedal's knobs";
+    if (pg == PG_MIXER)
+        r[n++] = "ENC 1-4", r[n++] = "T1-T4 level";
+    if (pg == PG_MIXER)
+        r[n++] = "SHIFT + ENC", r[n++] = "T1-T4 pan";
+    if (pg == PG_GRID)
+        dw = "the step", ew = "the step on / off";
+    else if (IS_PED_PAGE(pg))
+        dw = "the pedal (or tap it)";
+    else if (pg == PG_PROJECT)
+        ew = "load (SHIFT: demo)";
+    else if (pg == PG_USER)
+        ew = "load the sound";
+    else if (pg >= 0 && pg < (int)NPAGES && PAGES[pg].graph == GR_EVENTS)
+        ew = "the row's action";
+    if (kx_streq(f5, "OOPS")) f5w = "OOPS: random values";
+    else if (kx_streq(f5, "DICE") || kx_streq(f5, "MOOD")) f5w = "DICE: a new part";
+    else if (kx_streq(f5, "REC") || kx_streq(f5, "STOP")) f5w = pg == PG_SAMPLER ? "record at next bar" : "the song";
+    else if (kx_streq(f5, "PLAY")) f5w = "play the song";
+    else if (kx_streq(f5, "NEXT")) f5w = "the next pedal";
+    else if (kx_streq(f5, "SAVE") || kx_streq(f5, "NEW") || kx_streq(f5, "ERASE"))
+        f5w = pg == PG_PROJECT ? "save (SHIFT: new)" : "save (SHIFT: erase)";
+    else if (f5[0]) f5w = "the input's mode";
+    r[n++] = "DATA", r[n++] = dw;
+    if (ew[0])
+        r[n++] = "ENTER", r[n++] = ew;
+    if (f5w[0])
+        r[n++] = "F5", r[n++] = f5w;
+    r[n++] = "< >", r[n++] = "this family's pages";
+    r[n++] = "ENTER held", r[n++] = "FOCUS (DATA walks)";
+    while (n < 22)                                /* (the page's column, then the right one) */
+        r[n++] = "", r[n++] = "";
+    for (k = 0; k < (int)(sizeof G / sizeof G[0]) && n < 44; k++)
+        r[n++] = G[k];
+    vg_controls(kx_title(pg), r, n / 2);
 }
 
 /* SHIFT held or tapped: what the pads and the other controls do with it */

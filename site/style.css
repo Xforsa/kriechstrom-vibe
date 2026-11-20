@@ -184,24 +184,51 @@ header.top { position: sticky; top: 0; z-index: 5; background: rgba(0, 0, 0, 0.8
   header.top { position: static; }
 }
 
-/* KRIECHSTROM for VIBE FM: the discharge in the hero (vibe.js), the screens and the stage */
-.hero { overflow: hidden; }
-.hero .bolt { display: block; width: 100%; height: clamp(300px, 46vw, 560px); object-fit: cover; object-position: 60% 50%; }
+/* KRIECHSTROM for VIBE FM: a full-width hero with the page's opening in it, a wider page, the screens as a wall */
+main { max-width: 1180px; }
+.hero { position: relative; margin: 0; overflow: hidden; background: #000; }
+.hero .bolt { display: block; width: 100%; height: clamp(520px, 52vw, 760px); object-fit: cover; object-position: 62% 50%; }
 /* the discharge strikes again now and then (twice, short), and when the pointer comes over it */
-.hero .flash { position: absolute; inset: 0; opacity: 0; mix-blend-mode: screen; animation: strike 9s 3s infinite; }
+.hero .flash { position: absolute; inset: 0; opacity: 0; mix-blend-mode: screen; animation: strike 9s 2s infinite; }
 .hero:hover .flash { animation: strike-now 0.7s 1; }
 @keyframes strike { 0%, 90% { opacity: 0; } 91% { opacity: 0.95; } 92.5% { opacity: 0.15; } 94% { opacity: 0.8; } 100% { opacity: 0; } }
 @keyframes strike-now { 0% { opacity: 0; } 12% { opacity: 0.95; } 25% { opacity: 0.15; } 40% { opacity: 0.8; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .hero .flash { animation: none; } }
-.hero .sub { position: absolute; left: 18px; bottom: calc(6% - 4px); transform: translateY(100%); margin: 0;
-  font: 700 clamp(15px, 2.4vw, 22px)/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.3em; color: var(--mid); }
-.hero h1 { bottom: 14%; }
-.screen { display: block; width: 100%; max-width: 720px; height: auto; image-rendering: pixelated; border-radius: 10px;
-  box-shadow: 0 0 0 6px #070303, 0 0 0 7px var(--line), 0 0 40px rgba(255, 32, 24, 0.22); margin: 18px 0 8px; }
+.hero-in { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 max(16px, calc((100% - 1180px) / 2 + 16px)) 28px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.92) 30%, rgba(0, 0, 0, 0)); }
+.hero h1 { position: static; margin: 0; font-size: clamp(44px, 9vw, 104px); text-shadow: 0 2px 18px #000; }
+.hero .sub { margin: 4px 0 14px; font: 700 clamp(15px, 2.2vw, 22px)/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.32em; color: var(--mid); }
+.hero .lead { max-width: 62ch; margin: 0 0 10px; color: #d8d8de; text-shadow: 0 1px 8px #000; }
+.hero .btns { margin: 0; }
+.screen { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 10px;
+  box-shadow: 0 0 0 6px #070303, 0 0 0 7px var(--line), 0 0 40px rgba(255, 32, 24, 0.22); }
+.split.wear { grid-template-columns: 1.15fr 1fr; gap: 36px; margin: 36px 0; }
+.split.wear h2 { margin-top: 0; border: 0; padding: 0; }
+.shots { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px 18px; margin: 28px 0; }
+.shots figure img { max-width: none; }
 .wide { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); margin: 18px 0 8px; }
 .cap { color: var(--mid); font-size: 16px; margin: 0 0 18px; }
 .also { border: 1px solid var(--line); border-left: 3px solid var(--red); background: var(--surf); border-radius: 6px;
   padding: 14px 18px; margin: 24px 0; }
+ul.feats.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+ul.feats.grid > li { margin: 0; }
+.cheat { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; }
+.cheat section { background: var(--surf); border: 1px solid var(--line); border-top: 3px solid var(--red); border-radius: 6px;
+  padding: 4px 14px 2px; }
+.cheat h3 { margin: 10px 0 2px; font: 800 18px/1.2 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.08em; }
+.cheat table { font-size: 15px; margin: 6px 0 10px; }
+.cheat td { padding: 5px 6px; }
+.cheat td:first-child { font: 600 13px/1.5 "IBM Plex Mono", ui-monospace, monospace; color: #fff; white-space: nowrap;
+  width: 1%; padding-right: 12px; }
+.band { width: 100%; margin: 24px 0 0; }
+@media (max-width: 760px) {
+  .split.wear { grid-template-columns: 1fr; }
+  .hero .bolt { height: 620px; object-position: 70% 30%; }
+  .cheat { grid-template-columns: 1fr; }
+  ul.feats.grid { grid-template-columns: 1fr; }
+  .cheat td:first-child { white-space: normal; }
+}
 
 /* one time, as they come into view (vibe.js): nothing moves on its own after that */
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.6s ease, transform 0.6s ease; }
@@ -209,3 +236,4 @@ header.top { position: sticky; top: 0; z-index: 5; background: rgba(0, 0, 0, 0.8
 @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
 ul.feats > li { transition: border-color 0.2s, background 0.2s; }
 ul.feats > li:hover { border-left-color: #fff; background: #1a0a09; }
+h2[id], [id] { scroll-margin-top: 70px; }

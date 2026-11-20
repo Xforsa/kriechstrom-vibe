@@ -10,6 +10,7 @@ void vibe_on_init(float sample_rate)
     kx_store_boot();
     kx_ped_boot();
     kx_sampler_boot();
+    kxp_boot();
     kx_audio_start(sample_rate);
     kx_input_start();
     kx_cfg_boot();
@@ -34,12 +35,15 @@ void vibe_on_event(const vibe_event *e)
             kx_post(KXC_DAW, e->id & 0xFFu, (uint32_t)e->id >> 8, 0, kx_fbits(e->value));
         return;
     }
+    if (e->type == VIBE_EV_MEDIA)
+        kxp_media_event(e);
     if (e->type == VIBE_EV_STAGE)
         kx_stage_event(e);
     else
         kx_ui_event(e);
     kx_store_poll(0);
     kx_sampler_poll();
+    kxp_poll();
 }
 
 void vibe_on_draw(uint16_t *fb)
@@ -49,4 +53,5 @@ void vibe_on_draw(uint16_t *fb)
     kx_ui_draw();
     kx_store_poll(0);
     kx_sampler_poll();
+    kxp_poll();
 }

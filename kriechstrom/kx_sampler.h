@@ -178,6 +178,31 @@ static void kx_sampler_poll(void)
         }
 }
 
+/* a slot's picture again, from its image (a slot loaded with a project: kx_proj.h); the control flow */
+static void kx_usr_redraw(uint32_t k)
+{
+    const smp_user_hdr_t *h = (const smp_user_hdr_t *)kx_usr_img[k % 3u];
+    uint32_t i, m;
+    int32_t pred = 0, idx = 0;
+    const uint8_t *d = kx_usr_img[k % 3u] + 512;
+    if (!usr_nz[k % 3u]) {
+        memset(kx_usr_wave[k % 3u], 0, sizeof kx_usr_wave[0]);
+        return;
+    }
+    m = h->zone[0].n < KX_REC_MAX ? h->zone[0].n : KX_REC_MAX;
+    for (i = 0; i < m; i++) {
+        uint32_t code = (i & 1u) ? (d[i >> 1] >> 4) : (d[i >> 1] & 15u);
+        int32_t step = IMA_STEP[idx], vd = step >> 3;
+        if (code & 4u) vd += step;
+        if (code & 2u) vd += step >> 1;
+        if (code & 1u) vd += step >> 2;
+        pred = clamp(pred + ((code & 8u) ? -vd : vd), -32768, 32767);
+        idx = clamp(idx + IMA_IDX[code & 7u], 0, 88);
+        kx_usr_tmp[i] = (int16_t)pred;
+    }
+    kx_usr_picture(k % 3u, kx_usr_tmp, m);
+}
+
 /* vibe_on_init: the slots from their files, read by the core (and their pictures) */
 static void kx_sampler_boot(void)
 {

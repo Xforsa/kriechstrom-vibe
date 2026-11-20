@@ -17,7 +17,7 @@ char *strchr(const char *s, int c);
 #endif
 #define FELUCCA_CDC 0
 #define FELUCCA_FLASH 0
-#define FELUCCA_VERSION "0.5.1"
+#define FELUCCA_VERSION "0.5.2"
 #define FM1_TICKS_PER_US 1u
 #define FM1_NCOL 11u
 #define __attribute__(x)
@@ -71,5 +71,13 @@ struct track;
 static void kx_ped_track(struct track *t, int32_t *b, uint32_t n);   /* kx_pedals.h: a track's more pedals */
 static void kx_ped_begin(void);
 #define KRST_EXT_PEDALS(t, b, n) kx_ped_track(t, b, n)
-#define KRST_EXT_BEGIN() kx_ped_begin()
+static void kx_xo_begin(void);                    /* kx_outs.h: the parts of the mix on more outputs */
+static void kx_xo_track(const struct track *t, const int32_t *b, const int32_t *d, uint32_t n, int32_t lvl, int32_t gl,
+                        int32_t gr, int32_t gld, int32_t grd);
+static void kx_xo_buses(uint32_t n);
+static void kx_xo_wet(const int32_t *wet, uint32_t n);
+#define KRST_EXT_BEGIN() (kx_ped_begin(), kx_xo_begin())
+#define KRST_EXT_TRACK(t, b, d, n, lvl, gl, gr, gld, grd) kx_xo_track(t, b, d, n, lvl, gl, gr, gld, grd)
+#define KRST_EXT_BUSES(n) kx_xo_buses(n)
+#define KRST_EXT_WET(wet, n) kx_xo_wet(wet, n)
 #endif

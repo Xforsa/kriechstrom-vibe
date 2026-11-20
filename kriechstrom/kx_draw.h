@@ -799,6 +799,84 @@ static void kx_draw_foot(int x, int y, int w, int h)
     vg_text("SWITCH", sx + 56, y + h - 18, VG_SMALL, TE_MID, VG_CENTER);
 }
 
+/* MY PROJECTS: the name being given (its letter underlined), then 16 of the 32 entries; used ones white */
+static void kx_draw_plib(int x, int y, int w, int h)
+{
+    int i, cw = w / 4, page = kxp_sel / 16, tw;
+    char b[32];
+    tw = vg_text(kxp_edit, x + 4, y, VG_BIG, TE_INK, VG_LEFT);
+    {
+        char pre[24];
+        int px;
+        memcpy(pre, kxp_edit, sizeof pre);
+        pre[kxp_cur < 23 ? kxp_cur : 23] = 0;
+        px = x + 4 + vg_text_width(pre, VG_BIG);
+        vg_rect(px, y + 25, 11, 3, C_RED);
+    }
+    (void)tw;
+    vg_text(kxp_x.mode == 1 ? "EXPORTING .." : kxp_x.mode == 2 ? "IMPORTING .." : "", x + w, y + 6, VG_SMALL, C_RED, VG_RIGHT);
+    for (i = 0; i < 16; i++) {
+        int e = page * 16 + i, cx = x + (i / 4) * cw, cy = y + 34 + (i % 4) * 19, sel = e == kxp_sel;
+        b[0] = (char)('0' + (e + 1) / 10), b[1] = (char)('0' + (e + 1) % 10), b[2] = ' ', b[3] = 0;
+        str_cpy(b + 3, kxp_name[e][0] ? kxp_name[e] : "--", sizeof b - 3);
+        b[14] = 0;
+        if (sel)
+            vg_rect(cx, cy - 1, cw - 4, 18, vg_mix(C_BG, C_RED, 0.55f));
+        vg_text(b, cx + 3, cy, VG_SMALL, sel ? C_WHITE : kxp_name[e][0] ? TE_INK : 0x6A6A72, VG_LEFT);
+    }
+    vg_text(page ? "17-32" : "1-16", x + w, y + h - 14, VG_SMALL, TE_MID, VG_RIGHT);
+}
+
+/* PROJECT FILES: the .kxp files in "VIBE FM/kriechstrom/" on the writing place */
+static void kx_draw_pfiles(int x, int y, int w, int h)
+{
+    int i, first = kxp_lsel / 6 * 6;
+    if (!kxp_src[0]) {
+        vg_text("NO FOLDER YET", x + 4, y + 4, VG_BIG, TE_INK, VG_LEFT);
+        vg_text("F5: PICK ONE (THE BROWSER), OR SET IT IN THE PLUGIN", x + 4, y + 40, VG_BOLD, TE_MID, VG_LEFT);
+        vg_text("DROP A .KXP ON THE PLUGIN'S WINDOW TO IMPORT IT", x + 4, y + 62, VG_BOLD, TE_MID, VG_LEFT);
+        return;
+    }
+    vg_text("VIBE FM / KRIECHSTROM", x + 4, y, VG_SMALL, TE_MID, VG_LEFT);
+    if (!kxp_nlist)
+        vg_text(kxp_list_want ? "LOOKING .." : "NO .KXP FILES THERE YET", x + 4, y + 24, VG_BOLD, TE_INK, VG_LEFT);
+    for (i = first; i < kxp_nlist && i < first + 6; i++) {
+        const char *nm = kxp_list[i] + str_len(kxp_list[i]);
+        int cy = y + 18 + (i - first) * 15;
+        while (nm > kxp_list[i] && nm[-1] != '/')
+            nm--;
+        if (i == kxp_lsel)
+            vg_rect(x, cy - 1, w, 15, vg_mix(C_BG, C_RED, 0.55f));
+        vg_text(nm, x + 4, cy, VG_SMALL, i == kxp_lsel ? C_WHITE : TE_INK, VG_LEFT);
+    }
+    vg_text(kxp_x.mode == 2 ? "IMPORTING .." : "ENTER IMPORTS INTO MY PROJECTS", x + w, y + h - 14, VG_SMALL, TE_MID, VG_RIGHT);
+}
+
+/* OUTPUTS: where the parts of the mix go when the host has more outputs (kx_outs.h), each pair with its level */
+static void kx_draw_outs(int x, int y, int w, int h)
+{
+    static const char *const N[7] = {"MASTER", "T1", "T2", "T3", "T4", "EFFECTS", "INPUT"};
+    int no = vibe_output_count(), k, on = kx_ic[IC_XOUT] != 0, rh = (h - 4) / 7;
+    char b[24];
+    for (k = 0; k < 7; k++) {
+        int ry = y + k * rh, live = k == 0 || (on && 2 * k + 1 < no);
+        float pk = k == 0 ? (kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1]) : kx_xo_peak[k - 1];
+        uint32_t col = k >= 1 && k <= 4 ? (TRK_RGB[k - 1] == 0xD9D2C2 ? TE_INK : TRK_RGB[k - 1]) : k == 0 ? TE_INK : C_RED;
+        vg_itoa(2 * k + 1, b);
+        str_cpy(b + str_len(b), "/", 2);
+        vg_itoa(2 * k + 2, b + str_len(b));
+        vg_text(b, x + 4, ry, VG_BOLD, live ? TE_INK : 0x6A6A72, VG_LEFT);
+        vg_text(N[k], x + 62, ry, VG_BOLD, live ? col : 0x6A6A72, VG_LEFT);
+        if (live && k && 2 * k < no)
+            vg_text(vibe_output_name(2 * k), x + 150, ry, VG_SMALL, TE_MID, VG_LEFT);
+        vg_rect(x + 260, ry + 5, w - 264, 6, 0x1E1E22);
+        if (live)
+            vg_rect(x + 260, ry + 5, (int)((float)(w - 264) * (pk > 1.0f ? 1.0f : pk)), 6, col);
+    }
+    if (no <= 2)
+        vg_text("THIS HOST HAS 2 OUTPUTS: GIVE THE PLUGIN MORE IN THE DAW", x + w / 2, y + h - 16, VG_SMALL, C_RED, VG_CENTER);
+}
+
 /* DISPLAY: the three ways the screen wears, side by side, the one set framed */
 static void kx_draw_display(int x, int y, int w, int h)
 {
@@ -942,7 +1020,7 @@ static void kx_draw_help(void)
         kx_card c;
         static const char *const EN[4] = {"ENC 1", "ENC 2", "ENC 3", "ENC 4"};
         memset(&c, 0, sizeof c);
-        if (kp < 0 && !IS_PED_PAGE(pg) && !IS_IC_PAGE(pg) && pg != PG_USER)
+        if (kp < 0 && !IS_PED_PAGE(pg) && !IS_IC_PAGE(pg) && pg != PG_USER && pg != PG_PLIB && pg != PG_PFILES)
             break;
         kx_card_of(kp >= 0 ? kp : pg, (uint32_t)k, &c);
         if (!c.label || !c.label[0])
@@ -970,6 +1048,10 @@ static void kx_draw_help(void)
         ew = "load (SHIFT: demo)";
     else if (pg == PG_USER)
         ew = "load the sound";
+    else if (pg == PG_PLIB)
+        ew = "twice: load (SHIFT: delete)";
+    else if (pg == PG_PFILES)
+        ew = "import the file";
     else if (pg >= 0 && pg < (int)NPAGES && PAGES[pg].graph == GR_EVENTS)
         ew = "the row's action";
     if (kx_streq(f5, "OOPS")) f5w = "OOPS: random values";
@@ -977,6 +1059,10 @@ static void kx_draw_help(void)
     else if (kx_streq(f5, "REC") || kx_streq(f5, "STOP")) f5w = pg == PG_SAMPLER ? "record at next bar" : "the song";
     else if (kx_streq(f5, "PLAY")) f5w = "play the song";
     else if (kx_streq(f5, "NEXT")) f5w = "the next pedal";
+    else if (pg == PG_PLIB)
+        f5w = "save here (SHIFT: export)";
+    else if (pg == PG_PFILES)
+        f5w = "look again / pick a folder";
     else if (kx_streq(f5, "SAVE") || kx_streq(f5, "NEW") || kx_streq(f5, "ERASE"))
         f5w = pg == PG_PROJECT ? "save (SHIFT: new)" : "save (SHIFT: erase)";
     else if (f5[0]) f5w = "the input's mode";
@@ -1036,6 +1122,13 @@ static void kx_draw_start(void)
 static void kx_draw_toast(void)
 {
     uint32_t s1 = __atomic_load_n(&kx_msg_seq, __ATOMIC_ACQUIRE);
+    static uint32_t pn;
+    if (kxp_msg_n != pn) {                        /* (MY PROJECTS' own words: kx_proj.h) */
+        pn = kxp_msg_n;
+        memcpy(kx_toast, kxp_msg, sizeof kx_toast);
+        kx_toast[23] = 0;
+        kx_toast_until = kx_now_ms() + 1800u;
+    }
     if (!(s1 & 1u) && s1 != kx_toast_seq) {
         char b[24];
         memcpy(b, kx_msg, sizeof b);
@@ -1204,6 +1297,13 @@ static void kx_ui_draw(void)
         kx_draw_user(8, 96, 464, 110);
     } else if (pg == PG_SAMPLER) {
         kx_draw_sampler(8, 96, 464, 110);
+    } else if (pg == PG_PLIB) {
+        kx_draw_plib(4, 96, 472, 110);
+    } else if (pg == PG_PFILES) {
+        kxp_list_poll();
+        kx_draw_pfiles(4, 96, 472, 110);
+    } else if (pg == PG_OUTS) {
+        kx_draw_outs(4, 94, 472, 114);
     } else if (pg == PG_DISPLAY) {
         kx_draw_display(4, 96, 472, 110);
     } else if (pg == PG_FOOT) {

@@ -34,6 +34,8 @@ enum {
     KXC_SREC,         /* a = source (0 input, 1 mix), b = bars (0: as long as fits), c = slot: record (again: stop) */
     KXC_SLICE,        /* a = slot: the selected track plays it, SLICE on USR a + 1 */
     KXC_PED,          /* a = owner (PO_*), b = slot, c = field (PD_*), v = detents: a pedal (kx_pedals.h) */
+    KXC_PSAVE,        /* a = MY PROJECTS' entry: copy what a save needs (kx_proj.h) */
+    KXC_PLOAD,        /* kxp_buf into the core (kx_proj.h) */
     KXC_INCFG,        /* a = IC_*, v = detents (b = 1: v is the value): the audio input's settings (kx_input.h) */
 };
 static int kx_silent_engine(uint32_t e) { return e == ENGI_SAMPLE || (FELUCCA_SLICE && e == 13u); }
@@ -97,6 +99,8 @@ static void kx_key_off(uint32_t note)
     }
 }
 
+static void kxp_capture_audio(uint32_t entry);  /* kx_proj.h */
+static void kxp_load_audio(void);
 static void kx_apply(const kx_cmd *k)
 {
     switch (k->op) {
@@ -318,9 +322,16 @@ static void kx_apply(const kx_cmd *k)
         kx_demo_load(0);
         ui_message("DEMO SONG: SEQ > SONG, F5");
         break;
+    case KXC_PSAVE:
+        kxp_capture_audio(k->a);
+        break;
+    case KXC_PLOAD:
+        kxp_load_audio();
+        break;
     case KXC_INCFG:
         if (k->a < IC_N)
             kx_ic[k->a] = (int16_t)clamp(k->b ? k->v : kx_ic[k->a] + k->v, IC_DESC[k->a].min, IC_DESC[k->a].max);
+        kx_xo_cfg = kx_ic[IC_XOUT];
         break;
     case KXC_FOLLOW:
         if (k->a)

@@ -5,6 +5,18 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1 (with empty hooks for the outputs in fx.c).
+
+### Added
+- MENU > MY PROJECTS: 32 whole projects (the music, slots A-D, the pedalboards, the sampler's recordings), named,
+  saved with F5, loaded or deleted with ENTER pressed twice; SHIFT + F5 exports one as a .kxp file
+- MENU > PROJECT FILES: the .kxp files in VIBE FM/kriechstrom/ imported with ENTER; a .kxp dropped on the plugin's
+  window is imported too
+- MENU > OUTPUTS: with more outputs in the DAW, each track on its own pair (OUT 3-10), the effects on 11/12, the input
+  on 13/14, the master on 1/2 as before; MULTI OUT switches it off
+
 ## [0.5.1] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

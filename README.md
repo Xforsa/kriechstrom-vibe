@@ -64,6 +64,14 @@ mark grows behind every page as the master wears the mix out.
   and F5 the whole song, MENU > PROJECT and SHIFT + ENTER bring it back.
 - **Storage:** the music as it is now is kept by itself (`session.krp`), four project slots that SONG plays in a chain,
   32 user sounds. The files are KRIECHSTROM's FM-1 formats.
+- **My projects (MENU > MY PROJECTS):** 32 whole projects, each in one `.kxp` file: the music, the four slots, every
+  pedalboard and the sampler's recordings. Named with ENC 2 and 3, saved with F5, loaded with ENTER twice. SHIFT + F5
+  exports one as a file into `VIBE FM/kriechstrom/` on the host's writing place; MENU > PROJECT FILES imports them,
+  and a `.kxp` dropped on the plugin's window is imported too.
+- **More outputs (MENU > OUTPUTS):** when the DAW gives the plugin more outputs, each track goes out on its own pair
+  (T1 on OUT 3/4 .. T4 on OUT 9/10, after its pedals, LEVEL and PAN), the shared effects' return on OUT 11/12 and the
+  audio input on OUT 13/14, while OUT 1/2 stays the master. They are taken before the master's chain (DAMAGE, WALL and
+  the rest work on the sum), so they add up to the mix before it.
 
 ![The stage](docs/stage.png)
 
@@ -85,7 +93,7 @@ mark grows behind every page as the master wears the mix out.
 | F1-F4 | select track 1-4 |
 | F5 | the page's action: OOPS on SOUND, DICE on SEQ (SHIFT: MOOD), REC on SAMPLER, the next pedal on PEDALS, SAVE on PROJECT, the input's type on INPUT |
 | F6 | UNDO |
-| MENU | the mixer, the project slots, MIDI OUT and CV, the foot pedal, the display, the clock |
+| MENU | the mixer, the project slots, my projects and their files, MIDI OUT and CV, the outputs, the foot pedal, the display, the clock |
 | SHIFT | held or tapped (then it holds for the next control); the pads' second functions are shown |
 | PLAY, STOP, REC | the transport; REC arms the selected track for live recording |
 | ENTER | on SEQ: the cursor's step on or off; on PROJECT: load the slot |
@@ -126,12 +134,13 @@ sh tests/run.sh            # the tests, vibe-check among them
 - `kriechstrom/` the firmware (its folder name is its id): `kriechstrom.c` builds everything as one unit, as the FM-1
   firmware does; `kx_core.h` the KRIECHSTROM sources, `kx_audio.h` the audio flow and the resampler, `kx_ctl.h` what
   the controls do in the core, `kx_input.h` the audio input, `kx_midi.h` MIDI OUT and CV, `kx_store.h` storage,
-  `kx_daw.h` the DAW, `kx_pedals.h` the pedalboards, `kx_sampler.h` the sampler, `kx_ui.h` and `kx_draw.h` the
+  `kx_daw.h` the DAW, `kx_pedals.h` the pedalboards, `kx_sampler.h` the sampler, `kx_proj.h` my projects and their files, `kx_outs.h`
+  the outputs, `kx_ui.h` and `kx_draw.h` the
   pages, `kx_pics.h` and `kx_te.h` the pictures, `kx_live.h` the live parts of the pages, `kx_creep.h` and
   `kx_wear.h` the creep and the display's wear, `kx_stage.h` the stage. `icon.png` is drawn by `tools/make_icon.py`.
 - `core/kriechstrom/` KRIECHSTROM for the FM-1, a git submodule. Its sound and edit code is used as it is; the one
-  changes for VIBE FM are three hooks in `fx.c` (the audio input, the extra pedals, INFECT's sources for them),
-  empty in the FM-1 build.
+  changes for VIBE FM are hooks in `fx.c` (the audio input, the extra pedals and INFECT's sources for them, the
+  tracks' and the effects' outputs), empty in the FM-1 build.
 - `sdk/`, `tools/vibe-build.sh`, `tools/vibe-check.mjs`, `tools/wasmtest.mjs`, `tools/media-host.mjs` from the
   [VIBE FM SDK](https://github.com/Vibe-FM-SDK/vibe-fm-sdk) (Apache-2.0, `sdk/VERSION` names its commit);
   `tools/vibe-build.sh` adds the generated headers' folders, `tools/kx-test.mjs` is `wasmtest.mjs` that also saves the
@@ -139,7 +148,7 @@ sh tests/run.sh            # the tests, vibe-check among them
 - `site/` the site (GitHub Pages, `tools/make_site.sh`), in English and Russian; its pictures are drawn by
   `tools/make_hero.py` with the FM-1 site's own `krst_art.py`.
 - `tests/` the host tests: the core at 44.1 kHz against the FM-1 build, vibe-check, other rates, the input, MIDI OUT,
-  storage.
+  storage, my projects (save, export, load, import), the outputs.
 
 ## Licence
 

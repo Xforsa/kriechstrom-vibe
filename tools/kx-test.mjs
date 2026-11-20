@@ -58,6 +58,9 @@ e.vibe_wasm_init(sr);
 if (script.jobs_reverse && e.vibe_wasm_jobs_reverse) e.vibe_wasm_jobs_reverse(1);   // (Protokoll 8: the jobs 2-1-0)
 const total = Math.ceil(script.seconds * sr / block);
 const L = new Float32Array(total * block), R = new Float32Array(total * block);
+// KRIECHSTROM: a script's "outputs": N (SDK 26) – the host has N outputs; OUT 3.. are saved as out3-4.wav, out5-6.wav ..
+const NOUT = script.outputs && e.vibe_wasm_ports ? Math.min(16, script.outputs) : 2, XO = [];
+if (NOUT > 2) { new DataView(e.memory.buffer).setInt32(e.vibe_wasm_ports() + 8, NOUT, true); for (let k = 2; k < NOUT; k++) XO.push(new Float32Array(Math.ceil(script.seconds * sr / block) * block)); }
 const outT = e.vibe_wasm_outputs ? e.vibe_wasm_outputs() : 0, CL = new Float32Array(total * block), CR = new Float32Array(total * block); let cueBlocks = 0;
 if (outT) new DataView(e.memory.buffer).setInt32(outT + 4, script.cue ? 1 : 0, true);   // (host_cue)
 const steps = (script.steps || []).slice().sort((a, b) => a.t - b.t);
@@ -117,6 +120,7 @@ for (let b = 0; b < total; b++) {
   if (outT) { const dv = new DataView(e.memory.buffer); if ((dv.getInt32(outT, true) & 2) && dv.getInt32(outT + 8, true)) { cueBlocks++; const c = new Float32Array(e.memory.buffer, outT + 20, 512); CL.set(c.subarray(0, block), b * block); CR.set(c.subarray(256, 256 + block), b * block); } }
   const io = new Float32Array(e.memory.buffer, e.vibe_wasm_io(), 256 * 3);
   L.set(io.subarray(256, 256 + block), b * block); R.set(io.subarray(512, 512 + block), b * block);
+  if (NOUT > 2) { const po = e.vibe_wasm_ports() + 14864; for (let k = 2; k < NOUT; k++) XO[k - 2].set(new Float32Array(e.memory.buffer, po + (k - 2) * 1024, block), b * block); }
   if (b % 12 === 0 || shots.length) { const t1 = performance.now(); const fb = e.vibe_wasm_draw(); const dt = performance.now() - t1; drawMs += dt; if (dt > drawMax) drawMax = dt; draws++;
     while (shots.length) png(new Uint16Array(e.memory.buffer, fb, 480 * 320), `${outDir}/${shots.shift()}.png`);
     if (stageShots.length && e.vibe_wasm_stage_info && e.vibe_wasm_stage_draw) {
@@ -129,6 +133,7 @@ let peak = 0, nan = 0, sum = 0;
 for (let i = 0; i < L.length; i++) { if (!Number.isFinite(L[i]) || !Number.isFinite(R[i])) nan++; peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i])); sum += L[i] * L[i]; }
 let hash = 2166136261; { const bl = new Uint32Array(L.buffer), br = new Uint32Array(R.buffer); for (let i = 0; i < bl.length; i++) { hash = Math.imul(hash ^ bl[i], 16777619) >>> 0; hash = Math.imul(hash ^ br[i], 16777619) >>> 0; } }   // (FNV over the output's bits: two runs, the same sound?)
 wav(`${outDir}/audio.wav`);
+if (NOUT > 2) { const sl = L.slice(), sr2 = R.slice(); for (let k = 2; k + 1 < NOUT; k += 2) { L.set(XO[k - 2]); R.set(XO[k - 1]); wav(`${outDir}/out${k + 1}-${k + 2}.wav`); } L.set(sl); R.set(sr2); }
 if (cueBlocks) { const sl = L.slice(), sr2 = R.slice(); L.set(CL); R.set(CR); wav(`${outDir}/cue.wav`); L.set(sl); R.set(sr2); }
 if (midiOut.length) fs.writeFileSync(`${outDir}/midi.json`, JSON.stringify(midiOut));
 console.log(JSON.stringify({ peak: +peak.toFixed(3), rms: +Math.sqrt(sum / L.length).toFixed(4), nan, out_hash: hash.toString(16).padStart(8, '0'),

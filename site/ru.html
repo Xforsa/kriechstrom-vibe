@@ -60,6 +60,8 @@ VST. При запуске прошивка спрашивает: продолж
   <figure><img src="shots/fm6.png" alt="FM6" loading="lazy"><figcaption>Алгоритм FM6</figcaption></figure>
   <figure><img src="shots/song.png" alt="SONG" loading="lazy"><figcaption>Песня</figcaption></figure>
   <figure><img src="shots/home.png" alt="HOME" loading="lazy"><figcaption>HOME: контролы этой страницы</figcaption></figure>
+  <figure><img src="shots/projects.png" alt="MY PROJECTS" loading="lazy"><figcaption>Мои проекты</figcaption></figure>
+  <figure><img src="shots/outputs.png" alt="OUTPUTS" loading="lazy"><figcaption>Каждая дорожка на свой выход</figcaption></figure>
 </div>
 
 <img class="wide reveal" src="shots/stage.png" alt="Сцена: четыре паттерна, разряд, цепочка мастера" width="960" height="540" loading="lazy">
@@ -88,6 +90,9 @@ VST. При запуске прошивка спрашивает: продолж
     заморозка, гейт), четыре линии барабанов с силой удара. На SEQ пэды становятся 16 шагами; 64 пэда Launchpad это все
     64 шага. Ножная педаль: экспрессия это рука на DAMAGE, WALL или уровне, свитч запускает, кидает DICE, тормозит плёнку
     или замораживает; на её странице и то и другое можно тянуть и нажимать мышью.</li>
+  <li><b>Проекты и выходы.</b> MY PROJECTS хранит 32 проекта целиком (музыка, четыре слота, педали, сэмплы) и
+    переносит их файлами .kxp, в том числе перетаскиванием на окно плагина. В DAW плагин может отдать каждую дорожку
+    на свой выход (OUT 3-10), эффекты и вход на свои: части пишутся отдельно.</li>
   <li><b>MIDI OUT, CV, DAW.</b> Ноты каждой дорожки на своём канале, клок 24 PPQ со START и STOP, одна дорожка на CV и
     GATE. В DAW: микшер, звук, огибающая, посылы и эффекты мастера как параметры, транспорт и темп DAW; VIBE FM Link
     показывает на контроллере страницу и четыре ручки.</li>
@@ -153,7 +158,10 @@ F1-F4; <kbd>&lt;</kbd> <kbd>&gt;</kbd> листают страницы груп�
 <section><h3>MENU</h3><table>
 <tr><td>MIXER</td><td>ENC 1-4 уровни T1-T4 (SHIFT: панорама)</td></tr>
 <tr><td>PROJECT</td><td>слоты A-D: ENC 1 слот, ENTER загрузить (SHIFT: демо), F5 сохранить (SHIFT: новый)</td></tr>
+<tr><td>MY PROJECTS</td><td>32 проекта целиком (музыка, слоты A-D, педали, сэмплы): ENC 1 какой, ENC 2 / 3 буква имени, F5 сохранить сюда (SHIFT: экспорт в файл .kxp), ENTER дважды загрузить (SHIFT: удалить)</td></tr>
+<tr><td>PROJECT FILES</td><td>файлы .kxp в VIBE FM/kriechstrom: ENC 1 какой, ENTER импорт, F5 обновить (в браузере: выбрать папку); или перетащить .kxp на окно плагина</td></tr>
 <tr><td>MIDI OUT &amp; CV</td><td>MIDI OUT, CHANNEL, CLOCK, CV TRACK</td></tr>
+<tr><td>OUTPUTS</td><td>MULTI OUT: если в DAW у плагина больше выходов, T1-T4 идут на OUT 3-10, эффекты на 11/12, вход на 13/14</td></tr>
 <tr><td>FOOT PEDAL</td><td>что крутит экспрессия (DAMAGE, WALL, LEVEL) и что делает свитч (PLAY, DICE, STOP, FREEZE); педаль тянется мышью, свитч нажимается</td></tr>
 <tr><td>DISPLAY</td><td>SCREEN WEAR: OFF, LOW, FULL, все три показаны рядом</td></tr>
 <tr><td>CLOCK</td><td>BPM, свинг, источник клока</td></tr>

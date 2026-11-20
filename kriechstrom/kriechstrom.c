@@ -12,6 +12,7 @@
 #undef __attribute__
 
 /* ---- the VIBE side -------------------------------------------------------------------------------------------- */
+#include "kx_outs.h"
 #include "kx_audio.h"
 #include "kx_pedals.h"
 #include "kx_input.h"
@@ -20,6 +21,7 @@
 #include "kx_boot.h"
 #include "kx_sampler.h"
 #include "kx_store.h"
+#include "kx_proj.h"
 #include "kx_daw.h"
 #include "kx_ui.h"
 #include "kx_creep.h"

@@ -52,6 +52,7 @@ static void kx_rec_block(const int32_t *o);       /* kx_sampler.h */
 /* ---- the core at 44.1 kHz ------------------------------------------------------------------------------------- */
 #define KX_RB 1024u                               /* core frames kept for the resampler (a power of two) */
 static float kx_rb[2][KX_RB];
+static float kx_xrb[KX_XCH][KX_RB];               /* the parts (kx_outs.h), at the same places, while kx_xo_on */
 static uint32_t kx_rb_w;                          /* frames written (the ring's head) */
 static uint32_t kx_ms_acc;
 
@@ -85,6 +86,20 @@ static void kx_core_block(void)
             kx_hit_amt = kx_env_f > 0.5f ? 1.0f : kx_env_f * 2.0f;
             __atomic_store_n(&kx_hits, kx_hits + 1u, __ATOMIC_RELEASE);
             kx_hit_hold = 120;                    /* (~90 ms before the next) */
+        }
+    }
+    if (kx_xo_on) {                               /* the parts, at the master's volume (fx.c mix_block's out) */
+        int32_t mg = fx_usb_fixed ? MASTER_FULL : (int32_t)song.master_q12;
+        uint32_t c;
+        for (c = 0; c < KX_XCH; c++) {
+            float pk = kx_xo_peak[c / 2u];
+            for (i = 0; i < CTL; i++) {
+                float v = (float)(((kx_xo[c][i] >> 2) * mg) >> 10) * (1.0f / 32768.0f);
+                kx_xrb[c][(kx_rb_w + i) & (KX_RB - 1u)] = v;
+                v = v < 0 ? -v : v;
+                pk = v > pk ? v : pk;
+            }
+            kx_xo_peak[c / 2u] = pk;
         }
     }
     kx_rb_w += CTL;
@@ -150,9 +165,10 @@ static void kx_resampler_init(float sr)
     kx_pos = 0.0;
 }
 
-static void kx_pull(float *l, float *r, int frames)
+static void kx_pull(float *l, float *r, int frames, float *const *xo)
 {
     int j;
+    uint32_t c;
     if (kx_bypass) {                              /* 44.1 kHz: the core's frames as they are */
         for (j = 0; j < frames; j++) {
             uint32_t at;
@@ -161,6 +177,10 @@ static void kx_pull(float *l, float *r, int frames)
             at = (uint32_t)kx_pos & (KX_RB - 1u);
             l[j] = kx_rb[0][at];
             r[j] = kx_rb[1][at];
+            if (xo)
+                for (c = 0; c < KX_XCH; c++)
+                    if (xo[c])
+                        xo[c][j] = kx_xrb[c][at];
             kx_pos += 1.0;
         }
         return;
@@ -185,6 +205,14 @@ static void kx_pull(float *l, float *r, int frames)
         }
         l[j] = sl;
         r[j] = sr;
+        if (xo)                                   /* (the parts, the same kernel) */
+            for (c = 0; c < KX_XCH; c++)
+                if (xo[c]) {
+                    float s = 0.0f;
+                    for (k = 0; k < (uint32_t)KX_TAPS; k++)
+                        s += kx_xrb[c][(base + k - (uint32_t)(KX_TAPS / 2 - 1)) & (KX_RB - 1u)] * (k0[k] + (k1[k] - k0[k]) * a);
+                    xo[c][j] = s;
+                }
         kx_pos += kx_step;
     }
 }
@@ -230,7 +258,26 @@ void vibe_on_audio(const float *in, float *out_l, float *out_r, int frames)
     kx_daw_transport();
     kx_commands();
     kx_snap_poll_audio();
-    kx_pull(out_l, out_r, frames);
+    {   /* more outputs (SDK 26): OUT 3.. the parts, when the host has them and MULTI OUT is on */
+        float *xo[KX_XCH];
+        int no = vibe_output_count(), c, on = kx_xo_cfg && no > 2;
+        if (on != kx_xo_on) {
+            memset(kx_xrb, 0, sizeof kx_xrb);     /* (a fresh start: no stale tail) */
+            kx_xo_on = on;
+        }
+        for (c = 0; c < KX_XCH; c++)
+            xo[c] = on && c + 2 < no ? vibe_output(c + 2) : 0;
+        kx_pull(out_l, out_r, frames, on ? xo : 0);
+        if (on)
+            for (c = 0; c < KX_XCH; c++)
+                if (xo[c]) {
+                    int jj;
+                    for (jj = 0; jj < frames; jj++)
+                        xo[c][jj] = xo[c][jj] > 8.0f ? 8.0f : xo[c][jj] < -8.0f ? -8.0f : xo[c][jj];   /* (a DAW's floats: headroom) */
+                }
+        for (c = 0; c < 6; c++)
+            kx_xo_peak[c] *= 0.97f;
+    }
     for (j = 0; j < frames; j++) {
         float a = out_l[j] < 0 ? -out_l[j] : out_l[j], b = out_r[j] < 0 ? -out_r[j] : out_r[j];
         out_l[j] = out_l[j] > 1.0f ? 1.0f : out_l[j] < -1.0f ? -1.0f : out_l[j];

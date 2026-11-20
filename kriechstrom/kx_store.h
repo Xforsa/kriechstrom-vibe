@@ -194,6 +194,7 @@ static void kx_cfg_boot(void)                     /* vibe_on_init, after kx_inpu
     }
     memcpy(kx_ic_wrote, kx_ic, sizeof kx_ic_wrote);
     kx_ic_loaded = 1;
+    kx_xo_cfg = kx_ic[IC_XOUT];
 }
 static void kx_cfg_poll(void)                     /* control flow */
 {

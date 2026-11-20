@@ -13,13 +13,14 @@
  * The host's rate in, 44.1 kHz for the core: resampled as the output is (kx_audio.h), about 1.5 ms of delay. */
 
 enum { IC_LEVEL, IC_DRIVE, IC_PAN, IC_CHO, IC_DLY, IC_REV, IC_GATE, IC_FEED, IC_MODE,
-       IC_MOUT, IC_MCH, IC_CLK, IC_CV, IC_SCREEN, IC_EXPR, IC_FSW, IC_SSRC, IC_SBARS, IC_SSLOT, IC_N };   /* (IC_EXPR, IC_FSW: the foot pedal, kx_ui.h) */   /* (IC_SCREEN: the display's wear, kx_wear.h) */   /* (the last four: MIDI OUT and CV, kx_midi.h) */
+       IC_MOUT, IC_MCH, IC_CLK, IC_CV, IC_SCREEN, IC_EXPR, IC_FSW, IC_SSRC, IC_SBARS, IC_SSLOT, IC_XOUT, IC_N };   /* (IC_EXPR, IC_FSW: the foot pedal, kx_ui.h) */   /* (IC_SCREEN: the display's wear, kx_wear.h) */   /* (the last four: MIDI OUT and CV, kx_midi.h) */
 static const struct { const char *label; int16_t min, max, def; } IC_DESC[IC_N] = {
     {"LEVEL", 0, 127, 100}, {"DRIVE", 0, 127, 0}, {"PAN", -64, 63, 0}, {"CHO", 0, 127, 0}, {"DLY", 0, 127, 0},
     {"REV", 0, 127, 24}, {"GATE", 0, NTRK, 0}, {"FEEDS", 0, NTRK, 0}, {"INPUT", 0, 2, 0},
     {"MIDI OUT", 0, 1, 1}, {"CHANNEL", 1, 13, 1}, {"CLOCK", 0, 1, 0}, {"CV TRACK", 0, NTRK, 1},
     {"SCREEN WEAR", 0, 2, 1}, {"EXPRESSION", 0, 3, 1}, {"SWITCH", 0, 3, 0},
     {"SOURCE", 0, 1, 0}, {"LENGTH", 0, 3, 2}, {"SLOT", 0, 2, 0},   /* (the sampler, kx_sampler.h) */
+    {"MULTI OUT", 0, 1, 1},                           /* (more outputs: kx_outs.h) */
 };
 static int16_t kx_ic[IC_N];                       /* the audio flow writes them (KXC_INCFG); the display reads */
 static const char *const IC_TRK[NTRK + 1] = {"OFF", "T1", "T2", "T3", "T4"};
@@ -29,6 +30,7 @@ static const char *const IC_EXPR_N[4] = {"OFF", "DAMAGE", "WALL", "LEVEL"};   /*
 static const char *const IC_SSRC_N[2] = {"INPUT", "MIX"};
 static const char *const IC_SBARS_N[4] = {"FREE", "1 BAR", "2 BARS", "4 BARS"};
 static const char *const IC_SSLOT_N[3] = {"USR1", "USR2", "USR3"};
+static const char *const IC_ONOFF_N[2] = {"OFF", "ON"};
 static const char *const IC_FSW_N[4] = {"PLAY", "DICE", "STOP", "FREEZE"};    /* the footswitch: PLAY, DICE, tape STOP or
                                                                                  FREEZE while held */
 
@@ -170,7 +172,8 @@ static void kx_in_mix(uint32_t n)
         }
         ifx_pk[ifx_half][feed - 1u] = fp;
     }
-    if (kx_ic[IC_LEVEL] > 0)
+    if (kx_ic[IC_LEVEL] > 0) {
+        int32_t ol[CTL], orr[CTL];
         for (i = 0; i < n; i++) {
             int32_t x = ((xl[i] >> 2) * lvl) >> 10, y = ((xr[i] >> 2) * lvl) >> 10, m = (x + y) >> 1;
             if (c)
@@ -179,9 +182,13 @@ static void kx_in_mix(uint32_t n)
                 send_d[i] += mulq15(m, d);
             if (r)
                 send_r[i] += mulq15(m, r);
-            mix_l[i] += (x * gl) >> 12;
-            mix_r[i] += (y * gr) >> 12;
+            ol[i] = (x * gl) >> 12;
+            orr[i] = (y * gr) >> 12;
+            mix_l[i] += ol[i];
+            mix_r[i] += orr[i];
         }
+        kx_xo_input(ol, orr, n);
+    }
     {
         float p = (float)pk / 32768.0f;
         kx_in_peak = p > kx_in_peak ? p : kx_in_peak * 0.9f;

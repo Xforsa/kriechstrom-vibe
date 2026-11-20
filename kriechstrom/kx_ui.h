@@ -24,10 +24,11 @@ enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
 enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER, PG_DISPLAY,
-       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT, PG_SAMPLER };
+       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT, PG_SAMPLER, PG_OUTS, PG_PLIB, PG_PFILES };
 #define IS_PED_PAGE(pg) ((pg) == PG_PEDALS || (pg) == PG_PEDALS_IN || (pg) == PG_PEDALS_M)
-#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : (pg) == PG_DISPLAY ? 3 : (pg) == PG_FOOT ? 4 : 5)
-#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY || (pg) == PG_FOOT || (pg) == PG_SAMPLER)
+#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : (pg) == PG_DISPLAY ? 3 : (pg) == PG_FOOT ? 4 : (pg) == PG_OUTS ? 6 : 5)
+#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY || (pg) == PG_FOOT || (pg) == PG_SAMPLER || \
+                        (pg) == PG_OUTS)
 #define PG_MAX 24
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
@@ -129,7 +130,10 @@ static void kx_family_pages(uint32_t fa)
     default:
         ADD(PG_MIXER);
         ADD(PG_PROJECT);
+        ADD(PG_PLIB);
+        ADD(PG_PFILES);
         ADD(PG_MIDI);
+        ADD(PG_OUTS);
         ADD(PG_FOOT);
         ADD(PG_DISPLAY);
         i = (uint32_t)kx_page_index("CLOCK");
@@ -173,6 +177,9 @@ static const char *kx_title(int pg)
     case PG_DISPLAY: return "DISPLAY";
     case PG_FOOT: return "FOOT PEDAL";
     case PG_SAMPLER: return "SAMPLER";
+    case PG_OUTS: return "OUTPUTS";
+    case PG_PLIB: return "MY PROJECTS";
+    case PG_PFILES: return "PROJECT FILES";
     case PG_PEDALS: return "PEDALS";
     case PG_PEDALS_IN: return "INPUT PEDALS";
     case PG_PEDALS_M: return "MASTER PEDALS";
@@ -194,7 +201,7 @@ static int kx_knob_page(void)
 {
     if (IS_PED_PAGE(kx_page))
         return kx_page;
-    if (IS_IC_PAGE(kx_page))
+    if (IS_IC_PAGE(kx_page) || kx_page == PG_USER || kx_page == PG_PLIB || kx_page == PG_PFILES)
         return kx_page;
     if (kx_page >= 0 && kx_page < (int)NPAGES)
         return kx_page;
@@ -208,9 +215,10 @@ static int kx_knob_page(void)
 }
 
 typedef struct { const char *label; char val[12]; const char *unit; float pos; int bip, on; } kx_card;
-static const uint8_t IN_SLOTS[6][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
+static const uint8_t IN_SLOTS[7][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
                                        {IC_MOUT, IC_MCH, IC_CLK, IC_CV}, {IC_SCREEN, 255, 255, 255},
-                                       {IC_EXPR, IC_FSW, 255, 255}, {IC_SSRC, IC_SBARS, IC_SSLOT, 255}};
+                                       {IC_EXPR, IC_FSW, 255, 255}, {IC_SSRC, IC_SBARS, IC_SSLOT, 255},
+                                       {IC_XOUT, 255, 255, 255}};
 static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 {
     if (IS_IC_PAGE(pg)) {                         /* the audio input's, MIDI OUT's (kx_input.h, kx_midi.h) */
@@ -236,7 +244,7 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
             str_cpy(c->val, IC_EXPR_N[clamp(v, 0, 3)], sizeof c->val);
         else if (f == IC_FSW)
             str_cpy(c->val, IC_FSW_N[clamp(v, 0, 3)], sizeof c->val);
-        else if (f == IC_MOUT || f == IC_CLK)
+        else if (f == IC_MOUT || f == IC_CLK || f == IC_XOUT)
             str_cpy(c->val, v ? "ON" : "OFF", sizeof c->val);
         else if (f == IC_MCH) {
             char *q = vg_itoa(v, c->val);
@@ -286,6 +294,35 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
         param_format(dd, v[slot], c->val, &un);
         c->unit = un;
         c->pos = dd->max > dd->min ? (float)(v[slot] - dd->min) / (float)(dd->max - dd->min) : 0.0f;
+        return;
+    }
+    if (pg == PG_PLIB || pg == PG_PFILES) {       /* MY PROJECTS: the entry, the name's letter; PROJECT FILES: the file */
+        static const char *const L[3] = {"PROJECT", "LETTER", "CHANGE"};
+        memset(c, 0, sizeof *c);
+        c->unit = "";
+        if (pg == PG_PFILES) {
+            if (slot == 0u) {
+                c->on = 1, c->label = "FILE";
+                vg_itoa(kxp_nlist ? kxp_lsel + 1 : 0, c->val);
+                c->unit = "";
+                c->pos = kxp_nlist > 1 ? (float)kxp_lsel / (float)(kxp_nlist - 1) : 0.0f;
+            }
+            return;
+        }
+        if (slot > 2u)
+            return;
+        c->on = 1;
+        c->label = L[slot];
+        if (slot == 0u) {
+            c->val[0] = (char)('0' + (kxp_sel + 1) / 10), c->val[1] = (char)('0' + (kxp_sel + 1) % 10), c->val[2] = 0;
+            c->pos = (float)kxp_sel / (float)(KXP_MAX - 1);
+        } else if (slot == 1u) {
+            vg_itoa(kxp_cur + 1, c->val);
+            c->pos = (float)kxp_cur / 22.0f;
+        } else {
+            char ch = kxp_edit[kxp_cur] ? kxp_edit[kxp_cur] : ' ';
+            c->val[0] = ch == ' ' ? '_' : ch, c->val[1] = 0;
+        }
         return;
     }
     if (pg == PG_USER) {                          /* MY SOUNDS: the slot, its sound */
@@ -614,6 +651,16 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
     case FA_MENU:
         if (kx_page == PG_PROJECT)
             kx_post(KXC_SLOT, (uint32_t)kx_slot_pick, kx_shift ? 2u : 1u, 0, 0);
+        else if (kx_page == PG_PLIB) {
+            if (kx_shift)
+                kxp_export(kxp_sel);
+            else
+                kxp_save(kxp_sel);
+        } else if (kx_page == PG_PFILES) {
+            if (!kxp_src[0] && vibe_media_add(0) == 1)
+                vibe_media_add(1);                 /* (the browser: a folder for the files) */
+            kxp_list_want = 1;
+        }
         break;
     default: break;
     }
@@ -629,7 +676,12 @@ static const char *kx_f5_name(void)
         if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_SONG)
             return song.playing ? "STOP" : "PLAY";
         return kx_shift ? "MOOD" : "DICE";
-    case FA_MENU: return kx_page == PG_PROJECT ? (kx_shift ? "NEW" : "SAVE") : "";
+    case FA_MENU:
+        if (kx_page == PG_PLIB)
+            return kx_shift ? "EXPORT" : "SAVE";
+        if (kx_page == PG_PFILES)
+            return kxp_src[0] ? "REFRESH" : "FOLDER";
+        return kx_page == PG_PROJECT ? (kx_shift ? "NEW" : "SAVE") : "";
     case FA_FX:
         if (IS_PED_PAGE(kx_page))
             return "NEXT";
@@ -654,6 +706,27 @@ static void kx_turn(uint32_t enc, float detents)
             uint32_t f = enc == VE_1 ? (kx_shift ? PD_MIX : PD_TYPE) : PD_A + (enc - VE_2);
             kx_post(KXC_PED, kx_ped_owner(kx_page), (uint32_t)kx_ped_focus[kx_ped_fi(kx_page)], f,
                     f == PD_TYPE ? (n > 0 ? 1 : -1) : n);
+        } else if (kx_page == PG_PLIB) {         /* the entry; the name: which letter, which character */
+            static const char CH[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_#!";
+            if (enc == VE_1)
+                kxp_pick(kxp_sel + n);
+            else if (enc == VE_2)
+                kxp_cur = clamp(kxp_cur + (n > 0 ? 1 : -1), 0, 22);
+            else if (enc == VE_3) {
+                int i, len = str_len(kxp_edit), at = 0, nc = (int)sizeof CH - 1;
+                for (i = len; i < kxp_cur; i++)    /* (past the end: spaces up to here) */
+                    kxp_edit[i] = ' ';
+                kxp_edit[kxp_cur > len ? kxp_cur + 1 : len > kxp_cur ? len : kxp_cur + 1] = 0;
+                for (i = 0; i < nc; i++)
+                    if (CH[i] == kxp_edit[kxp_cur])
+                        at = i;
+                kxp_edit[kxp_cur] = CH[((at + (n > 0 ? 1 : -1)) % nc + nc) % nc];
+                for (i = str_len(kxp_edit) - 1; i > 0 && kxp_edit[i] == ' '; i--)
+                    kxp_edit[i] = 0;               /* (no trailing spaces) */
+            }
+        } else if (kx_page == PG_PFILES) {
+            if (enc == VE_1)
+                kxp_lsel = clamp(kxp_lsel + (n > 0 ? 1 : -1), 0, kxp_nlist ? kxp_nlist - 1 : 0);
         } else if (kx_page == PG_USER) {
             if (enc == VE_1)
                 kx_user_pick = clamp(kx_user_pick + n, 0, UP_SLOTS - 1);
@@ -772,6 +845,26 @@ static void kx_button(uint32_t b, int down)
             kx_post(kx_shift ? KXC_DEMO : KXC_SLOT, (uint32_t)kx_slot_pick, 0, 0, 0);
         else if (kx_page == PG_USER)
             kx_post(KXC_USER, (uint32_t)kx_user_pick, 0, 0, 0);
+        else if (kx_page == PG_PLIB) {            /* LOAD (SHIFT: DELETE): pressed twice, within 3 s */
+            static uint64_t armed;
+            static int what = -1;
+            int w = kxp_sel * 2 + (kx_shift ? 1 : 0);
+            if (!kxp_name[kxp_sel][0])
+                kxp_say("EMPTY: F5 SAVES HERE");
+            else if (what == w && vibe_frames() - armed < (uint64_t)(kx_sr * 3.0f)) {
+                if (kx_shift)
+                    kxp_delete(kxp_sel);
+                else
+                    kxp_load(kxp_sel);
+                what = -1;
+            } else {
+                what = w, armed = vibe_frames();
+                kxp_say(kx_shift ? "AGAIN TO DELETE" : "AGAIN TO LOAD");
+            }
+        } else if (kx_page == PG_PFILES) {
+            if (kxp_nlist)
+                kxp_import(kxp_list[kxp_lsel]);
+        }
         else if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_EVENTS)
             kx_post(KXC_ACT, (uint32_t)kx_page, 0, 0, 0);
         break;

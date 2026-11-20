@@ -13,7 +13,7 @@ ok "build: build/kriechstrom.wasm" ok
 # 1. the core at 44.1 kHz, bit for bit: the firmware against the core built for this computer
 cc -O2 -w -D_FORTIFY_SOURCE=0 -Ibuild/gen -Ikriechstrom/gen -Ikriechstrom -o build/core_ref tests/core_ref.c -lm
 build/core_ref 10 build/ref.raw
-mkdir -p build/t-bx build/t-in build/t-midi build/t-sa build/t-sb
+mkdir -p build/t-bx build/t-in build/t-midi build/t-sa build/t-sb build/t-outs
 "$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/bitexact.json build/t-bx 44100 >/dev/null
 python3 tests/compare.py build/ref.raw build/t-bx/audio.wav && ok "44.1 kHz: the FM-1's core, bit for bit (10 s of the demo)" ok || ok "44.1 kHz bit for bit" FAIL
 # 2. the SDK's own check
@@ -46,4 +46,20 @@ rm -rf build/t-store; mkdir -p build/t-store
 "$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/store_a.json build/t-sa >/dev/null
 "$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/store_b.json build/t-sb >/dev/null
 [ -s build/t-store/session.krp ] && ok "storage: the session kept for the next start" ok || ok "storage" FAIL
+# 7. MY PROJECTS: two saved, one exported as a file, the music changed and loaded back, the file imported
+rm -rf build/t-proj; mkdir -p build/t-proj
+"$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/projects.json build/t-proj >/dev/null
+[ -s build/t-proj/store/proj/p01.kxp ] && [ -s build/t-proj/store/proj/p02.kxp ] && [ -s build/t-proj/store/proj/p03.kxp ] &&
+  [ -s "build/t-proj/media-sd/VIBE FM/kriechstrom/PROJECT 01.kxp" ] && ok "projects: saved, exported, imported" ok || ok "projects" FAIL
+# 8. more outputs: 14 of them, the four tracks and the effects on their own, nothing on the input's
+"$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/outputs.json build/t-outs >/dev/null
+python3 - build/t-outs <<'PY' && ok "outputs: T1-T4 and the effects on OUT 3-12" ok || ok "outputs" FAIL
+import sys, wave, array, math
+d = sys.argv[1]
+def rms(f):
+    w = wave.open(d + '/' + f); a = array.array('h'); a.frombytes(w.readframes(w.getnframes()))
+    return math.sqrt(sum(x * x for x in a) / max(1, len(a)))
+r = [rms(f) for f in ('out3-4.wav', 'out5-6.wav', 'out7-8.wav', 'out9-10.wav', 'out11-12.wav')]
+sys.exit(0 if all(x > 50 for x in r) and rms('out13-14.wav') < 1 else 1)
+PY
 [ $fail = 0 ] && echo "ALL PASSED" || { echo "FAILED"; exit 1; }

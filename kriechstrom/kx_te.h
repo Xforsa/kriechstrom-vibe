@@ -162,26 +162,56 @@ static void te_splice(int x, int y, int w, int h, float a)
 static void te_haunt(int x, int y, int w, int h, int mode, float a)
 {
     float p = te_pos16() / 16.0f;
-    int b, top = y + 4, bot = y + h - 4;
+    int b, top = y + 4, bot = y + h - 4, playing = song.playing;
     uint32_t c = mode ? C_RED : TE_LOW;
     for (b = 0; b <= 4; b++)
         vg_rect(x + b * (w - 1) / 4, top, 1, bot - top, b == 0 || b == 4 ? TE_MID : TE_LOW);
     if (mode == 1) {
-        for (b = 1; b <= 3; b += 2) {
-            int bx = x + (b + 1) * (w - 1) / 4, sx = bx - (int)((float)(w / 4) * (0.3f + 0.7f * a));
-            vg_tri((float)sx, (float)bot, (float)bx, (float)bot, (float)bx, (float)(bot - (int)((float)(bot - top) * (0.3f + 0.7f * a))), c);
-            vg_rect(bx - 1, top, 3, bot - top, TE_INK);
+        /* SUCK: a reversed swell rising into every SNARE and CLAP of the drum track's bar, cut dead on the hit. Each
+         * swell fills as the playhead comes to it and flashes where it is cut */
+        int dt = kx_drum_track(), s, any = 0;
+        float len = (0.08f + 0.17f * a);          /* (how long a swell is, in bars) */
+        uint32_t base = dt >= 0 ? trk[dt].seq_idx / 16u * 16u : 0u;
+        for (s = 0; s < 16; s++) {
+            int hit = dt >= 0 ? (int)((step_lanes(&trk[dt].step[(base + (uint32_t)s) % NSTEP]) >> 1) & 3u) != 0
+                              : (s == 4 || s == 12);
+            float e, st, f;
+            int ex, sx, hh = bot - top - 4, fx;
+            if (!hit)
+                continue;
+            any = 1;
+            e = (float)s / 16.0f;
+            st = e - len;
+            ex = x + (int)(e * (float)(w - 1)), sx = x + (int)((st < 0.0f ? 0.0f : st) * (float)(w - 1));
+            /* the outline, then what has risen so far */
+            vg_line((float)sx, (float)bot, (float)ex, (float)(bot - hh), 1.0f, vg_mix(C_BG, c, 0.5f));
+            vg_rect(ex - 1, top, 3, bot - top, vg_mix(C_BG, TE_INK, 0.4f));
+            f = playing && p >= st && p < e ? (p - st) / (e - st) : 0.0f;
+            if (f > 0.0f) {
+                fx = sx + (int)(f * (float)(ex - sx));
+                vg_tri((float)sx, (float)bot, (float)fx, (float)bot, (float)fx, (float)bot - f * (float)hh, c);
+            }
+            if (playing && p >= e && p < e + 0.03f)   /* (cut dead: a flash) */
+                vg_rect(ex - 3, top, 7, bot - top, TE_INK);
         }
+        if (!any && h > 60)
+            vg_text("NO SNARE OR CLAP IN THIS BAR", x + w / 2, y + h / 2 - 8, VG_SMALL, TE_MID, VG_CENTER);
     } else {
+        /* DRAG: the tape's speed, falling over the bar's last beat; a dot rides it */
         int px = x, py = top + 2, i;
+        float depth = mode ? 0.3f + 0.7f * a : 0.0f;
         for (i = 1; i <= 40; i++) {
             float u = (float)i / 40.0f, d = u < 0.75f ? 0.0f : (u - 0.75f) / 0.25f;
-            int nx = x + (int)(u * (float)(w - 1)), ny = top + 2 + (int)(d * d * (float)(bot - top - 4) * (mode ? 0.3f + 0.7f * a : 0.0f));
+            int nx = x + (int)(u * (float)(w - 1)), ny = top + 2 + (int)(d * d * (float)(bot - top - 4) * depth);
             vg_line((float)px, (float)py, (float)nx, (float)ny, 2.0f, c);
             px = nx, py = ny;
         }
+        if (playing && mode) {
+            float d = p < 0.75f ? 0.0f : (p - 0.75f) / 0.25f;
+            vg_circle((float)x + p * (float)(w - 1), (float)(top + 2) + d * d * (float)(bot - top - 4) * depth, 5.0f, TE_INK);
+        }
     }
-    if (song.playing)
+    if (playing)
         vg_rect(x + (int)(p * (float)(w - 1)), top - 2, 2, bot - top + 4, TE_INK);
 }
 

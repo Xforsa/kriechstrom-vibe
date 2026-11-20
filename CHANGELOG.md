@@ -5,6 +5,14 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- HAUNT's picture plays: SUCK's swells stand on the drum track's real SNARE and CLAP hits of the bar, each fills as
+  the playhead comes to it and flashes where it is cut; on DRAG a dot rides the tape's speed
+
 ## [0.5.7] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

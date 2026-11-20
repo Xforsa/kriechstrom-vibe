@@ -46,6 +46,7 @@ static float kx_hit_amt;                          /* .. how hard, 0..1 */
 static float kx_env_f, kx_env_s;
 static uint32_t kx_hit_hold;
 
+static float kx_trk_pk[NTRK];                     /* each track's level now (0..1, falling): the display reads it */
 static void kx_midi_block(void);                  /* kx_midi.h */
 static void kx_rec_block(const int32_t *o);       /* kx_sampler.h */
 
@@ -61,6 +62,12 @@ static void kx_core_block(void)
     int32_t o[2 * CTL];
     uint32_t i;
     mix_block(o, CTL);
+    for (i = 0; i < NTRK; i++) {                  /* the tracks' peaks: the FM-1's display takes and clears them (ui_graph.c);
+                                                   * here the audio flow does, into a level that falls (~0.2 s to half) */
+        float a = (float)clamp(trk[i].peak, 0, 32767) / 32768.0f;
+        kx_trk_pk[i] = a > kx_trk_pk[i] ? a : kx_trk_pk[i] * 0.9975f;
+        trk[i].peak = 0;
+    }
     kx_midi_block();
     kx_rec_block(o);
     for (i = 0; i < CTL; i++) {

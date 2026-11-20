@@ -17,7 +17,7 @@ char *strchr(const char *s, int c);
 #endif
 #define FELUCCA_CDC 0
 #define FELUCCA_FLASH 0
-#define FELUCCA_VERSION "0.5.9"
+#define FELUCCA_VERSION "0.5.10"
 #define FM1_TICKS_PER_US 1u
 #define FM1_NCOL 11u
 #define __attribute__(x)

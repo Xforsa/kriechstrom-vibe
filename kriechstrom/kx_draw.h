@@ -72,7 +72,7 @@ static void kx_draw_tracks(void)
         int x = 8 + (int)i * 118, sel = i == song.sel, mute = t->p[P_MUTE] != 0;
         uint32_t col = TRK_RGB[i], ink = mute ? 0x6A6A72 : sel ? C_WHITE : 0xC4C4CC;
         char nm[17], n[2] = {(char)('1' + i), 0};
-        float a = (float)clamp(t->peak, 0, 32767) / 32768.0f;
+        float a = kx_trk_pk[i];
         vg_rect(x, 32, 110, sel ? 3 : 1, mute ? 0x2A2A2E : sel ? col : vg_mix(C_BG, col, 0.45f));
         if (!mute)
             vg_rect(x, 32, (int)(a * 110.0f), 3, vg_mix(col, C_WHITE, 0.3f));
@@ -741,7 +741,7 @@ static void kx_draw_pedals(int pg, int x, int y, int w, int h)
         int k;
         vg_rect((int)x0, cy - 1, (int)(x1 - x0), 3, 0x3A3A40);
         if (!j)
-            a = o < NTRK ? (float)clamp(trk[o].peak, 0, 32767) / 32768.0f : kx_ped_lvl[o][0];
+            a = o < NTRK ? kx_trk_pk[o] : kx_ped_lvl[o][0];
         else
             a = v[j - 1][0] && v[j - 1][PD_MIX] ? kx_ped_lvl[o][j - 1] * 2.0f : 0.0f;
         for (k = 0; k < 3 && a > 0.03f; k++) {
@@ -1038,7 +1038,13 @@ static void kx_draw_idle(void)
     if (vibe_frames() - kx_lt_last > (uint64_t)(kx_sr * (song.playing ? 1.6f : 0.9f)))
         kx_lt_spawn(lt_u() < 0.5f ? 2 : 1, 0.35f + lt_u() * 0.4f);
     kx_lt_draw();
-    cr_draw(60, 10, 360, 300, 0.4f + cr_wear() * 0.6f, heat, C_RED);
+    {   /* the figure in the middle: grown anew each bar (each 2 s when stopped), flaring on the hits */
+        static uint32_t bar = 0xFFFFFFFFu;
+        uint32_t b = song.playing ? trk[song.sel].seq_idx / 16u : (uint32_t)(vibe_frames() / (uint64_t)(kx_sr * 2.0f));
+        if (b != bar || !kx_big_n)
+            bar = b, kx_big_grow();
+        kx_big_draw(heat > 1.0f ? 1.0f : heat, kx_fx_hit > 1.0f ? 1.0f : kx_fx_hit);
+    }
     kx_draw_scope(0, 200, 480, 100, C_WHITE, 1.0f);
     kx_logo(16, 286, VG_BOLD);
     kx_lt_idle = 0;
@@ -1270,7 +1276,7 @@ static void kx_leds(void)
     }
     for (i = 0; i < 4u; i++) {
         const track_t *t = &trk[i];
-        float a = (float)clamp(t->peak, 0, 32767) / 32768.0f;
+        float a = kx_trk_pk[i];
         vibe_led_pad((int)i, TRK_RGB[i], t->p[P_MUTE] ? 0.05f : 0.35f + 0.65f * a);
         if (kx_page == PG_MASTER) {               /* DAMAGE WALL SPLICE HAUNT: lit while on */
             static const uint8_t G[4] = {G_DMG, G_WALL, G_SPLICE, G_HAUNT};

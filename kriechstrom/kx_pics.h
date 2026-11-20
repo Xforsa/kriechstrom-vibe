@@ -94,7 +94,7 @@ static float kx_vu_pos(float db) { db = db < -20.0f ? -20.0f : db > 3.0f ? 3.0f 
 static void kx_draw_vu(int x, int y, int w, int h, uint32_t k)
 {
     const track_t *t = &trk[k];
-    float a = (float)clamp(t->peak, 0, 32767) / 32768.0f, ang, cx = (float)x + (float)w * 0.5f;
+    float a = kx_trk_pk[k], ang, cx = (float)x + (float)w * 0.5f;
     int fh = h * 56 / 100, i, sy = y + fh + 4;
     float r = (float)fh * 0.74f, cy = (float)(y + fh) + r * 0.2f, span = 0.085f;   /* (+-31 degrees) */
     uint32_t col = TRK_RGB[k] == 0xD9D2C2 ? 0x9A9AA2 : TRK_RGB[k], ink = 0x2A2622;

@@ -39,9 +39,11 @@ static inline uint16_t px_scale(uint16_t p, int k)   /* k: 256 = as it is */
  * extra arms and weight, HISS fine filaments around it. It glows dark red and fades in half a second (on FULL its core
  * is hot). MENU > DISPLAY: LIGHTNING off or on; nothing with SCREEN WEAR OFF. */
 #define LT_N 5
-#define LT_SEG 420
+#define LT_SEG 700
 typedef struct { int16_t x0, y0, x1, y1; uint8_t w; } lt_seg;   /* (w: quarter pixels) */
 static struct { lt_seg s[LT_SEG]; int n; uint64_t t0; float amt; } kx_lt[LT_N];
+static lt_seg *lt_out;                            /* where lt_tree writes, how many it has, how many fit */
+static int *lt_out_n, lt_out_cap;
 static int kx_lt_next;
 static int kx_lt_idle;                            /* the idle screen: from every edge and corner, hotter */
 static uint64_t kx_lt_last;                      /* the last one's time (the idle screen sparks on its own in silence) */
@@ -54,25 +56,25 @@ static float lt_u(void)
     return (float)(lt_rng & 0xFFFFu) / 65535.0f;
 }
 static float lt_g(void) { return (lt_u() + lt_u() + lt_u() - 1.5f) * 2.0f; }   /* (about a normal's) */
-static void lt_tree(int i, float x, float y, float ang, float len, float wid, int depth, float spread)
+static void lt_tree(float x, float y, float ang, float len, float wid, int depth, float spread)
 {
     float head = ang;
     int k, steps = 7 + (int)(lt_u() * 6.99f);
     if (depth <= 0 || wid < 0.35f)
         return;
-    for (k = 0; k < steps && kx_lt[i].n < LT_SEG; k++) {
+    for (k = 0; k < steps && *lt_out_n < lt_out_cap; k++) {
         float l = len * (0.15f + lt_u() * 0.25f), nx, ny;
         head += lt_g() * spread;
         head = head * 0.85f + ang * 0.15f;
         nx = x + vd_sin(head + 0.25f) * l;
         ny = y + vd_sin(head) * l;
         {
-            lt_seg *g = &kx_lt[i].s[kx_lt[i].n++];
+            lt_seg *g = &lt_out[(*lt_out_n)++];
             g->x0 = (int16_t)x, g->y0 = (int16_t)y, g->x1 = (int16_t)nx, g->y1 = (int16_t)ny;
             g->w = (uint8_t)(wid * 4.0f > 255.0f ? 255.0f : wid * 4.0f);
         }
         if (lt_u() < 0.3f)                        /* (a fork: 0.4 .. 1.1 rad off, shorter, thinner) */
-            lt_tree(i, nx, ny, head + (lt_u() < 0.5f ? -1.0f : 1.0f) * (0.4f + lt_u() * 0.7f) / 6.2832f, len * 0.72f,
+            lt_tree(nx, ny, head + (lt_u() < 0.5f ? -1.0f : 1.0f) * (0.4f + lt_u() * 0.7f) / 6.2832f, len * 0.72f,
                     wid * 0.55f, depth - 1, spread);
         x = nx, y = ny;
         wid *= 0.9f;
@@ -103,21 +105,62 @@ static void kx_lt_spawn(int kind, float amt)
         case 2: x = r < 0.5f ? -2.0f : 482.0f, y = 40.0f + lt_u() * 200.0f, ang = r < 0.5f ? 0.0f : 0.5f; break;
         default: x = 20.0f + lt_u() * 440.0f, y = 322.0f, ang = -0.25f; break;                    /* the floor */
         }
-        len = (kind == 2 ? 60.0f : 110.0f) + 170.0f * amt, wid = 1.6f + 3.0f * amt;
+        len = (kind == 2 ? 22.0f : 34.0f) + 44.0f * amt, wid = 1.8f + 3.0f * amt;
     } else switch (kind) {
-    case 0: x = 250.0f + lt_u() * 210.0f, y = 322.0f, ang = -0.25f, len = 90.0f + 140.0f * amt, wid = 2.2f + 2.6f * amt; break;
-    case 1: x = 482.0f, y = 120.0f + lt_u() * 150.0f, ang = 0.5f, len = 70.0f + 90.0f * amt, wid = 1.6f + 1.6f * amt; break;
-    case 2: x = 280.0f + lt_u() * 190.0f, y = 26.0f, ang = 0.25f, len = 24.0f + 36.0f * amt, wid = 0.9f + 0.6f * amt; break;
-    default: x = 470.0f, y = 312.0f, ang = -0.375f, len = 70.0f + 110.0f * amt, wid = 1.6f + 2.0f * amt; break;
+    case 0: x = 250.0f + lt_u() * 210.0f, y = 322.0f, ang = -0.25f, len = 34.0f + 40.0f * amt, wid = 2.4f + 2.4f * amt; break;
+    case 1: x = 482.0f, y = 120.0f + lt_u() * 150.0f, ang = 0.5f, len = 28.0f + 30.0f * amt, wid = 1.8f + 1.4f * amt; break;
+    case 2: x = 280.0f + lt_u() * 190.0f, y = 26.0f, ang = 0.25f, len = 12.0f + 14.0f * amt, wid = 1.0f + 0.6f * amt; break;
+    default: x = 470.0f, y = 312.0f, ang = -0.375f, len = 28.0f + 36.0f * amt, wid = 1.8f + 2.0f * amt; break;
     }
+    lt_out = kx_lt[i].s, lt_out_n = &kx_lt[i].n, lt_out_cap = LT_SEG;
     wid *= 1.0f + wall * 0.8f;
     arms = 1 + (wall > 0.5f) + (wall > 0.85f);
     for (a = 0; a < arms; a++)
-        lt_tree(i, x, y, ang + ((float)a - (float)(arms - 1) * 0.5f) * 0.06f, len, a ? wid * 0.7f : wid, 6, spread);
+        lt_tree(x, y, ang + ((float)a - (float)(arms - 1) * 0.5f) * 0.06f, len, a ? wid * 0.7f : wid, 6, spread);
     for (a = 0; a < (int)(hiss * 5.0f); a++)      /* (HISS: fine filaments about it) */
-        lt_tree(i, x + (lt_u() - 0.5f) * 60.0f, y + (lt_u() - 0.5f) * 30.0f, ang + (lt_u() - 0.5f) * 0.3f, 22.0f, 0.6f, 3,
+        lt_tree(x + (lt_u() - 0.5f) * 60.0f, y + (lt_u() - 0.5f) * 30.0f, ang + (lt_u() - 0.5f) * 0.3f, 10.0f, 0.6f, 3,
                 spread);
 }
+/* the idle screen's figure: grown anew each bar (each 2 s stopped), a new shape, from the root up over a third of a
+ * second, as the site's figures; it flares on the hits */
+#define LT_BIG 2400
+static lt_seg kx_big[LT_BIG];
+static int kx_big_n;
+static uint64_t kx_big_t0;
+static void kx_big_grow(void)
+{
+    float dmg = (float)song.g[G_DMG] / 127.0f, wall = (float)song.g[G_WALL] / 127.0f;
+    int a, arms = 5 + (int)(wall * 3.0f);
+    kx_big_n = 0;
+    lt_out = kx_big, lt_out_n = &kx_big_n, lt_out_cap = LT_BIG;
+    lt_rng ^= (uint32_t)vibe_frames() * 2246822519u;
+    for (a = 0; a < arms; a++)                    /* (krst_art.py splash: arms all round from the centre) */
+        lt_tree(240.0f, 160.0f, (float)a / (float)arms + (lt_u() - 0.5f) * 0.06f, 34.0f + 14.0f * lt_u(),
+                3.4f + wall * 1.6f, 8, 0.42f / 6.2832f * (0.8f + dmg));
+    kx_big_t0 = vibe_frames() ? vibe_frames() : 1;
+}
+static void kx_big_draw(float heat, float hit)
+{
+    int j, pass, n;
+    float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.33f);
+    n = g >= 1.0f ? kx_big_n : (int)(g * (float)kx_big_n);
+    for (pass = 0; pass < 2; pass++) {
+        for (j = 0; j < n; j++) {
+            const lt_seg *s2 = &kx_big[j];
+            float w = (float)s2->w * 0.25f;
+            /* (red, its thick strands hot as the site's core, the thinnest dark; the growing tip brighter) */
+            float t = w > 1.6f ? 0.55f + 0.35f * hit : w > 0.9f ? 0.15f + 0.3f * hit : 0.0f;
+            uint32_t c = pass ? vg_mix(w > 0.6f ? 0xE02414 : 0x7A160C, 0xFFE8DC, t + 0.1f * heat)
+                              : vg_mix(C_BG, 0x5A140C, 0.5f + 0.5f * hit);
+            if (pass && j > n - 30 && g < 1.0f)
+                c = vg_mix(c, 0xFFF0E8, 0.6f);
+            if (!pass && w < 0.9f)
+                continue;
+            vg_line((float)s2->x0, (float)s2->y0, (float)s2->x1, (float)s2->y1, pass ? w : w * 3.0f + 1.0f, c);
+        }
+    }
+}
+
 static void kx_lt_draw(void)                      /* the background, under the page */
 {
     int i, pass;

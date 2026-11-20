@@ -5,6 +5,19 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.10] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Fixed
+- the tracks' levels stuck at their loudest (the core keeps a peak the FM-1's display clears; nothing cleared it
+  here): the mixer's needles, the tracks' level lines, the pads' lights and the pedals' cables show the sound now and
+  fall when it stops
+
+### Changed
+- the idle screen's figure is grown anew each bar from its centre, as the FM-1's splash is, and flares on the hits; the
+  discharges behind the pages are shorter and branch more, as the site's do
+
 ## [0.5.9] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

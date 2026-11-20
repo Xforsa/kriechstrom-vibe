@@ -47,6 +47,7 @@ static float kx_env_f, kx_env_s;
 static uint32_t kx_hit_hold;
 
 static void kx_midi_block(void);                  /* kx_midi.h */
+static void kx_rec_block(const int32_t *o);       /* kx_sampler.h */
 
 /* ---- the core at 44.1 kHz ------------------------------------------------------------------------------------- */
 #define KX_RB 1024u                               /* core frames kept for the resampler (a power of two) */
@@ -60,6 +61,7 @@ static void kx_core_block(void)
     uint32_t i;
     mix_block(o, CTL);
     kx_midi_block();
+    kx_rec_block(o);
     for (i = 0; i < CTL; i++) {
         int32_t l = o[2u * i], r = o[2u * i + 1u];
         uint32_t at = (kx_rb_w + i) & (KX_RB - 1u);

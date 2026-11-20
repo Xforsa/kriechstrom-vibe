@@ -24,10 +24,10 @@ enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
 enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER, PG_DISPLAY,
-       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT };
+       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT, PG_SAMPLER };
 #define IS_PED_PAGE(pg) ((pg) == PG_PEDALS || (pg) == PG_PEDALS_IN || (pg) == PG_PEDALS_M)
-#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : (pg) == PG_DISPLAY ? 3 : 4)
-#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY || (pg) == PG_FOOT)
+#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : (pg) == PG_DISPLAY ? 3 : (pg) == PG_FOOT ? 4 : 5)
+#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY || (pg) == PG_FOOT || (pg) == PG_SAMPLER)
 #define PG_MAX 24
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
@@ -80,6 +80,7 @@ static void kx_family_pages(uint32_t fa)
         for (i = 0; i < NPAGES; i++)
             if (PAGES[i].fam == FAM_EDIT && kx_page_ok(i))
                 ADD(i);
+        ADD(PG_SAMPLER);
         ADD(PG_USER);
         break;
     case FA_ENV:
@@ -163,6 +164,7 @@ static const char *kx_title(int pg)
     case PG_USER: return "MY SOUNDS";
     case PG_DISPLAY: return "DISPLAY";
     case PG_FOOT: return "FOOT PEDAL";
+    case PG_SAMPLER: return "SAMPLER";
     case PG_PEDALS: return "PEDALS";
     case PG_PEDALS_IN: return "INPUT PEDALS";
     case PG_PEDALS_M: return "MASTER PEDALS";
@@ -198,9 +200,9 @@ static int kx_knob_page(void)
 }
 
 typedef struct { const char *label; char val[12]; const char *unit; float pos; int bip, on; } kx_card;
-static const uint8_t IN_SLOTS[5][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
+static const uint8_t IN_SLOTS[6][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
                                        {IC_MOUT, IC_MCH, IC_CLK, IC_CV}, {IC_SCREEN, 255, 255, 255},
-                                       {IC_EXPR, IC_FSW, 255, 255}};
+                                       {IC_EXPR, IC_FSW, 255, 255}, {IC_SSRC, IC_SBARS, IC_SSLOT, 255}};
 static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 {
     if (IS_IC_PAGE(pg)) {                         /* the audio input's, MIDI OUT's (kx_input.h, kx_midi.h) */
@@ -216,6 +218,12 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
             str_cpy(c->val, IC_TRK[clamp(v, 0, NTRK)], sizeof c->val);
         else if (f == IC_SCREEN)
             str_cpy(c->val, IC_WEAR_N[clamp(v, 0, 2)], sizeof c->val);
+        else if (f == IC_SSRC)
+            str_cpy(c->val, IC_SSRC_N[clamp(v, 0, 1)], sizeof c->val);
+        else if (f == IC_SBARS)
+            str_cpy(c->val, IC_SBARS_N[clamp(v, 0, 3)], sizeof c->val);
+        else if (f == IC_SSLOT)
+            str_cpy(c->val, IC_SSLOT_N[clamp(v, 0, 2)], sizeof c->val);
         else if (f == IC_EXPR)
             str_cpy(c->val, IC_EXPR_N[clamp(v, 0, 3)], sizeof c->val);
         else if (f == IC_FSW)
@@ -516,7 +524,14 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
     }
     switch (kx_fam) {                             /* F5: the page's action */
     case FA_SOUND:
-        if (kx_page == PG_USER)
+        if (kx_page == PG_SAMPLER) {
+            static const uint8_t BARS[4] = {0, 1, 2, 4};
+            if (kx_page == PG_SAMPLER && (kx_ic[IC_SSRC] == 0) && !kx_in_asked) {
+                kx_in_asked = 1;
+                vibe_request(VIBE_REQ_AUDIO_INPUT);
+            }
+            kx_post(KXC_SREC, (uint32_t)kx_ic[IC_SSRC], BARS[clamp(kx_ic[IC_SBARS], 0, 3)], (uint32_t)kx_ic[IC_SSLOT], 0);
+        } else if (kx_page == PG_USER)
             kx_post(KXC_USER, (uint32_t)kx_user_pick, kx_shift ? 2u : 1u, 0, 0);
         else
             kx_post(KXC_OOPS, song.sel, 0, 0, 0);
@@ -549,7 +564,10 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
 static const char *kx_f5_name(void)
 {
     switch (kx_fam) {
-    case FA_SOUND: return kx_page == PG_USER ? (kx_shift ? "ERASE" : "SAVE") : "OOPS";
+    case FA_SOUND:
+        if (kx_page == PG_SAMPLER)
+            return kx_rec_state ? "STOP" : "REC";
+        return kx_page == PG_USER ? (kx_shift ? "ERASE" : "SAVE") : "OOPS";
     case FA_SEQ:
         if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_SONG)
             return song.playing ? "STOP" : "PLAY";

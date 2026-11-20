@@ -18,6 +18,7 @@
 #include "kx_midi.h"
 #include "kx_ctl.h"
 #include "kx_boot.h"
+#include "kx_sampler.h"
 #include "kx_store.h"
 #include "kx_daw.h"
 #include "kx_ui.h"

@@ -59,6 +59,10 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
 }
 static struct { uint32_t stage; } felucca_dbg;
 
+/* the FM-1's user sample slots (flash there): RAM here, filled by the sampler and its files (kx_sampler.h) */
+static uint8_t kx_usr_img[3][0x14000];
+#define SMP_USER_XIP(k) ((const uint8_t *)kx_usr_img[(k) % 3u])
+
 /* the core's hook for the audio input (fx.c mix_block): kx_input.h */
 #ifndef KX_REF                                   /* (tests/core_ref.c: the FM-1's mix, no input, no more pedals) */
 static void kx_in_mix(uint32_t n);

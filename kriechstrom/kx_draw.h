@@ -762,6 +762,57 @@ static void kx_draw_foot(int x, int y, int w, int h)
     vg_text("SWITCH", fx, y + h - 16, VG_SMALL, C_DIM, VG_CENTER);
 }
 
+/* SAMPLER: the slot's sound as a waveform with SLICE's cuts on it; while it records, what comes in and how far it is */
+static void kx_draw_sampler(int x, int y, int w, int h)
+{
+    uint32_t k = (uint32_t)clamp(kx_ic[IC_SSLOT], 0, 2), c, st = kx_rec_state;
+    int mid = y + h / 2 - 6, amp = h / 2 - 16;
+    char b[32];
+    vg_rect(x, mid, w, 1, 0x26262A);
+    if (st) {                                      /* recording, or waiting for the bar */
+        uint32_t n = kx_rec_n, want = kx_rec_want ? kx_rec_want : KX_REC_MAX, i;
+        float fill = (float)n / (float)want;
+        int fw = (int)(fill * (float)w);
+        for (c = 0; c < (uint32_t)fw && n; c++) {
+            uint32_t a = c * n / (uint32_t)(fw ? fw : 1), e = (c + 1u) * n / (uint32_t)(fw ? fw : 1);
+            int32_t lo = 0, hi = 0;
+            for (i = a; i < e; i++) {
+                lo = kx_rec[i] < lo ? kx_rec[i] : lo;
+                hi = kx_rec[i] > hi ? kx_rec[i] : hi;
+            }
+            vg_rect(x + (int)c, mid - hi * amp / 32768, 1, (hi - lo) * amp / 32768 + 1, C_RED);
+        }
+        vg_rect(x + fw, y, 2, h - 20, C_WHITE);
+        if (st == 1u || (kx_now_ms() / 300u) % 2u)
+            vg_circle((float)(x + 10), (float)(y + 8), 6.0f, C_RED);
+        vg_text(st == 1u ? "WAITING FOR THE BAR" : "RECORDING", x + 22, y, VG_BOLD, C_RED, VG_LEFT);
+        return;
+    }
+    if (!usr_nz[k]) {
+        vg_text("EMPTY SLOT", x + w / 2, y + 20, VG_BIG, C_DIM, VG_CENTER);
+        vg_text("F5 RECORDS THE INPUT OR THE MIX FROM THE NEXT BAR", x + w / 2, y + 52, VG_SMALL, C_DIM, VG_CENTER);
+        return;
+    }
+    for (c = 0; c < 120u; c++) {                   /* the slot's picture */
+        int x0 = x + (int)(c * (uint32_t)w / 120u), cw = w / 120 + 1;
+        int lo = kx_usr_wave[k][0][c], hi = kx_usr_wave[k][1][c];
+        vg_rect(x0, mid - hi * amp * 3 / 512, cw, (hi - lo) * amp * 3 / 512 + 1, vg_mix(C_BG, TRK_RGB[song.sel], 0.75f));
+    }
+    if (slc_usr[k].len) {                          /* SLICE's AUTO slices: where it cut */
+        uint32_t s;
+        for (s = 0; s < slc_usr[k].nauto; s++) {
+            int sx = x + (int)((uint64_t)slc_usr[k].apos[s] * (uint32_t)w / slc_usr[k].len);
+            vg_rect(sx, y + 4, 1, h - 30, C_WHITE);
+            vg_tri((float)sx, (float)y + 4.0f, (float)sx + 5.0f, (float)y + 4.0f, (float)sx, (float)y + 10.0f, C_WHITE);
+        }
+        str_cpy(b, IC_SSLOT_N[k], sizeof b);
+        str_cpy(b + str_len(b), ": ", sizeof b - str_len(b));
+        vg_itoa((int)slc_usr[k].nauto, b + str_len(b));
+        str_cpy(b + str_len(b), " SLICES, KEYS FROM C4", sizeof b - str_len(b));
+        vg_text(b, x + w, y + h - 18, VG_SMALL, C_DIM, VG_RIGHT);
+    }
+}
+
 static void kx_draw_project(int x, int y, int w, int h)
 {
     static const char *const SL[4] = {"A", "B", "C", "D"};
@@ -981,6 +1032,8 @@ static void kx_ui_draw(void)
         kx_draw_pedals(pg, 4, 92, 472, 116);
     } else if (pg == PG_USER) {
         kx_draw_user(8, 96, 464, 110);
+    } else if (pg == PG_SAMPLER) {
+        kx_draw_sampler(8, 96, 464, 110);
     } else if (pg == PG_FOOT) {
         kx_draw_foot(8, 96, 464, 110);
     } else if (pg == PG_MIDI) {

@@ -9,6 +9,7 @@ void vibe_on_init(float sample_rate)
     kx_power_on();
     kx_store_boot();
     kx_ped_boot();
+    kx_sampler_boot();
     kx_audio_start(sample_rate);
     kx_input_start();
     kx_cfg_boot();
@@ -38,6 +39,7 @@ void vibe_on_event(const vibe_event *e)
     else
         kx_ui_event(e);
     kx_store_poll(0);
+    kx_sampler_poll();
 }
 
 void vibe_on_draw(uint16_t *fb)
@@ -46,4 +48,5 @@ void vibe_on_draw(uint16_t *fb)
     vg_begin(fb);
     kx_ui_draw();
     kx_store_poll(0);
+    kx_sampler_poll();
 }

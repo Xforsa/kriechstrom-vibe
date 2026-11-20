@@ -31,6 +31,8 @@ enum {
     KXC_SONG,         /* SONG: play the chain from its first section, or stop */
     KXC_USER,         /* a = user sound slot, b: 0 load, 1 save (named by itself), 2 erase */
     KXC_DEMO,         /* the demo song into the empty slots, and as the music now */
+    KXC_SREC,         /* a = source (0 input, 1 mix), b = bars (0: as long as fits), c = slot: record (again: stop) */
+    KXC_SLICE,        /* a = slot: the selected track plays it, SLICE on USR a + 1 */
     KXC_PED,          /* a = owner (PO_*), b = slot, c = field (PD_*), v = detents: a pedal (kx_pedals.h) */
     KXC_INCFG,        /* a = IC_*, v = detents (b = 1: v is the value): the audio input's settings (kx_input.h) */
 };
@@ -42,6 +44,7 @@ static void kx_slot_saved(uint32_t s);            /* kx_store.h */
 static void kx_slot_info(void);
 static void kx_user_saved(void);
 static int kx_demo_load(int boot);
+static void kx_rec_arm(uint32_t src, uint32_t bars, uint32_t slot);
 static void kx_tool(track_t *t, uint32_t p)
 {
     const char *m;
@@ -288,6 +291,21 @@ static void kx_apply(const kx_cmd *k)
         }
         break;
     }
+    case KXC_SREC:
+        kx_rec_arm(k->a, k->b, k->c);
+        break;
+    case KXC_SLICE:
+        if (!chain_busy()) {
+            char b[24] = {'T', (char)('1' + song.sel), 0};
+            if (TSEL->eng_req != 13u)
+                select_engine(13u);
+            TSEL->p[P_E0] = (int16_t)(k->a % 3u + 1u);
+            str_cpy(b + 2, ": SLICE USR", sizeof b - 2);
+            b[str_len(b) + 1] = 0;
+            b[str_len(b)] = (char)('1' + k->a % 3u);
+            ui_message(b);
+        }
+        break;
     case KXC_PED:
         kx_ped_turn(k->a, k->b, k->c, k->v);
         break;

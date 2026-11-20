@@ -152,6 +152,11 @@ static void kx_draw_soft(void)
             vg_rect(x + 4, 313, 70, 3, vg_mix(C_BG, TRK_RGB[i], 0.5f));
         else if (s[0])
             vg_rect(x + 4, 313, 70, 3, 0x3A3A40);
+        {   /* pressed: it flashes white and fades (0.25 s) */
+            float age = (float)(vibe_frames() - kx_soft_t[i]) / (kx_sr * 0.25f);
+            if (kx_soft_t[i] && age < 1.0f)
+                vg_rect_a(x + 4, 288, 70, 28, C_WHITE, 0.6f * (1.0f - age));
+        }
         vg_text(s, x + 39, 293, VG_BOLD, sel ? C_BG : i < 4u ? vg_mix(0x6A6A72, TRK_RGB[i], 0.5f) : C_TEXT, VG_CENTER);
     }
 }
@@ -304,9 +309,10 @@ static void kx_draw_grid(int x, int y, int w, int h)
     }
     if (drum) {
         uint32_t l, rh = (uint32_t)gh / NLANE;
+        kx_glyph_tick(t);
         for (l = 0; l < NLANE; l++) {
             int ry = gy + (int)((NLANE - 1u - l) * rh), sel = l == ui.lane;
-            vg_rect(lx - 8, ry + (int)rh / 2 - 1, sel ? 6 : 3, 2, sel ? C_RED : 0x3A3A40);
+            kx_draw_glyph(lx - 14, ry + 1, (int)rh - 2, l, kx_glyph[l] + (sel ? 0.45f : 0.0f), sel ? C_WHITE : col);
             if (sel)                              /* (the rows are too low for eight names: the lane edited, named) */
                 vg_text(drum_lane_abbr(t, l), x, clamp(ry + (int)rh / 2 - 8, gy, gy + gh - 16), VG_BOLD, C_WHITE, VG_LEFT);
             for (i = 0; i < 16u; i++) {
@@ -408,7 +414,7 @@ static void kx_draw_master(int x, int y, int w, int h)
     vg_text("WEAR", x + 6, y + 4, VG_SMALL, C_DIM, VG_LEFT);
     vg_itoa((int)(cr_wear() * 100.0f + 0.5f), b);
     vg_text(b, x + 6, y + 18, VG_BOLD, C_WHITE, VG_LEFT);
-    kx_draw_scope(x + cs + 48, y, w - cs - 48, cs, C_RED, 1.0f + (float)amt[1] / 64.0f);
+    kx_draw_reels(x + cs + 48, y, w - cs - 48, cs);
     {   /* the signal along the chain: sparks running left to right, as many and as fast as the mix is loud */
         float tm = (float)vibe_frames() / kx_sr;
         int n = 3 + (int)(heat * 14.0f), j;
@@ -465,25 +471,8 @@ static void kx_draw_browse(int x, int y, int w, int h)
 static void kx_draw_mixer(int x, int y, int w, int h)
 {
     uint32_t i;
-    for (i = 0; i < NTRK; i++) {
-        const track_t *t = &trk[i];
-        int cx = x + (int)i * (w / 4), fw = w / 4 - 16, lv = t->p[P_LEVEL], pan = t->p[P_PAN], n = 20, j;
-        int lit = (lv * n + 63) / 127, mute = t->p[P_MUTE] != 0;
-        float a = (float)clamp(t->peak, 0, 32767) / 32768.0f;
-        char b[8];
-        int fh = h - 64, sh = fh / n;
-        vg_round(cx + 4, y, fw + 8, h, 4, i == song.sel ? vg_mix(C_PANEL, TRK_RGB[i], 0.12f) : C_PANEL);
-        for (j = 0; j < n; j++) {                 /* LEVEL as a ladder, the level it plays at beside it */
-            int sy = y + 8 + fh - (j + 1) * sh;
-            vg_rect(cx + 12, sy, fw - 30, sh - 2, j < lit ? (mute ? C_LINE : TRK_RGB[i]) : 0x222226);
-            vg_rect(cx + fw - 12, sy, 8, sh - 2, (float)j / (float)n < a ? (j > n - 3 ? C_RED : C_WHITE) : 0x1C1C20);
-        }
-        vg_itoa(lv, b);
-        vg_text(b, cx + 8 + fw / 2, y + fh + 12, VG_BOLD, C_WHITE, VG_CENTER);
-        vg_rect(cx + 14, y + fh + 34, fw - 12, 2, C_LINE);  /* PAN */
-        vg_rect(cx + 8 + fw / 2 + pan * (fw - 12) / 128 - 2, y + fh + 30, 4, 10, C_WHITE);
-        vg_text(mute ? "MUTE" : "", cx + 8 + fw / 2, y + fh + 42, VG_SMALL, C_RED, VG_CENTER);
-    }
+    for (i = 0; i < NTRK; i++)                    /* (kx_pics.h: needle meters) */
+        kx_draw_vu(x + (int)i * (w / 4) + 3, y, w / 4 - 6, h, i);
 }
 
 /* INPUT: what comes in (its scope and level), where it goes */
@@ -833,6 +822,16 @@ static void kx_draw_project(int x, int y, int w, int h)
     }
 }
 
+/* ---- the idle screen: after a minute and a half with nothing touched, the discharge and the master's scope, full */
+static void kx_draw_idle(void)
+{
+    float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
+    vg_clear(C_BG);
+    cr_draw(60, 10, 360, 300, 0.4f + cr_wear() * 0.6f, heat, C_RED);
+    kx_draw_scope(0, 200, 480, 100, C_WHITE, 1.0f);
+    kx_logo(16, 286, VG_BOLD);
+}
+
 static void kx_draw_help(void)
 {
     static const char *const R[] = {
@@ -1013,6 +1012,12 @@ static void kx_ui_draw(void)
     }
     if (kx_splash())
         return;
+    if (!kx_idle_t)
+        kx_idle_t = vibe_frames() ? vibe_frames() : 1;
+    if (vibe_frames() - kx_idle_t > (uint64_t)(kx_sr * 90.0f) && !kx_start) {
+        kx_draw_idle();                           /* (a minute and a half untouched) */
+        return;
+    }
     kx_bg_paint(kx_fb);
     kx_draw_header();
     kx_draw_tracks();
@@ -1057,7 +1062,10 @@ static void kx_ui_draw(void)
         case GR_SONG: kx_draw_song(8, 96, 464, 110); break;
         case GR_EVENTS: kx_draw_events(8, 98, 464, 108); break;
         default:
-            kx_draw_scope(4, 98, 472, 106, p->scope == SC_GLOBAL ? C_RED : col, 1.2f);
+            if (t->eng_req == ENGI_FM6 && (p->scope == SC_ENGINE || fop_page(p->graph)))
+                kx_draw_fm6(12, 94, 456, 112, song.sel, fop_page(p->graph) ? (int)fop_op : -1);   /* (kx_pics.h) */
+            else
+                kx_draw_scope(4, 98, 472, 106, p->scope == SC_GLOBAL ? C_RED : col, 1.2f);
             break;
         }
     }

@@ -37,6 +37,8 @@ static int kx_shift_latch, kx_shift_used;         /* SHIFT tapped: it holds for 
 static uint64_t kx_shift_t;
 static int kx_start = 1, kx_start_sel;
 static uint64_t kx_card_hot[4];
+static uint64_t kx_soft_t[6];                     /* when F1-F6 were last pressed (they flash on the display) */
+static uint64_t kx_idle_t;                        /* the last touch (the idle screen after 90 s) */
 static float kx_foot_expr;                        /* the expression pedal's position (the FOOT PEDAL page) */
 static int kx_foot_down;
 static int kx_ped_focus[3];                       /* the pedal in focus on each pedal page */
@@ -674,6 +676,7 @@ static void kx_button(uint32_t b, int down)
     case VB_LEFT: kx_page_step(-1); break;
     case VB_RIGHT: kx_page_step(1); break;
     case VB_F1: case VB_F2: case VB_F3: case VB_F4: case VB_F5: case VB_F6:
+        kx_soft_t[b - VB_F1] = vibe_frames() ? vibe_frames() : 1;
         kx_soft(b - VB_F1);
         break;
     case VB_PLAY: kx_post(KXC_PLAY, 3, 0, 0, 0); break;
@@ -704,6 +707,8 @@ static void kx_ui_init(void)
 static void kx_ui_event(const vibe_event *e)
 {
     int fid;
+    if (e->type <= VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE || e->type == VIBE_EV_PEDAL || e->type == VIBE_EV_TOUCH)
+        kx_idle_t = vibe_frames() ? vibe_frames() : 1;
     if (e->type == VIBE_EV_BUTTON || e->type == VIBE_EV_PAD || e->type == VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE)
         kx_boot_done = 1;                         /* (the power-on picture ends at the first touch) */
     if (kx_start && kx_boot_done && e->type == VIBE_EV_BUTTON && e->down) {   /* the start screen */

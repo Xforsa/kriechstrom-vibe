@@ -71,7 +71,8 @@ mark grows behind every page as the master wears the mix out.
 - **More outputs (MENU > OUTPUTS):** when the DAW gives the plugin more outputs, each track goes out on its own pair
   (T1 on OUT 3/4 .. T4 on OUT 9/10, after its pedals, LEVEL and PAN), the shared effects' return on OUT 11/12 and the
   audio input on OUT 13/14, while OUT 1/2 stays the master. They are taken before the master's chain (DAMAGE, WALL and
-  the rest work on the sum), so they add up to the mix before it.
+  the rest work on the sum), so they add up to the mix before it. Record OUT 1/2 as the finished sound and the parts
+  to add to it; for a clean multitrack to mix from scratch, turn the master's effects off before recording.
 
 ![The stage](docs/stage.png)
 

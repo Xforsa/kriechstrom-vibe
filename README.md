@@ -91,7 +91,7 @@ mark grows behind every page as the master wears the mix out.
 | SOUND ENV LFO ARP FX SEQ | the pages; the same key again: the next page of that family |
 | ◀ ▶ | the family's pages |
 | encoders 1-4 | the four values on the page |
-| DATA | the sounds of the selected track (SHIFT: its engine); on SEQ the step cursor; on PEDALS the pedal |
+| DATA | the page's own knob: on SOUND the sounds (SHIFT: the engine); on a list the list; on SEQ the step; on PEDALS the pedal; on MIXER the selected track's level; elsewhere the card marked DATA (ENTER moves to the next) |
 | A | the selected track's level |
 | B | DAMAGE (SHIFT + B: WALL) |
 | F1-F4 | select track 1-4 |

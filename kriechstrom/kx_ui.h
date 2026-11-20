@@ -146,6 +146,8 @@ static void kx_family_pages(uint32_t fa)
 
 /* MENU's first page: every page of MENU as a tile (kx_draw_hub); ENC 1 or DATA picks, ENTER or a click opens */
 static int kx_hub_sel;
+static int kx_data_card;                          /* the card DATA turns on a page of values (0..3) */
+static uint64_t kx_data_t;
 #define KX_BACK 8
 static int16_t kx_back[KX_BACK][3];               /* the pages RETURN goes back through: page, family, its index */
 static int kx_back_n;
@@ -553,6 +555,32 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
     c->pos = d->max > d->min ? (float)(*vp - d->min) / (float)(d->max - d->min) : 0.0f;
 }
 
+/* does DATA turn a card on this page (not: SOUND's sounds, the steps, the lists, the rows, the pedals, the mixer)? */
+static int kx_data_on_cards(void)
+{
+    int pg = kx_page;
+    if (pg == PG_BROWSE || pg == PG_MIXER || pg == PG_GRID || pg == PG_HUB || pg == PG_PLIB || pg == PG_PFILES ||
+        pg == PG_PROJECT || pg == PG_USER || IS_PED_PAGE(pg) || kx_knob_page() < 0)
+        return 0;
+    if (pg >= 0 && pg < (int)NPAGES && (PAGES[pg].scope == SC_STEP || PAGES[pg].graph == GR_SONG ||
+                                        PAGES[pg].graph == GR_EVENTS || PAGES[pg].graph == GR_MOD ||
+                                        fop_page(PAGES[pg].graph)))
+        return 0;
+    return 1;
+}
+static void kx_data_fix(void)                     /* (the focus on a card that has a value) */
+{
+    int k;
+    for (k = 0; k < 4; k++) {
+        kx_card c;
+        kx_card_of(kx_knob_page(), (uint32_t)((kx_data_card + k) & 3), &c);
+        if (c.on && c.label && c.label[0]) {
+            kx_data_card = (kx_data_card + k) & 3;
+            return;
+        }
+    }
+}
+
 /* ---- the controls ----------------------------------------------------------------------------------------------- */
 static const uint8_t PAD_FX[4] = {PF_R16, PF_TAPE, PF_FRZ, PF_GATE};
 static const uint8_t PAD_FX2[4] = {PF_ROLL, PF_RTHR, PF_ETHR, PF_LPF};   /* (SHIFT) */
@@ -760,6 +788,7 @@ static void kx_turn(uint32_t enc, float detents)
         kx_card_hot[enc] = vibe_frames();
     if (enc <= VE_4) {
         int pg = kx_knob_page();
+        kx_data_card = (int)enc;                  /* (DATA turns the card last turned) */
         if (IS_PED_PAGE(kx_page)) {
             uint32_t f = enc == VE_1 ? (kx_shift ? PD_MIX : PD_TYPE) : PD_A + (enc - VE_2);
             kx_post(KXC_PED, kx_ped_owner(kx_page), (uint32_t)kx_ped_focus[kx_ped_fi(kx_page)], f,
@@ -839,10 +868,18 @@ static void kx_turn(uint32_t enc, float detents)
             int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page));
             kx_ped_focus[fi] = clamp(kx_ped_focus[fi] + (n > 0 ? 1 : -1), 0, ns - 1);
             kx_card_hot[0] = kx_card_hot[1] = kx_card_hot[2] = kx_card_hot[3] = vibe_frames();
-        } else if (kx_shift)
-            kx_post(KXC_ENGINE, 0, 0, 0, n > 0 ? 1 : -1);
-        else
-            kx_post(KXC_PRESET, 0, 0, 0, n);
+        } else if (kx_page == PG_BROWSE) {        /* SOUND: the sounds (SHIFT: the engines) */
+            if (kx_shift)
+                kx_post(KXC_ENGINE, 0, 0, 0, n > 0 ? 1 : -1);
+            else
+                kx_post(KXC_PRESET, 0, 0, 0, n);
+        } else if (kx_page == PG_MIXER) {         /* MIXER: the selected track's level (SHIFT: its pan) */
+            kx_turn(VE_1 + (int)song.sel, n > 0 ? 1.0f : -1.0f);
+        } else if (kx_data_on_cards()) {          /* any other page: the card in focus, as its own encoder */
+            kx_data_fix();
+            kx_turn(VE_1 + kx_data_card, (float)n);
+            kx_data_t = vibe_frames();
+        }
     }
 }
 
@@ -960,6 +997,18 @@ static void kx_button(uint32_t b, int down)
         }
         else if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_EVENTS)
             kx_post(KXC_ACT, (uint32_t)kx_page, 0, 0, 0);
+        else if (kx_data_on_cards()) {
+            int k;                                /* (no ENTER of its own: DATA's focus to the next card that has a value) */
+            for (k = 1; k <= 4; k++) {
+                kx_card c;
+                kx_card_of(kx_knob_page(), (uint32_t)((kx_data_card + k) & 3), &c);
+                if (c.on && c.label && c.label[0]) {
+                    kx_data_card = (kx_data_card + k) & 3;
+                    break;
+                }
+            }
+            kx_data_t = vibe_frames();
+        }
         break;
     default: break;
     }
@@ -1166,6 +1215,8 @@ static void kx_ui_event(const vibe_event *e)
         int pg0 = kx_page, fa0 = kx_fam, fp0 = kx_fpage[kx_fam];
         int ret = e->type == VIBE_EV_BUTTON && e->id == VB_RETURN;
         kx_ui_event_body(e);
+        if (kx_page != pg0)
+            kx_data_card = 0;                     /* (a new page: DATA on its first card) */
         if (!ret && kx_page != pg0) {
             if (kx_back_n == KX_BACK) {
                 memmove(kx_back[0], kx_back[1], sizeof kx_back[0] * (KX_BACK - 1));

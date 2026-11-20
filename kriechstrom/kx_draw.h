@@ -116,6 +116,10 @@ static void kx_draw_cards(int pg, int y)
         kx_card c;
         int x = 10 + (int)k * 115, w = 108, f = VG_BIG | VG_X2;   /* (the host's knob columns: x 10 + 115 k) */
         kx_card_of(pg, k, &c);
+        if (kx_data_on_cards() && (int)k == kx_data_card && c.on && c.label && c.label[0]) {   /* (DATA's card) */
+            vg_rect(x - 4, y - 4, w + 8, 2, C_RED);
+            vg_text("DATA", x + w, y - 16, VG_SMALL, C_RED, VG_RIGHT);
+        }
         if (k)
             vg_rect(x - 5, y + 2, 1, 66, 0x26262A);
         if (!c.on)
@@ -1069,7 +1073,9 @@ static void kx_draw_help(void)
     static char lab[4][24];
     const char *r[44];
     int n = 0, pg = kx_page, kp = kx_knob_page(), k;
-    const char *f5 = kx_f5_name(), *f5w = "", *dw = "sound (SHIFT: engine)", *ew = "";
+    const char *f5 = kx_f5_name(), *f5w = "", *dw = kx_data_on_cards() ? "the card marked DATA" :
+                                                pg == PG_MIXER ? "the track's level" : "sound (SHIFT: engine)",
+               *ew = kx_data_on_cards() ? "DATA to the next card" : "";
     for (k = 0; k < 4; k++) {
         kx_card c;
         static const char *const EN[4] = {"ENC 1", "ENC 2", "ENC 3", "ENC 4"};

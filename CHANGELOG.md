@@ -5,6 +5,15 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.11] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- DATA is the page's own knob everywhere: the sounds only on SOUND; the list, the step or the pedal where the page has
+  them; the selected track's level on MIXER; on every other page the card marked DATA (the last one turned; ENTER, a
+  click on DATA, moves to the next card). It no longer changes the sound away from SOUND
+
 ## [0.5.10] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

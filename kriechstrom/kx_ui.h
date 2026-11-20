@@ -643,6 +643,10 @@ static void kx_turn(uint32_t enc, float detents)
             kx_post(KXC_CURSOR, 0, 0, 0, c);
             kx_view_bank = c / 16;
             kx_view_t = vibe_frames();
+        } else if (IS_PED_PAGE(kx_page)) {        /* DATA: the pedal in focus */
+            int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page));
+            kx_ped_focus[fi] = clamp(kx_ped_focus[fi] + (n > 0 ? 1 : -1), 0, ns - 1);
+            kx_card_hot[0] = kx_card_hot[1] = kx_card_hot[2] = kx_card_hot[3] = vibe_frames();
         } else if (kx_shift)
             kx_post(KXC_ENGINE, 0, 0, 0, n > 0 ? 1 : -1);
         else

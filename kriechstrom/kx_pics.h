@@ -3,6 +3,100 @@
  * KRIECHSTROM for VIBE FM: pictures on the pages (the control flow, reading the core): FM6's algorithm as operators and
  * their wires, the mixer's needle meters, the master's tape reels, the drum lanes' glyphs, the idle screen. */
 
+/* ---- a spark: what an effect is doing, as a discharge between two points (the master's wear on a small scale). `a`
+ * 0..1 how hard: how far it strays from the straight line, how often it forks, how thick and how white its core. A new
+ * shape every ~70 ms (it crackles); `seed` keeps two sparks apart. Drawn twice from the same seed: the glow under, the
+ * core over. The shapes: KB_ARC a jagged arc, KB_WALL one arc and its doubles beside it (WALL doubles everything),
+ * KB_RING a sine that the arc rides on (RESONATE), KB_CUT an arc with pieces missing (SPLICE), KB_SAG an arc that
+ * hangs down in the middle (HAUNT's tape brake), KB_DUST loose sparks along the line (HISS) */
+enum { KB_ARC, KB_WALL, KB_RING, KB_CUT, KB_SAG, KB_DUST };
+static uint32_t kb_rng;
+static float kb_rf(void)
+{
+    kb_rng ^= kb_rng << 13;
+    kb_rng ^= kb_rng >> 17;
+    kb_rng ^= kb_rng << 5;
+    return (float)(kb_rng & 0xFFFFu) / 65535.0f;
+}
+static void kb_seg(float x0, float y0, float x1, float y1, float disp, int depth, float w, uint32_t col, int fork,
+                   int glow, int cut)
+{
+    float mx, my, dx = x1 - x0, dy = y1 - y0, l;
+    if (depth <= 0) {
+        if (cut && kb_rf() < 0.32f)
+            return;
+        vg_line(x0, y0, x1, y1, glow ? w * 3.2f : w, col);
+        return;
+    }
+    l = vd_sqrt(dx * dx + dy * dy) + 1e-3f;
+    mx = (x0 + x1) * 0.5f + (-dy / l) * (kb_rf() - 0.5f) * disp;
+    my = (y0 + y1) * 0.5f + (dx / l) * (kb_rf() - 0.5f) * disp;
+    kb_seg(x0, y0, mx, my, disp * 0.55f, depth - 1, w, col, fork, glow, cut);
+    kb_seg(mx, my, x1, y1, disp * 0.55f, depth - 1, w, col, fork, glow, cut);
+    if (fork > 0 && kb_rf() < 0.45f) {          /* a fork off the middle, shorter, thinner */
+        float s = kb_rf() < 0.5f ? -1.0f : 1.0f, fl = 0.35f + kb_rf() * 0.3f;
+        float fx = mx + (dx * 0.7f - s * dy * 0.6f) * fl, fy = my + (dy * 0.7f + s * dx * 0.6f) * fl;
+        kb_seg(mx, my, fx, fy, disp * 0.5f, depth - 2, w * 0.6f, glow ? col : vg_mix(col, 0x300808, 0.45f), fork - 1,
+               glow, cut);
+    }
+}
+static void kx_bolt(float x0, float y0, float x1, float y1, float a, uint32_t seed, int kind, uint32_t col, float room)
+{
+    uint32_t t = (uint32_t)((float)vibe_frames() / kx_sr * 14.0f), pass;
+    float dx = x1 - x0, dy = y1 - y0, l = vd_sqrt(dx * dx + dy * dy) + 1e-3f, disp, w;
+    int forks;
+    if (a < 0.02f)
+        return;
+    a = a > 1.0f ? 1.0f : a;
+    disp = l * (0.10f + 0.32f * a);
+    disp = disp > room * 2.0f ? room * 2.0f : disp;     /* (room: how far it may stray, either side) */
+    w = 0.8f + 1.4f * a;
+    forks = a < 0.25f ? 0 : a < 0.6f ? 1 : 2;
+    for (pass = 0; pass < 2u; pass++) {
+        uint32_t c = pass ? vg_mix(col, 0xFFF4EA, 0.25f + 0.6f * a) : vg_mix(0x0A0A0B, col, 0.22f + 0.3f * a);
+        int k;
+        kb_rng = (seed * 0x9E3779B9u) ^ (t * 0x85EBCA6Bu) ^ 0x5BD1E995u;
+        kb_rng = kb_rng ? kb_rng : 1u;
+        switch (kind) {
+        case KB_WALL:                             /* (the arc, and up to two doubles beside it) */
+            for (k = -1; k <= 1; k++) {
+                float o = (float)k * (3.0f + 4.0f * a), nx = -dy / l * o, ny = dx / l * o;
+                if (k && a < 0.3f)
+                    continue;
+                kb_seg(x0 + nx, y0 + ny, x1 + nx, y1 + ny, disp * 0.7f, 4, k ? w * 0.6f : w,
+                       k && pass ? vg_mix(col, 0x300808, 0.3f) : c, k ? 0 : forks, !pass, 0);
+            }
+            break;
+        case KB_RING: {                           /* (a sine, as many periods as there are strings, the arc on it) */
+            float px = x0, py = y0;
+            for (k = 1; k <= 24; k++) {
+                float f = (float)k / 24.0f, s = vd_sin(f * 4.0f + (float)t * 0.03f) * (2.0f + 7.0f * a);
+                float nx = x0 + dx * f - dy / l * s, ny = y0 + dy * f + dx / l * s;
+                kb_seg(px, py, nx, ny, 3.0f * a, 1, w, c, 0, !pass, 0);
+                px = nx, py = ny;
+            }
+            break;
+        }
+        case KB_SAG: {                            /* (hangs down: the tape dragging) */
+            float mx = (x0 + x1) * 0.5f, my = (y0 + y1) * 0.5f + l * (0.08f + 0.22f * a);
+            kb_seg(x0, y0, mx, my, disp * 0.5f, 4, w, c, forks, !pass, 0);
+            kb_seg(mx, my, x1, y1, disp * 0.5f, 4, w, c, 0, !pass, 0);
+            break;
+        }
+        case KB_DUST:                             /* (loose sparks: grain) */
+            for (k = 0; k < 6 + (int)(30.0f * a); k++) {
+                float f = kb_rf(), o = (kb_rf() - 0.5f) * disp * 1.2f;
+                float sx = x0 + dx * f - dy / l * o, sy = y0 + dy * f + dx / l * o;
+                vg_circle(sx, sy, pass ? 0.6f + 0.8f * kb_rf() * a : 1.8f, c);
+            }
+            break;
+        default:
+            kb_seg(x0, y0, x1, y1, disp, 5, w, c, forks, !pass, kind == KB_CUT);
+            break;
+        }
+    }
+}
+
 /* ---- FM6: the algorithm (fm6_core.c FM6_ALG: per operator, the sixth first, its in bus, out bus, add, feedback) drawn as
  * the DX7 draws it: the carriers in a row at the bottom, their modulators stacked above, wires down, feedback as a loop */
 static void kx_draw_fm6(int x, int y, int w, int h, uint32_t tr, int focus_op)
@@ -86,38 +180,103 @@ static void kx_draw_fm6(int x, int y, int w, int h, uint32_t tr, int focus_op)
     }
 }
 
-/* ---- the mixer: four needle meters (the needles with weight: they rise fast, fall slow), the level under each */
+/* ---- the mixer: four needle meters (the needles with weight: they rise fast, fall slow). The face is an old VU's: aged
+ * paper, the scale in dB from -20 to +3 (0 VU at -6 dBFS), its red zone, the pivot hidden under the face's edge. Under
+ * it the strip: the level big, the pan, the three sends, and the track's spark, as hard as it plays */
 static float kx_vu[NTRK], kx_vu_pk[NTRK];
+static float kx_vu_pos(float db) { db = db < -20.0f ? -20.0f : db > 3.0f ? 3.0f : db; return (db + 20.0f) / 23.0f; }
 static void kx_draw_vu(int x, int y, int w, int h, uint32_t k)
 {
     const track_t *t = &trk[k];
-    float a = (float)clamp(t->peak, 0, 32767) / 32768.0f, ang, cx = (float)x + (float)w * 0.5f, cy = (float)(y + h - 20);
-    float r = (float)w * 0.44f;
-    int i;
+    float a = (float)clamp(t->peak, 0, 32767) / 32768.0f, ang, cx = (float)x + (float)w * 0.5f;
+    int fh = h * 56 / 100, i, sy = y + fh + 4;
+    float r = (float)fh * 0.86f, cy = (float)(y + fh) + r * 0.22f, span = 0.095f;   /* (+-34 degrees) */
+    uint32_t col = TRK_RGB[k] == 0xD9D2C2 ? 0x9A9AA2 : TRK_RGB[k], ink = 0x2A2622;
     char b[8];
+    static const int8_t DB[] = {-20, -10, -7, -5, -3, -1, 0, 1, 2, 3};
+    static const char *const DBN = "-  +";
     a = t->p[P_MUTE] ? 0.0f : a;
-    a = a > 0.0f ? 1.0f + vd_log2(a + 1e-6f) * 0.06f : 0.0f;    /* (dB-ish: -16 dB at the left end) */
-    a = a < 0.0f ? 0.0f : a > 1.0f ? 1.0f : a;
+    a = a > 0.0f ? kx_vu_pos(6.02f * vd_log2(a + 1e-6f) + 6.0f) : 0.0f;
     kx_vu[k] += (a - kx_vu[k]) * (a > kx_vu[k] ? 0.45f : 0.12f);
     kx_vu_pk[k] = kx_vu[k] > kx_vu_pk[k] ? kx_vu[k] : kx_vu_pk[k] * 0.985f;
-    vg_round(x, y, w, h, 6, 0xD8D2C2);                          /* the face: paper */
-    vg_round(x + 3, y + 3, w - 6, h - 6, 5, 0xEAE4D4);
-    for (i = 0; i <= 10; i++) {                                 /* the scale; its top fifth red */
-        float t2 = (float)i / 10.0f, an = 0.375f - 0.25f * t2;   /* (135 degrees .. 45, in turns) */
-        float sx = cx + vd_sin(an + 0.25f) * r, sy = cy - vd_sin(an) * r;
-        float ex = cx + vd_sin(an + 0.25f) * (r - (i % 5 ? 5.0f : 9.0f)), ey = cy - vd_sin(an) * (r - (i % 5 ? 5.0f : 9.0f));
-        vg_line(sx, sy, ex, ey, 1.5f, i >= 8 ? 0xC02010 : 0x2A2A2E);
+    vg_rect(x, y, w, fh, 0x18181A);                            /* the bezel, the face: aged paper */
+    vg_rect(x + 3, y + 3, w - 6, fh - 6, 0xCFC5AA);
+    vg_rect(x + 3, y + 3, w - 6, 10, 0xD8CFB6);
+    for (i = 0; i < 2; i++) {                                  /* the red zone, a band over the scale from 0 */
+        float p0 = kx_vu_pos(0.0f), p1 = 1.0f, j;
+        for (j = p0; j < p1; j += 0.02f) {
+            float a0 = 0.25f + span - 2.0f * span * j, a1 = 0.25f + span - 2.0f * span * (j + 0.02f);
+            float rr = r + 4.0f + (float)i;
+            vg_line(cx + vd_sin(a0 + 0.25f) * rr, cy - vd_sin(a0) * rr, cx + vd_sin(a1 + 0.25f) * rr, cy - vd_sin(a1) * rr,
+                    1.6f, 0xB02818);
+        }
     }
-    ang = 0.375f - 0.25f * kx_vu[k];
-    vg_line(cx, cy, cx + vd_sin(ang + 0.25f) * (r - 2.0f), cy - vd_sin(ang) * (r - 2.0f), 2.0f, 0x111111);
-    vg_circle(cx, cy, 4.0f, 0x111111);
-    vg_circle((float)(x + w - 12), (float)(y + 12), 4.0f, kx_vu_pk[k] > 0.85f ? 0xE02010 : 0x5A1A10);
+    {   /* the scale's arc */
+        float j;
+        for (j = 0.0f; j < 0.999f; j += 0.05f) {
+            float a0 = 0.25f + span - 2.0f * span * j, a1 = 0.25f + span - 2.0f * span * (j + 0.05f);
+            vg_line(cx + vd_sin(a0 + 0.25f) * r, cy - vd_sin(a0) * r, cx + vd_sin(a1 + 0.25f) * r, cy - vd_sin(a1) * r, 1.0f,
+                    j >= kx_vu_pos(0.0f) - 0.01f ? 0xB02818 : ink);
+        }
+    }
+    for (i = 0; i < (int)sizeof DB; i++) {                    /* the ticks, the numbers on the big ones */
+        float p = kx_vu_pos((float)DB[i]), an = 0.25f + span - 2.0f * span * p, big = DB[i] == -20 || DB[i] == -10 ||
+                  DB[i] == -5 || DB[i] == 0 || DB[i] == 3, num = DB[i] == -10 || DB[i] == -5 || DB[i] == 0;
+        uint32_t c = DB[i] >= 0 ? 0xB02818 : ink;
+        float ux = vd_sin(an + 0.25f), uy = -vd_sin(an);
+        vg_line(cx + ux * r, cy + uy * r, cx + ux * (r + (big ? 7.0f : 4.0f)), cy + uy * (r + (big ? 7.0f : 4.0f)), 1.2f, c);
+        if (num) {
+            vg_itoa(DB[i] < 0 ? -DB[i] : DB[i], b);
+            vg_text(b, (int)(cx + ux * (r + 13.0f)), (int)(cy + uy * (r + 13.0f)) - 7, VG_SMALL, c, VG_CENTER);
+        }
+    }
+    (void)DBN;
+    vg_text("-", x + 8, y + 8, VG_BOLD, ink, VG_LEFT);
+    vg_text("+", x + w - 8, y + 8, VG_BOLD, 0xB02818, VG_RIGHT);
+    vg_text("VU", (int)cx, (int)(cy - r * 0.55f) - 7, VG_BOLD, ink, VG_CENTER);
     b[0] = 'T', b[1] = (char)('1' + k), b[2] = 0;
-    vg_text(b, x + 8, y + 6, VG_BOLD, TRK_RGB[k] == 0xD9D2C2 ? 0x6A6A70 : TRK_RGB[k], VG_LEFT);
-    vg_itoa(t->p[P_LEVEL], b);
-    vg_text(b, (int)cx, y + h - 18, VG_SMALL, 0x2A2A2E, VG_CENTER);
+    vg_text(b, x + 8, y + fh - 22, VG_BOLD, vg_mix(col, 0x000000, 0.3f), VG_LEFT);
+    vg_circle((float)(x + w - 13), (float)(y + fh - 14), 4.5f, 0x2A2622);   /* the peak lamp */
+    vg_circle((float)(x + w - 13), (float)(y + fh - 14), 3.5f, kx_vu_pk[k] > kx_vu_pos(0.0f) ? 0xF03018 : 0x5A1A10);
+    ang = 0.25f + span - 2.0f * span * kx_vu[k];               /* the needle, from under the face's edge */
+    {
+        float ux = vd_sin(ang + 0.25f), uy = -vd_sin(ang), r0 = r * 0.24f;
+        vg_line(cx + ux * r0 + 1.5f, cy + uy * r0 + 1.5f, cx + ux * (r + 3.0f) + 1.5f, cy + uy * (r + 3.0f) + 1.5f, 1.6f,
+                0xA89E86);                                     /* (its shadow on the paper) */
+        vg_line(cx + ux * r0, cy + uy * r0, cx + ux * (r + 3.0f), cy + uy * (r + 3.0f), 1.6f, 0x111111);
+    }
+    vg_rect(x + 3, y + fh - 6, w - 6, 3, 0x18181A);
+    vg_rect(x, y + fh - 3, w, 3, 0x18181A);
     if (t->p[P_MUTE])
-        vg_text("MUTE", (int)cx, y + 22, VG_BOLD, 0xC02010, VG_CENTER);
+        vg_text("MUTE", (int)cx, y + 20, VG_BOLD, 0xB02818, VG_CENTER);
+    /* the strip under it */
+    vg_rect(x, sy, w, y + h - sy, C_PANEL);
+    vg_rect(x, sy, w, 2, t->p[P_MUTE] ? 0x2A2A2E : col);
+    vg_itoa(t->p[P_LEVEL], b);
+    vg_text(b, x + 6, sy + 6, VG_BIG, t->p[P_MUTE] ? C_DIM : C_WHITE, VG_LEFT);
+    vg_text("LEVEL", x + w - 6, sy + 8, VG_SMALL, C_DIM, VG_RIGHT);
+    {   /* the pan: a mark on a line, L .. R */
+        int px = x + 8 + (int)((float)(clamp(t->p[P_PAN], -64, 63) + 64) / 127.0f * (float)(w - 16)), ly = sy + 38;
+        vg_rect(x + 8, ly, w - 16, 1, C_LINE);
+        vg_rect(x + w / 2, ly - 3, 1, 7, C_LINE);
+        vg_rect(px - 1, ly - 4, 3, 9, col);
+        vg_text("L", x + 2, ly - 7, VG_SMALL, 0x4A4A50, VG_LEFT);
+        vg_text("R", x + w - 2, ly - 7, VG_SMALL, 0x4A4A50, VG_RIGHT);
+    }
+    {   /* the sends: CHO, DLY, REV, three short bars */
+        static const char *const SN[3] = {"C", "D", "R"};
+        static const uint8_t SP[3] = {P_CHOR, P_DLY, P_REV};
+        int bw = (w - 16 - 3 * 12) / 3, j;
+        for (j = 0; j < 3; j++) {
+            int bx = x + 6 + j * (bw + 14), by = sy + 52;
+            float f = (float)clamp(t->p[SP[j]], 0, 127) / 127.0f;
+            vg_text(SN[j], bx, by - 4, VG_SMALL, 0x4A4A50, VG_LEFT);
+            vg_rect(bx + 11, by + 2, bw, 4, C_LINE);
+            vg_rect(bx + 11, by + 2, (int)(f * (float)bw), 4, vg_mix(col, C_BG, 0.25f));
+        }
+    }
+    kx_bolt((float)(x + 6), (float)(y + h - 7), (float)(x + w - 6), (float)(y + h - 7), kx_vu[k] * 0.9f, k + 40u, KB_ARC,
+            col == 0x9A9AA2 ? C_RED : col, 5.0f);
 }
 
 /* ---- the master's tape: two reels, turning while it plays (DRAG slows them on the bar's last beat), the tape between

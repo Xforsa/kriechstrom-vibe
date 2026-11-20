@@ -5,6 +5,16 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- RETURN goes back to the page before, step by step (up to eight), instead of always to SOUND; HOME says so
+
+### Fixed
+- DATA walks the lists of PROJECTS, FILES, PARTS A-D and MY SOUNDS instead of changing the sound
+
 ## [0.5.4] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

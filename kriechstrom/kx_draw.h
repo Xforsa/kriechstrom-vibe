@@ -1044,8 +1044,8 @@ static void kx_draw_help(void)
     static const char *const G[] = {
         "KEYS", "the selected track", "PADS 1-4", "mute (SHIFT: solo)", "PADS 5-8", "DICE (SHIFT: OOPS)",
         "PADS 9-12", "hold FX (SHIFT: +4)", "PADS 13-16", "drums (SHIFT: +4)", "K1-K6", "the page families",
-        "A", "track level", "B", "DMG (SHIFT: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "or SHIFT + HOME",
-        "SHIFT", "hold, or tap once",
+        "A / B", "level / DMG (SH: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "or SHIFT + HOME",
+        "SHIFT", "hold, or tap once", "RETURN", "back to the last page",
     };
     static char lab[4][24];
     const char *r[44];
@@ -1080,17 +1080,20 @@ static void kx_draw_help(void)
     else if (IS_PED_PAGE(pg))
         dw = "the pedal (or tap it)";
     else if (pg == PG_PROJECT)
-        ew = "load (SHIFT: demo)";
+        ew = "load (SHIFT: demo)", dw = "the part";
+    else if (pg >= 0 && pg < (int)NPAGES && (PAGES[pg].graph == GR_SONG || PAGES[pg].graph == GR_MOD ||
+                                             fop_page(PAGES[pg].graph)))
+        dw = "as ENC 1";
     else if (pg == PG_USER)
-        ew = "load the sound";
+        ew = "load the sound", dw = "the slot";
     else if (pg == PG_PLIB)
-        ew = "2x: load (SHIFT: del)";
+        ew = "2x: load (SHIFT: del)", dw = "the project";
     else if (pg == PG_PFILES)
-        ew = "import the file";
+        ew = "import the file", dw = "the file";
     else if (pg == PG_HUB)
         ew = "open the tile's page", dw = "the tile";
     else if (pg >= 0 && pg < (int)NPAGES && PAGES[pg].graph == GR_EVENTS)
-        ew = "the row's action";
+        ew = "the row's action", dw = "as ENC 1";
     if (kx_streq(f5, "OOPS")) f5w = "OOPS: random values";
     else if (kx_streq(f5, "DICE") || kx_streq(f5, "MOOD")) f5w = "DICE: a new part";
     else if (kx_streq(f5, "REC") || kx_streq(f5, "STOP")) f5w = pg == PG_SAMPLER ? "record at next bar" : "the song";

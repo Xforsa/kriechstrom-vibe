@@ -146,6 +146,9 @@ static void kx_family_pages(uint32_t fa)
 
 /* MENU's first page: every page of MENU as a tile (kx_draw_hub); ENC 1 or DATA picks, ENTER or a click opens */
 static int kx_hub_sel;
+#define KX_BACK 8
+static int16_t kx_back[KX_BACK][3];               /* the pages RETURN goes back through: page, family, its index */
+static int kx_back_n;
 #define KX_HUB_N 9
 static const char *const KX_HUB_NAME[KX_HUB_N] = {"PROJECTS", "FILES", "PARTS A-D", "MIXER", "OUTPUTS", "MIDI & CV",
                                                  "FOOT PEDAL", "DISPLAY", "CLOCK"};
@@ -820,6 +823,18 @@ static void kx_turn(uint32_t enc, float detents)
             kx_view_t = vibe_frames();
         } else if (kx_page == PG_HUB) {
             kx_hub_sel = clamp(kx_hub_sel + (n > 0 ? 1 : -1), 0, KX_HUB_N - 1);
+        } else if (kx_page >= 0 && kx_page < (int)NPAGES &&
+                   (PAGES[kx_page].graph == GR_SONG || PAGES[kx_page].graph == GR_EVENTS ||
+                    PAGES[kx_page].graph == GR_MOD || fop_page(PAGES[kx_page].graph))) {
+            kx_turn(VE_1, n > 0 ? 1.0f : -1.0f);   /* (a page whose ENC 1 picks a row: DATA does it too) */
+        } else if (kx_page == PG_PLIB) {          /* the lists: DATA walks them */
+            kxp_pick(kxp_sel + (n > 0 ? 1 : -1));
+        } else if (kx_page == PG_PFILES) {
+            kxp_lsel = clamp(kxp_lsel + (n > 0 ? 1 : -1), 0, kxp_nlist ? kxp_nlist - 1 : 0);
+        } else if (kx_page == PG_PROJECT) {
+            kx_slot_pick = clamp(kx_slot_pick + (n > 0 ? 1 : -1), 0, 3);
+        } else if (kx_page == PG_USER) {
+            kx_user_pick = clamp(kx_user_pick + (n > 0 ? 1 : -1), 0, UP_SLOTS - 1);
         } else if (IS_PED_PAGE(kx_page)) {        /* DATA: the pedal in focus */
             int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page));
             kx_ped_focus[fi] = clamp(kx_ped_focus[fi] + (n > 0 ? 1 : -1), 0, ns - 1);
@@ -885,10 +900,15 @@ static void kx_button(uint32_t b, int down)
         else
             kx_help = !kx_help;
         break;
-    case VB_RETURN:
+    case VB_RETURN:                               /* back: to the page before (none: SOUND) */
         if (kx_help)
             kx_help = 0;
-        else
+        else if (kx_back_n > 0) {
+            kx_back_n--;
+            kx_page = kx_back[kx_back_n][0];
+            kx_fam = (uint8_t)kx_back[kx_back_n][1];
+            kx_fpage[kx_fam] = (uint8_t)kx_back[kx_back_n][2];
+        } else
             kx_open(FA_SOUND, 0), kx_fpage[FA_SOUND] = 0, kx_page = PG_BROWSE;
         break;
     case VB_K1: case VB_K2: case VB_K3: case VB_K4: case VB_K5: case VB_K6:
@@ -1092,6 +1112,7 @@ static void kx_touch(int x, int y)
         kx_soft(4);                               /* (the big REC: as F5) */
 }
 
+static void kx_ui_event_body(const vibe_event *e);
 static void kx_ui_event(const vibe_event *e)
 {
     int fid;
@@ -1141,6 +1162,23 @@ static void kx_ui_event(const vibe_event *e)
         kx_start = 0;                             /* (played instead: what is there now stays) */
     if (vf_event(e, &fid) != VF_NO)               /* FOCUS first (SDK 10) */
         return;
+    {   /* remember the page this event leaves, for RETURN */
+        int pg0 = kx_page, fa0 = kx_fam, fp0 = kx_fpage[kx_fam];
+        int ret = e->type == VIBE_EV_BUTTON && e->id == VB_RETURN;
+        kx_ui_event_body(e);
+        if (!ret && kx_page != pg0) {
+            if (kx_back_n == KX_BACK) {
+                memmove(kx_back[0], kx_back[1], sizeof kx_back[0] * (KX_BACK - 1));
+                kx_back_n--;
+            }
+            kx_back[kx_back_n][0] = (int16_t)pg0, kx_back[kx_back_n][1] = (int16_t)fa0, kx_back[kx_back_n][2] = (int16_t)fp0;
+            kx_back_n++;
+        }
+        return;
+    }
+}
+static void kx_ui_event_body(const vibe_event *e)
+{
     if (kx_shift && ((e->type == VIBE_EV_BUTTON && e->id != VB_SHIFT && e->down) || (e->type == VIBE_EV_PAD && e->down) ||
                      e->type == VIBE_EV_ENCODER))
         kx_shift_used = 1;

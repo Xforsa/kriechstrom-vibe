@@ -404,6 +404,36 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
             c->unit = "ENTER";                    /* (the action this knob picked: ENTER does it) */
         return;
     }
+    if (p->scope == SC_STEP && p->title[0] == 'D') {   /* DETAIL: the cursor step's CHANCE RATCH NUDGE VEL (ui_draw.c) */
+        static const char *const SD_LABEL[4] = {"CHANCE", "RATCH", "NUDGE", "VEL"};
+        const track_t *t = TSEL;
+        const step_t *st = &t->step[ui.cursor % NSTEP];
+        uint32_t k = SD_KIND[slot & 3u];
+        int32_t v = ev_sval(st, k);
+        c->on = sd_takes(st, k);
+        c->label = SD_LABEL[slot & 3u];
+        c->unit = "";
+        if (k == EVK_CHANCE) {
+            c->unit = ev_chance_fmt(c->val, v);
+            if (v > 100)
+                c->label = "COND";
+            c->pos = v > 100 ? (float)(v - 100) / (float)NCOND : (float)v / 100.0f;
+        } else if (k == EVK_RATCH) {
+            c->val[0] = 'x';
+            vg_itoa(v, c->val + 1);
+            c->pos = (float)(v - 1) / 3.0f;
+        } else if (k == EVK_NUDGE) {
+            ev_nudge_fmt(c->val, v);
+            c->unit = v ? "/16" : "";
+            c->bip = 1;
+            c->pos = (float)(v + 8) / 15.0f;
+        } else {
+            vg_itoa(v, c->val);
+            c->unit = st->flags & SF_ACCENT ? "ACC" : "";
+            c->pos = (float)v / 127.0f;
+        }
+        return;
+    }
     if (p->scope == SC_STEP) {                    /* STEP: the cursor's step (ui_input.c step_edit) */
         const track_t *t = TSEL;
         const step_t *st = &t->step[ui.cursor % NSTEP];
@@ -439,6 +469,14 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
                 str_cpy(c->val, FL[(st->flags & SF_ACCENT ? 1u : 0u) | (st->flags & SF_SLIDE ? 2u : 0u)], sizeof c->val);
             break;
         }
+        return;
+    }
+    if (p->graph == GR_MOD && slot == 0u) {       /* MOD: KNOB 1 picks the slot (ui_draw.c) */
+        c->on = 1;
+        c->label = "SLOT";
+        vg_itoa((int)mod_ui_slot + 1, c->val);
+        c->unit = "/4";
+        c->pos = (float)mod_ui_slot / 3.0f;
         return;
     }
     d = page_desc(p, slot, &vp);
@@ -644,7 +682,7 @@ static void kx_turn(uint32_t enc, float detents)
         uint32_t g = kx_shift ? G_WALL : G_DMG;
         kx_post(KXC_PARAM, NTRK, g, 0, clamp(song.g[g] + n * 2, GP[g].min, GP[g].max));
     } else if (enc == VE_DATA) {
-        if (kx_page == PG_GRID) {
+        if (kx_page == PG_GRID || (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].scope == SC_STEP)) {
             int32_t len = clamp(TSEL->p[P_SLEN], 1, NSTEP), c = ((int32_t)ui.cursor + n % len + len) % len;
             kx_post(KXC_CURSOR, 0, 0, 0, c);
             kx_view_bank = c / 16;

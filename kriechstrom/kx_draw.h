@@ -93,9 +93,10 @@ static void kx_draw_tracks(void)
 static void kx_draw_title(const char *t, const char *what)
 {
     uint32_t i;
-    vg_text(t, 8, 78, VG_BOLD, C_RED, VG_LEFT);
+    int x = 8 + te_index(8, 77, (int)kx_fpage[kx_fam] + 1);   /* (the page's number in its family, a white plate) */
+    vg_text(t, x, 78, VG_BOLD, C_RED, VG_LEFT);
     if (what)
-        vg_text(what, 8 + vg_text_width(t, VG_BOLD) + 10, 78, VG_SMALL, 0x8A8A94, VG_LEFT);
+        vg_text(what, x + vg_text_width(t, VG_BOLD) + 10, 78, VG_SMALL, 0x8A8A94, VG_LEFT);
     for (i = 0; i < kx_pn && kx_pn > 1u; i++) {
         int x = 470 - (int)(kx_pn - 1u - i) * 10;
         vg_rect(x - 2, i == kx_fpage[kx_fam] ? 81 : 83, 5, i == kx_fpage[kx_fam] ? 7 : 3,
@@ -274,7 +275,7 @@ static void kx_draw_arp(int x, int y, int w, int h, const track_t *t, uint32_t c
     int i, n = 16, oct = clamp(t->p[P_AOCT], 0, 3) + 1, mode = t->p[P_AMODE];
     if (!mode) {
         vg_text("ARP OFF", x + w / 2, y + h / 2 - 12, VG_BIG, C_DIM, VG_CENTER);
-        vg_text("KNOB 1 TURNS IT ON", x + w / 2, y + h / 2 + 16, VG_SMALL, C_LINE, VG_CENTER);
+        vg_text("ENC 1 TURNS IT ON", x + w / 2, y + h / 2 + 16, VG_SMALL, TE_MID, VG_CENTER);
         return;
     }
     for (i = 0; i < n; i++) {
@@ -941,9 +942,9 @@ static void kx_draw_help(void)
         kx_card c;
         static const char *const EN[4] = {"ENC 1", "ENC 2", "ENC 3", "ENC 4"};
         memset(&c, 0, sizeof c);
-        if (kp < 0 && !IS_PED_PAGE(pg) && !IS_IC_PAGE(pg))
+        if (kp < 0 && !IS_PED_PAGE(pg) && !IS_IC_PAGE(pg) && pg != PG_USER)
             break;
-        kx_card_of(kp, (uint32_t)k, &c);
+        kx_card_of(kp >= 0 ? kp : pg, (uint32_t)k, &c);
         if (!c.label || !c.label[0])
             continue;
         str_cpy(lab[k], c.label, sizeof lab[k]);
@@ -953,12 +954,16 @@ static void kx_draw_help(void)
     }
     if (IS_PED_PAGE(pg) && n == 2)
         r[n++] = "ENC 2-4", r[n++] = "the pedal's knobs";
+    if (pg == PG_PROJECT)
+        r[n++] = "ENC 1", r[n++] = "the slot, A-D";
     if (pg == PG_MIXER)
         r[n++] = "ENC 1-4", r[n++] = "T1-T4 level";
     if (pg == PG_MIXER)
         r[n++] = "SHIFT + ENC", r[n++] = "T1-T4 pan";
     if (pg == PG_GRID)
         dw = "the step", ew = "the step on / off";
+    else if (pg >= 0 && pg < (int)NPAGES && PAGES[pg].scope == SC_STEP)
+        dw = "the step";
     else if (IS_PED_PAGE(pg))
         dw = "the pedal (or tap it)";
     else if (pg == PG_PROJECT)
@@ -1139,6 +1144,8 @@ static int kx_splash(void)
         vg_text("STROM", x + wk, 128, VG_BIG | VG_X2, vg_mix(C_BG, C_RED, a), VG_LEFT);
         vg_text("BUILT ON FELUCCA", 240, 182, VG_SMALL, vg_mix(C_BG, 0x9A9AA4, a), VG_CENTER);
     }
+    if ((t > 0.33f && t < 0.42f) || (t > 0.62f && t < 0.66f) || (t > 0.9f && t < 0.92f))
+        te_tear(kx_fb, 0.8f, (uint32_t)(t * 60.0f));   /* (the logo cut in, as a tape spliced) */
     kx_wear_fx(kx_fb, 480, 320);
     return 1;
 }
@@ -1181,8 +1188,8 @@ static void kx_ui_draw(void)
     kx_draw_tracks();
     kx_family_pages(kx_fam);
     kx_draw_title(kx_title(pg), pg >= 0 && pg < (int)NPAGES ? page_what(PAGES[pg].title) : 0);
-    if (pg == PG_GRID) {
-        kx_draw_grid(8, 96, 466, 110);
+    if (pg == PG_GRID || (pg >= 0 && pg < (int)NPAGES && PAGES[pg].scope == SC_STEP)) {
+        kx_draw_grid(8, 96, 466, 110);            /* (DETAIL too: the steps, the cursor's own values below) */
     } else if (pg == PG_BROWSE) {
         kx_draw_browse(4, 96, 472, 110);
     } else if (pg == PG_MASTER) {
@@ -1229,6 +1236,7 @@ static void kx_ui_draw(void)
             break;
         }
     }
+    te_marks(2, 93, 476, pg == PG_MIXER ? 190 : 115);  /* (the picture's crop marks) */
     if (pg != PG_MIXER)
         kx_draw_cards(kp, 210);
     {
@@ -1236,6 +1244,22 @@ static void kx_ui_draw(void)
         int order = (int)kx_fam * 64 + (int)kx_fpage[kx_fam];
         kx_transition(kx_fb, pg, order > last_order ? 1 : -1);
         last_order = order;
+    }
+    {   /* the cut on a page change: a few frames torn, then clean */
+        static int was = -2;
+        static uint64_t cut;
+        if (pg != was) {
+            if (was != -2 && kx_ic[IC_SCREEN])
+                cut = kx_idle_t ? kx_idle_t : 1;   /* (from the press that changed it: the last event's time) */
+            was = pg;
+        }
+        if (cut) {
+            float u = (float)(vibe_frames() - cut) / (kx_sr * 0.16f);
+            if (u >= 1.0f)
+                cut = 0;
+            else
+                te_tear(kx_fb, (1.0f - u) * (kx_ic[IC_SCREEN] == 2 ? 1.0f : 0.6f), (uint32_t)(cut >> 8) + (uint32_t)(u * 4.0f));
+        }
     }
     kx_draw_soft();
     {   /* VIBE FM Link (SDK 24): a controller with a screen (an FM-1 under VIBE FM Link) shows the page and encoders 1-4 */

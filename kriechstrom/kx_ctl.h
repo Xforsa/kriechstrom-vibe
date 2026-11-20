@@ -281,12 +281,14 @@ static void kx_apply(const kx_cmd *k)
             int rc;
             up_auto_name(nm, TSEL->eng_req, s);
             rc = up_store(s, nm);                 /* (no flash here: 3, kept in RAM, which kx_store.h writes out) */
-            ui_message(rc == 0 || rc == 3 ? "SOUND SAVED" : "SAVE ERROR");
+            if (rc != 2)                          /* (2: the core said STOP TO SAVE, as on the FM-1) */
+                ui_message(rc == 0 || rc == 3 ? "SOUND SAVED" : "SAVE ERROR");
             if (rc == 0 || rc == 3)
                 kx_user_saved();
         } else if (up_used(s)) {
             int rc = up_put(s, 0);
-            ui_message(rc == 0 || rc == 3 ? "ERASED" : "ERASE ERROR");
+            if (rc != 2)
+                ui_message(rc == 0 || rc == 3 ? "ERASED" : "ERASE ERROR");
             kx_user_saved();
         }
         break;

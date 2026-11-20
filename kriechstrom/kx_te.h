@@ -420,7 +420,7 @@ static void te_lanes(int x, int y, int w, int h, const page_t *p, const track_t 
 {
     int k, n = 4, fw = w / 8;
     for (k = 0; k < n; k++) {
-        int fx = x + (first ? 0 : 4 * fw) + k * fw * 2 + fw / 2, v = clamp(t->p[p->id[k]], 0, 127);
+        int fx = x + k * fw * 2 + fw / 2, v = clamp(t->p[p->id[k]], 0, 127);
         int fh = h - 30, ky = y + 4 + fh - v * fh / 127;
         vg_rect(fx + fw / 2 - 1, y + 4, 3, fh, TE_LOW);
         vg_rect(fx + 2, ky - 4, fw - 4, 9, TE_INK);
@@ -465,6 +465,75 @@ static void te_voice(int x, int y, int w, int h, const track_t *t)
     }
 }
 
+
+/* MOD: the four slots, each a source wired to a destination, as much as AMT; the slot KNOB 1 picks framed */
+static void te_mod(int x, int y, int w, int h, const track_t *t)
+{
+    int k, rh = h / 4;
+    for (k = 0; k < 4; k++) {
+        int ry = y + k * rh + 2, src = clamp(t->p[P_M1SRC + 3 * k], 0, (int)NELEM(N_MSRC) - 1);
+        int dst = clamp(t->p[P_M1DST + 3 * k], 0, (int)NELEM(N_MDST) - 1), amt = t->p[P_M1AMT + 3 * k];
+        int on = src && dst, cx = x + 120, cw = w - 240, a = amt < 0 ? -amt : amt;
+        char b[4] = {(char)('1' + k), 0};
+        if (k == (int)mod_ui_slot)
+            vg_frame(x, ry - 1, w, rh - 2, 1, C_RED);
+        vg_text(b, x + 6, ry + 4, VG_BOLD, k == (int)mod_ui_slot ? C_RED : TE_MID, VG_LEFT);
+        vg_text(N_MSRC[src], x + 26, ry + 4, VG_BOLD, on ? TE_INK : 0x7A7A84, VG_LEFT);
+        vg_rect(cx, ry + rh / 2 - 1, cw, 2, on ? 0x3A3A40 : 0x1E1E22);
+        if (on) {
+            int bw = a * (cw / 2) / 64;
+            vg_rect(amt >= 0 ? cx + cw / 2 : cx + cw / 2 - bw, ry + rh / 2 - 4, bw, 8, amt >= 0 ? C_RED : TE_INK);
+            vg_circle((float)cx + (float)cw * te_wrap(te_t() * 0.5f + (float)k * 0.25f), (float)(ry + rh / 2), 2.5f, TE_INK);
+        }
+        vg_rect(cx + cw / 2, ry + 3, 1, rh - 8, TE_LOW);
+        vg_text(N_MDST[dst], x + w - 8, ry + 4, VG_BOLD, on ? TE_INK : 0x7A7A84, VG_RIGHT);
+    }
+}
+
+/* ARP 2: eight notes of the arpeggio, the off-beats pushed by SWING, each as solid as its CHANCE */
+static void te_arp2(int x, int y, int w, int h, const track_t *t)
+{
+    float sw = (float)clamp(t->p[P_ASWING], 0, 100) / 100.0f, pr = (float)clamp(t->p[P_APROB], 0, 100) / 100.0f;
+    int k, cw = w / 8, cur = (int)(te_pos16() * 0.5f) % 8;
+    te_dots(x, y, w, h, 8);
+    for (k = 0; k < 8; k++) {
+        int bx = x + k * cw + 4 + ((k & 1) ? (int)(sw * (float)(cw / 2)) : 0), bh = 16 + ((k * 5) % 4) * 14;
+        int keep = te_rnd((uint32_t)(k * 13 + (int)(te_t() * 0.5f))) < pr;
+        uint32_t c = song.playing && k == cur ? TE_INK : keep ? C_RED : 0x3A1008;
+        vg_rect(bx, y + h - 10 - bh, cw - 12, bh, c);
+        if (!keep)
+            vg_frame(bx, y + h - 10 - bh, cw - 12, bh, 1, C_RED);
+    }
+    vg_rect(x, y + h - 6, w, 1, TE_MID);
+    if (t->p[P_AHOLD])
+        te_label("HOLD", x + 4, y + 2, 1);
+}
+
+/* CHORD: the chord the keys play, on an octave of keys: the last one played lit, its root red */
+static void te_chord(int x, int y, int w, int h, const track_t *t)
+{
+    static const uint8_t BLK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+    uint32_t tr = trk_index(t) % NTRK, mask = chord_last[tr].mask, k, wi = 0;
+    int kw = (w - 160) / 7, kx0 = x + 150, ty = y + 4, kh = h - 10;
+    vg_text(N_CHRD[clamp(t->p[P_CHRD], 0, (int)NELEM(N_CHRD) - 1)], x + 4, y + 10, VG_BIG, t->p[P_CHRD] ? TE_INK : 0x7A7A84, VG_LEFT);
+    vg_text(N_VOIC[clamp(t->p[P_VOIC], 0, (int)NELEM(N_VOIC) - 1)], x + 4, y + 44, VG_BOLD, TE_MID, VG_LEFT);
+    if (!t->p[P_CHRD])
+        mask = 1u;
+    for (k = 0; k < 12u; k++)                     /* the white keys first */
+        if (!BLK[k]) {
+            int on = (mask >> k) & 1u;
+            vg_rect(kx0 + (int)wi * kw, ty, kw - 3, kh, on ? (k ? TE_INK : C_RED) : 0x2A2A30);
+            wi++;
+        }
+    for (k = 0, wi = 0; k < 12u; k++) {
+        if (!BLK[k]) {
+            wi++;
+            continue;
+        }
+        vg_rect(kx0 + (int)wi * kw - kw / 3 - 2, ty, kw * 2 / 3, kh * 6 / 10, (mask >> k) & 1u ? C_RED : 0x0E0E10);
+    }
+}
+
 static int te_page(int pg, int x, int y, int w, int h)
 {
     const page_t *p = &PAGES[pg];
@@ -505,7 +574,54 @@ static int te_page(int pg, int x, int y, int w, int h)
         te_lanes(x + 8, y, w - 16, h, p, t, 0);
     else if (te_is(p->title, "VOICE") || te_is(p->title, "VOICE 2") || te_is(p->title, "VOICE 3"))
         te_voice(x + 4, y + 2, w - 8, h - 4, t);
+    else if (te_is(p->title, "MOD"))
+        te_mod(x + 4, y + 2, w - 8, h - 4, t);
+    else if (te_is(p->title, "ARP 2"))
+        te_arp2(x + 4, y + 2, w - 8, h - 4, t);
+    else if (te_is(p->title, "CHORD"))
+        te_chord(x + 4, y + 2, w - 8, h - 4, t);
     else
         return 0;
     return 1;
+}
+
+/* ---- the cut: the picture torn in bands and slid, one band burnt red, like a tape spliced wrong. On a page change
+ * (as long as SCREEN WEAR is not OFF) and in the power-on picture; a few frames, then clean */
+static void te_tear(uint16_t *fb, float amt, uint32_t seed)
+{
+    int b, n = 2 + (int)(amt * 5.0f);
+    static uint16_t row[480];
+    for (b = 0; b < n; b++) {
+        uint32_t r = te_hash(seed * 977u + (uint32_t)b * 131u);
+        int y0 = 24 + (int)(r % 260u), hh = 2 + (int)((r >> 9) % 12u), sh = (int)((float)((int)((r >> 14) % 81u) - 40) * amt), y;
+        for (y = y0; y < y0 + hh && y < 320; y++) {
+            uint16_t *p = fb + y * 480;
+            int x;
+            for (x = 0; x < 480; x++)
+                row[x] = p[((x - sh) % 480 + 480) % 480];
+            if (b == 0)                              /* (the burnt band: red, the rest of it dark) */
+                for (x = 0; x < 480; x++)
+                    row[x] = (uint16_t)((row[x] & 0xF800u) | 0x7800u | ((row[x] >> 2) & 0x01E7u));
+            memcpy(p, row, sizeof row);
+        }
+    }
+}
+
+/* the page's number, as on a machine's panel: a small white plate before the title */
+static int te_index(int x, int y, int n)
+{
+    char b[4];
+    b[0] = (char)('0' + (n / 10) % 10), b[1] = (char)('0' + n % 10), b[2] = 0;
+    vg_rect(x, y + 1, 20, 15, TE_INK);
+    vg_text(b, x + 10, y + 1, VG_BOLD, 0x000000, VG_CENTER);
+    return 26;
+}
+
+/* crop marks at the corners of a picture */
+static void te_marks(int x, int y, int w, int h)
+{
+    vg_rect(x, y, 6, 1, TE_MID), vg_rect(x, y, 1, 6, TE_MID);
+    vg_rect(x + w - 6, y, 6, 1, TE_MID), vg_rect(x + w - 1, y, 1, 6, TE_MID);
+    vg_rect(x, y + h - 1, 6, 1, TE_MID), vg_rect(x, y + h - 6, 1, 6, TE_MID);
+    vg_rect(x + w - 6, y + h - 1, 6, 1, TE_MID), vg_rect(x + w - 1, y + h - 6, 1, 6, TE_MID);
 }

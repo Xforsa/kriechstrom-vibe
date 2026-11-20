@@ -5,6 +5,22 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Added
+- every page has its number on a white plate before its title, and crop marks round its picture
+- a page change cuts in like spliced tape for a moment (not with SCREEN WEAR OFF); the power-on picture too
+- pictures for MOD (the four slots wired), ARP 2 (swing and chance) and CHORD (the chord on the keys)
+
+### Fixed
+- DETAIL showed the step's NOTE and TIME on its cards instead of CHANCE, RATCH, NUDGE and VEL; DATA now moves its step
+- MOD's first card was empty: it is the slot ENC 1 picks
+- saving a sound while playing said SAVE ERROR: it says STOP TO SAVE, as on the FM-1
+- HOME on PROJECT and MY SOUNDS names ENC 1
+- LANES 2 drew two of its four faders
+
 ## [0.5] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

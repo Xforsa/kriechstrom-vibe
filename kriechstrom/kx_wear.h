@@ -32,6 +32,105 @@ static inline uint16_t px_scale(uint16_t p, int k)   /* k: 256 = as it is */
     return (uint16_t)((r > 31 ? 31 : r) << 11 | (g > 63 ? 63 : g) << 5 | (b > 31 ? 31 : b));
 }
 
+/* ---- the live lightning: on a hit, a discharge grown the way the site's pictures grow theirs (tools/make_hero.py,
+ * core/kriechstrom/tools/krst_art.py tree): many short wandering steps, a fork now and then, thinner each time. What
+ * hit shapes it: the KICK a big one up from the floor, SNARE and CLAP a branch in from the side, the hats short sparks
+ * from the top, any other hit one from the corner; how hard, its length and width; DAMAGE how far it wanders, WALL its
+ * extra arms and weight, HISS fine filaments around it. It glows dark red and fades in half a second (on FULL its core
+ * is hot). MENU > DISPLAY: LIGHTNING off or on; nothing with SCREEN WEAR OFF. */
+#define LT_N 5
+#define LT_SEG 420
+typedef struct { int16_t x0, y0, x1, y1; uint8_t w; } lt_seg;   /* (w: quarter pixels) */
+static struct { lt_seg s[LT_SEG]; int n; uint64_t t0; float amt; } kx_lt[LT_N];
+static int kx_lt_next;
+static uint32_t lt_rng = 0x13579BDFu;
+static float lt_u(void)
+{
+    lt_rng ^= lt_rng << 13;
+    lt_rng ^= lt_rng >> 17;
+    lt_rng ^= lt_rng << 5;
+    return (float)(lt_rng & 0xFFFFu) / 65535.0f;
+}
+static float lt_g(void) { return (lt_u() + lt_u() + lt_u() - 1.5f) * 2.0f; }   /* (about a normal's) */
+static void lt_tree(int i, float x, float y, float ang, float len, float wid, int depth, float spread)
+{
+    float head = ang;
+    int k, steps = 7 + (int)(lt_u() * 6.99f);
+    if (depth <= 0 || wid < 0.35f)
+        return;
+    for (k = 0; k < steps && kx_lt[i].n < LT_SEG; k++) {
+        float l = len * (0.15f + lt_u() * 0.25f), nx, ny;
+        head += lt_g() * spread;
+        head = head * 0.85f + ang * 0.15f;
+        nx = x + vd_sin(head + 0.25f) * l;
+        ny = y + vd_sin(head) * l;
+        {
+            lt_seg *g = &kx_lt[i].s[kx_lt[i].n++];
+            g->x0 = (int16_t)x, g->y0 = (int16_t)y, g->x1 = (int16_t)nx, g->y1 = (int16_t)ny;
+            g->w = (uint8_t)(wid * 4.0f > 255.0f ? 255.0f : wid * 4.0f);
+        }
+        if (lt_u() < 0.3f)                        /* (a fork: 0.4 .. 1.1 rad off, shorter, thinner) */
+            lt_tree(i, nx, ny, head + (lt_u() < 0.5f ? -1.0f : 1.0f) * (0.4f + lt_u() * 0.7f) / 6.2832f, len * 0.72f,
+                    wid * 0.55f, depth - 1, spread);
+        x = nx, y = ny;
+        wid *= 0.9f;
+    }
+}
+/* kind: 0 KICK, 1 SNARE / CLAP, 2 a hat, 3 another hit; amt 0..1 */
+static void kx_lt_spawn(int kind, float amt)
+{
+    int i = kx_lt_next, arms, a;
+    float dmg = (float)song.g[G_DMG] / 127.0f, wall = (float)song.g[G_WALL] / 127.0f, hiss = (float)song.g[G_HISS] / 127.0f;
+    float spread = 0.42f / 6.2832f * (0.8f + dmg * 1.4f), x, y, ang, len, wid;
+    if (!kx_ic[IC_SCREEN] || !kx_ic[IC_LIGHT])
+        return;
+    kx_lt_next = (kx_lt_next + 1) % LT_N;
+    kx_lt[i].n = 0;
+    kx_lt[i].t0 = vibe_frames() ? vibe_frames() : 1;
+    kx_lt[i].amt = amt;
+    lt_rng ^= (uint32_t)vibe_frames() * 2654435761u;
+    switch (kind) {
+    case 0: x = 250.0f + lt_u() * 210.0f, y = 322.0f, ang = -0.25f, len = 90.0f + 140.0f * amt, wid = 2.2f + 2.6f * amt; break;
+    case 1: x = 482.0f, y = 120.0f + lt_u() * 150.0f, ang = 0.5f, len = 70.0f + 90.0f * amt, wid = 1.6f + 1.6f * amt; break;
+    case 2: x = 280.0f + lt_u() * 190.0f, y = 26.0f, ang = 0.25f, len = 24.0f + 36.0f * amt, wid = 0.9f + 0.6f * amt; break;
+    default: x = 470.0f, y = 312.0f, ang = -0.375f, len = 70.0f + 110.0f * amt, wid = 1.6f + 2.0f * amt; break;
+    }
+    wid *= 1.0f + wall * 0.8f;
+    arms = 1 + (wall > 0.5f) + (wall > 0.85f);
+    for (a = 0; a < arms; a++)
+        lt_tree(i, x, y, ang + ((float)a - (float)(arms - 1) * 0.5f) * 0.06f, len, a ? wid * 0.7f : wid, 6, spread);
+    for (a = 0; a < (int)(hiss * 5.0f); a++)      /* (HISS: fine filaments about it) */
+        lt_tree(i, x + (lt_u() - 0.5f) * 60.0f, y + (lt_u() - 0.5f) * 30.0f, ang + (lt_u() - 0.5f) * 0.3f, 22.0f, 0.6f, 3,
+                spread);
+}
+static void kx_lt_draw(void)                      /* the background, under the page */
+{
+    int i, pass;
+    if (!kx_ic[IC_SCREEN] || !kx_ic[IC_LIGHT])
+        return;
+    for (i = 0; i < LT_N; i++) {
+        float u, b;
+        int j;
+        if (!kx_lt[i].n || !kx_lt[i].t0)
+            continue;
+        u = (float)(vibe_frames() - kx_lt[i].t0) / (kx_sr * 0.5f);
+        if (u >= 1.0f) {
+            kx_lt[i].n = 0;
+            continue;
+        }
+        b = (1.0f - u) * (1.0f - u) * (0.45f + 0.55f * kx_lt[i].amt);
+        for (pass = 0; pass < 2; pass++) {
+            uint32_t c = pass ? (kx_ic[IC_SCREEN] == 2 ? vg_mix(0x3A0C08, 0xFFB090, b) : vg_mix(0x2A0806, 0xA02A16, b))
+                              : vg_mix(C_BG, kx_ic[IC_SCREEN] == 2 ? 0x701A10 : 0x4A120A, b);
+            for (j = 0; j < kx_lt[i].n; j++) {
+                const lt_seg *g = &kx_lt[i].s[j];
+                float w = (float)g->w * 0.25f;
+                vg_line((float)g->x0, (float)g->y0, (float)g->x1, (float)g->y1, pass ? w : w * 2.6f + 1.0f, c);
+            }
+        }
+    }
+}
+
 /* the background: the creep, then pulsing with the level (its trunk brightest) */
 static void kx_bg_paint(uint16_t *fb)
 {
@@ -48,33 +147,7 @@ static void kx_bg_paint(uint16_t *fb)
         kx_ic[IC_SCREEN] == 1 ? 100 + (int)(heat * 80.0f) : 100;   /* (LOW: it breathes with the level, no flashes) */
     for (i = 0; i < BG_W * BG_H; i++)
         fb[i] = px_scale(kx_bg[i], k);
-    if (kx_ic[IC_SCREEN]) {                       /* a hit: a pulse of current runs through the figure, root to tips */
-        static float prev;
-        static uint64_t t0;
-        static float amt;
-        float lim = 8.0f + (0.30f + (float)wear / 40.0f * 0.70f) * 248.0f, u;
-        if (kx_fx_hit > 0.5f && kx_fx_hit > prev + 0.05f) {
-            t0 = vibe_frames() ? vibe_frames() : 1;
-            amt = kx_fx_hit > 1.0f ? 1.0f : kx_fx_hit;
-        }
-        prev = kx_fx_hit;
-        u = t0 ? (float)(vibe_frames() - t0) / (kx_sr * 0.42f) : 1.0f;
-        if (u < 1.0f) {
-            float front = u * (lim + 16.0f), sx = 300.0f / 1024.0f, sy = 260.0f / 1024.0f, s = sx < sy ? sx : sy;
-            float fade = (1.0f - u) * amt;
-            uint32_t j;
-            uint32_t hot = kx_ic[IC_SCREEN] == 2 ? 0xFFD8C8 : 0xE0502A;
-            for (j = 0; j < cr_n; j++) {
-                const cr_seg *g = &cr[j];
-                float o = (float)g->order, d = front - o, w;
-                if (o > lim || d < 0.0f || d > 16.0f)
-                    continue;
-                w = (g->depth == 0 ? 3.4f : g->depth == 1 ? 2.2f : 1.2f) * s * 1.6f + 0.6f;
-                vg_line(250.0f + g->x0 * sx, 70.0f + g->y0 * sy, 250.0f + g->x1 * sx, 70.0f + g->y1 * sy, w,
-                        vg_mix(0x4A160C, hot, fade * (1.0f - d / 16.0f)));
-            }
-        }
-    }
+    kx_lt_draw();
 }
 
 /* after the page: the wear of the picture (fb is w x h: the display or the stage) */
@@ -94,12 +167,22 @@ static void kx_wear_fx(uint16_t *fb, int w, int h)
             if (drum_track(t) && !t->p[P_MUTE]) {
                 uint32_t idx = t->seq_idx % NSTEP | k << 8;
                 if (idx != dstep) {
+                    const step_t *st = &t->step[t->seq_idx % NSTEP];
+                    uint32_t ln = step_lanes(st), ac = step_accents(st);
                     dstep = idx;
-                    kick = (step_lanes(&t->step[t->seq_idx % NSTEP]) & 3u) != 0;
+                    kick = (ln & 3u) != 0;
+                    if (ln & 1u)                  /* (the live lightning: what hit shapes it) */
+                        kx_lt_spawn(0, ac & 1u ? 1.0f : 0.7f);
+                    if (ln & 6u)
+                        kx_lt_spawn(1, ac & 6u ? 1.0f : 0.65f);
+                    if ((ln & 0x18u) && !(ln & 7u))
+                        kx_lt_spawn(2, ac & 0x18u ? 0.9f : 0.5f);
                 }
                 break;
             }
         }
+        if (hn != seen && k == NTRK)               /* (no drum track: a hit in the mix shapes one) */
+            kx_lt_spawn(3, kx_hit_amt);
         if (hn != seen || kick) {                 /* a hit (kx_audio.h), or the drums' */
             seen = hn;
             kx_fx_hit = kx_hit_amt > 0.6f ? kx_hit_amt : 0.6f;

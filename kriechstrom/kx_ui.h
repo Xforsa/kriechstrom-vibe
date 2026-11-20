@@ -233,7 +233,7 @@ static int kx_knob_page(void)
 
 typedef struct { const char *label; char val[12]; const char *unit; float pos; int bip, on; } kx_card;
 static const uint8_t IN_SLOTS[7][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
-                                       {IC_MOUT, IC_MCH, IC_CLK, IC_CV}, {IC_SCREEN, 255, 255, 255},
+                                       {IC_MOUT, IC_MCH, IC_CLK, IC_CV}, {IC_SCREEN, IC_LIGHT, 255, 255},
                                        {IC_EXPR, IC_FSW, 255, 255}, {IC_SSRC, IC_SBARS, IC_SSLOT, 255},
                                        {IC_XOUT, 255, 255, 255}};
 static void kx_card_of(int pg, uint32_t slot, kx_card *c)
@@ -261,7 +261,7 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
             str_cpy(c->val, IC_EXPR_N[clamp(v, 0, 3)], sizeof c->val);
         else if (f == IC_FSW)
             str_cpy(c->val, IC_FSW_N[clamp(v, 0, 3)], sizeof c->val);
-        else if (f == IC_MOUT || f == IC_CLK || f == IC_XOUT)
+        else if (f == IC_MOUT || f == IC_CLK || f == IC_XOUT || f == IC_LIGHT)
             str_cpy(c->val, v ? "ON" : "OFF", sizeof c->val);
         else if (f == IC_MCH) {
             char *q = vg_itoa(v, c->val);

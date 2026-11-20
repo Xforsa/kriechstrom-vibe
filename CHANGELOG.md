@@ -5,6 +5,19 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- the pulse through the figure is gone; instead, on every drum hit a discharge grows behind the page, grown as the
+  site's pictures are (krst_art.py's tree): the KICK a big one from the floor, SNARE and CLAP from the side, the hats
+  short sparks from the top, other hits from the corner; DAMAGE makes it wander, WALL gives it weight and arms, HISS
+  fine filaments; dark red, gone in half a second
+
+### Added
+- MENU > DISPLAY: LIGHTNING on or off
+
 ## [0.5.6] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

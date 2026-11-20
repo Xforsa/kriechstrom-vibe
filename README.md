@@ -10,7 +10,8 @@ the screen, the controls, the pedalboards, the sampler, the audio input, MIDI OU
 
 ![KRIECHSTROM on the VIBE FM display](docs/sound.png)
 
-Site: https://xforsa.github.io/kriechstrom-vibe/ · for the FM-1: https://xforsa.github.io/kriechstrom/
+Site: https://xforsa.github.io/kriechstrom-vibe/ · manual: https://xforsa.github.io/kriechstrom-vibe/manual/en.html ·
+for the FM-1: https://xforsa.github.io/kriechstrom/
 
 Kriechstrom is German for creepage current: the leakage across worn insulation that leaves a branching mark. Here that
 mark grows behind every page as the master wears the mix out.

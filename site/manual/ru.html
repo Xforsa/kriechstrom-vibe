@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRIECHSTROM для VIBE FM: мануал</title>
+<link rel="icon" type="image/png" href="../media/icon-32.png">
+<link rel="apple-touch-icon" href="../media/icon-180.png">
+<link rel="stylesheet" href="../style.css?v=@VERSION@">
+<script src="../vibe.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="../ru.html">KRIECH<b>STROM</b></a>
+  <nav><a href="../ru.html">Главная</a><a href="../ru.html#cheat">Шпаргалка</a><a href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest">Скачать</a><a href="https://github.com/Xforsa/kriechstrom-vibe">GitHub</a><a href="en.html">English</a></nav>
+</header>
+<img class="band" src="../media/band.jpg" alt="" width="1600" height="360">
+<main>
+<h1>МАНУАЛ <span class="red">/</span> <span class="red">@VERSION@</span></h1>
+<p class="lead">KRIECHSTROM для VIBE FM: грувбокс под мрачный индастриал и EBM с M-VAVE FM-1 как родной Vibe. Четыре
+дорожки, шаговый секвенсор, перегруженные синты, барабаны, мастер, который изнашивает микс, педалборды, сэмплер и
+аудиовход.</p>
+<p class="note">Звуки и эффекты здесь те же, что в прошивке FM-1; каждый движок и эффект подробно описан в
+<a href="https://xforsa.github.io/kriechstrom/manual/ru.html">мануале FM-1</a>. Этот мануал о том, как играть на VIBE,
+в Playground и в плагине. Все контролы на одной странице есть в <a href="../ru.html#cheat">шпаргалке</a>; на самом
+устройстве HOME показывает контролы текущей страницы.</p>
+
+<h2 id="run">Как запустить</h2>
+<ul>
+  <li><b>В браузере:</b> открыть <a href="https://play.thefirmwarehub.com/">Playground</a>, нажать Power on, в списке
+    вверху выбрать <b>Load your own .wasm…</b> и указать <code>kriechstrom.wasm</code> из
+    <a href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest">последнего релиза</a> (или перетащить файл на
+    устройство). Звук появится после первого клика.</li>
+  <li><b>В DAW:</b> открыть VIBE FM VST и перетащить <code>kriechstrom.zip</code> на его окно.</li>
+  <li><b>Нет кнопки ENTER?</b> На панелях Playground и плагина её нет: клик по ручке <b>DATA</b> (без поворота) это
+    ENTER.</li>
+  <li><b>Нет кнопки MENU?</b> В виде Rack у плагина её нет: <b>SHIFT + HOME</b> открывает MENU, или клик по MENU
+    вверху экрана. Вид Full показывает все кнопки, пэды и клавиатуру.</li>
+  <li><b>Кнопка ↵</b> слева от экрана это RETURN: назад на предыдущую страницу, шаг за шагом.</li>
+</ul>
+
+<h2 id="screen">Экран</h2>
+<img class="screen shot-m" src="../shots/sound.png" alt="Страница SOUND" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>Верхняя строка:</b> группы SOUND ENV LFO ARP FX SEQ и MENU (открытая подчёркнута), темп, игра и запись. Клик
+    по группе открывает её; клик по логотипу открывает HOME.</li>
+  <li><b>Четыре дорожки:</b> номер, движок и звук, полоска уровня. Выбранная белая; клик по дорожке выбирает её (или
+    F1-F4).</li>
+  <li><b>Страница:</b> её номер на белой плашке, название и точки справа по числу страниц группы (их листают
+    <kbd>&lt;</kbd> <kbd>&gt;</kbd> или ещё раз кнопка группы; клик по точке переходит сразу).</li>
+  <li><b>Картинка:</b> то, о чём страница, вживую.</li>
+  <li><b>Четыре карточки:</b> значения, которые крутят энкодеры 1-4. В плагине и браузере перетаскивание вверх-вниз в
+    колонке карточки крутит этот энкодер.</li>
+  <li><b>Нижние кнопки:</b> F1-F4 выбор дорожки, F5 действие страницы (подписано), F6 UNDO.</li>
+</ul>
+
+<h2 id="first">Первые пять минут</h2>
+<img class="screen shot-m" src="../shots/start.png" alt="Стартовый экран" width="480" height="320" loading="lazy">
+<ol>
+  <li>На старте выбрать <b>F2 THE DEMO SONG</b> (F1 продолжить, где остановились, F3 пустой проект, F4 один из своих
+    проектов).</li>
+  <li><b>PLAY</b>: играют четыре дорожки. Верхний ряд пэдов их мьютит.</li>
+  <li>Покрутить <b>B</b>: DAMAGE изнашивает весь микс (SHIFT + B: WALL). Экран изнашивается вместе со звуком.</li>
+  <li>Нажать пэд второго ряда: <b>DICE</b> пишет этой дорожке новую партию.</li>
+  <li>Держать пэд третьего ряда: повтор 1/16, остановка плёнки, заморозка, гейт.</li>
+  <li><b>SEQ</b> четыре раза до SONG, <b>F5</b>: вся демо-песня, около полутора минут.</li>
+  <li><b>HOME</b> на любой странице: что там делает каждый контрол и как включить и выключить её эффект.</li>
+</ol>
+
+<h2 id="sounds">Звуки</h2>
+<ul>
+  <li><b>SOUND</b> показывает звук выбранной дорожки крупно и соседние списком. <b>DATA</b> листает звуки (клик по
+    звуку в списке загружает его), <b>SHIFT + DATA</b> движки.</li>
+  <li>Ещё раз SOUND: собственные значения движка (EDIT 1, EDIT 2; FILTER у ANALOG, линии у DRUM, слайсы у SLICE,
+    операторы у FM6), потом VOICE 1-3, SAMPLER и MY SOUNDS.</li>
+  <li><b>F5 OOPS</b> меняет два-три значения наугад; F6 возвращает.</li>
+  <li><b>MY SOUNDS</b>: 32 своих слота. ENC 1 или DATA выбирает, F5 сохраняет туда звук дорожки (SHIFT: стереть),
+    ENTER загружает.</li>
+  <li><b>A</b> уровень выбранной дорожки.</li>
+</ul>
+
+<h2 id="seq">Секвенсор</h2>
+<img class="screen shot-m" src="../shots/seq-drum.png" alt="Сетка барабанов" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>STEPS</b>: пиано-ролл, а на барабанной дорожке сетка из восьми линий; над ними весь паттерн. Пэды это 16
+    видимых шагов (горят, пока играют); DATA двигает курсор, ENTER включает шаг, клик по сетке тоже. ENC 1-4: STEP,
+    NOTE (у барабанов LANE), TIME, FLAG (акцент, слайд).</li>
+  <li><b>DETAIL</b>: CHANCE (или условие), RATCH, NUDGE и VEL шага под курсором. DATA двигает шаг.</li>
+  <li><b>AUTOMATION</b>: локи и записанные движения; ENC 1 или DATA выбирает строку, ENTER её действие.</li>
+  <li><b>SONG</b>: секции по порядку, в каждой часть (A-D) для каждой дорожки и число повторов; ENC 1 или DATA выбирает
+    секцию; F5 играет песню.</li>
+  <li><b>REC</b> ставит выбранную дорожку на запись: во время игры клавиши пишутся вживую.</li>
+  <li>Контроллер с сеткой 8 x 8 (Launchpad) на SEQ показывает сразу все 64 шага.</li>
+</ul>
+
+<h2 id="dice">DICE и MOOD</h2>
+<p>DICE пишет дорожке новую партию в текущем MOOD: пэды 5-8 (по одному на дорожку) или F5 на SEQ. <b>SHIFT + F5</b>
+на SEQ переключает восемь настроений (от MACHINE до HUSH), название всплывает внизу. Настроение одно на все
+дорожки.</p>
+
+<h2 id="pads">Пэды</h2>
+<div class="tw"><table>
+<tr><th>Пэды</th><th>Как есть</th><th>С SHIFT</th></tr>
+<tr><td>1-4</td><td>мьют T1-T4</td><td>соло (ещё раз: всё обратно)</td></tr>
+<tr><td>5-8</td><td>DICE на T1-T4</td><td>OOPS на T1-T4</td></tr>
+<tr><td>9-12</td><td>держать: повтор 1/16, остановка плёнки, заморозка, гейт</td><td>держать: ролл, бросок в ревер, бросок в эхо, фильтр</td></tr>
+<tr><td>13-16</td><td>KICK SNARE CLAP HAT с силой удара</td><td>остальные четыре линии кита</td></tr>
+</table></div>
+<p>Пока SHIFT включён, на экране подписан каждый пэд. На <b>SEQ</b> пэды это шаги. На <b>MASTER</b> пэды 5-8
+включают и выключают DAMAGE, WALL, SPLICE и HAUNT (горят, пока включены); на <b>педалборде</b> пэды 5-7 ставят педали
+1-3 в обход, пэд 8 все сразу.</p>
+
+<h2 id="fx">Эффекты</h2>
+<img class="screen shot-m" src="../shots/master.png" alt="MASTER" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>MASTER</b>: износ всего микса. ENC 1-4: DAMAGE (выпадения плёнки или цифры), CHAR (от плёнки к цифре), WALL
+    (стена звука), HISS. Плитки ниже показывают каждый эффект цепочки своей машинкой; клик по плитке открывает страницу
+    этого эффекта. WEAR слева: насколько износился микс.</li>
+  <li><b>SENDS</b>: DIST выбранной дорожки и её посылы в хорус, дилей и ревер.</li>
+  <li><b>SLICER, DELAY, REVERB, CHORUS</b>: слайсер дорожки и эффекты, общие для всех дорожек.</li>
+  <li><b>DAMAGE, RESONATE, SPLICE, HAUNT</b>: эффекты мастера, по странице на каждый. RESONATE: четыре струны в
+    аккорде звенят от микса. SPLICE: плёнка разрезана и склеена не так. HAUNT: обратный подъём в снейр или торможение
+    плёнки в конце такта.</li>
+  <li><b>Включить и выключить:</b> HOME на каждой странице говорит как (значение 0 значит выключен). Выключенный
+    эффект пишет это на своей картинке и что его включает.</li>
+</ul>
+
+<h2 id="pedals">Педалборды</h2>
+<img class="screen shot-m" src="../shots/pedals.png" alt="PEDALS" width="480" height="320" loading="lazy">
+<ul>
+  <li>У каждой дорожки три педали подряд (первая это INSERT проекта, как на FM-1), у входа три, у всего микса две
+    (INPUT PEDALS и MASTER PEDALS, в конце группы FX).</li>
+  <li>Педаль под ручками обведена красным: выбрать её можно DATA, F5 или кликом. ENC 1 тип (один из тринадцати: SOFT
+    HARD FOLD FUZZ CRUSH PHASR FLANG CHOR MUFF BASS SMASH DAMG INFCT), SHIFT + ENC 1 микс, ENC 2-4 её ручки.</li>
+  <li>В окошке каждой педали видно, что она делает с волной; насколько сильно, видно по светодиоду и сигналу на
+    кабелях.</li>
+</ul>
+
+<h2 id="sampler">Сэмплер</h2>
+<img class="screen shot-m" src="../shots/sampler.png" alt="SAMPLER" width="480" height="320" loading="lazy">
+<p>SOUND &gt; SAMPLER. ENC 1 источник (вход или весь микс), ENC 2 длина (1, 2 или 4 такта), ENC 3 слот (USR1-3).
+<b>F5 REC</b> пишет с начала следующего такта. Потом дать дорожке движок SLICE с этим слотом как источником: запись
+нарезается по ударам и играется с клавиш и шагов. Записи хранятся и сохраняются вместе с проектами.</p>
+
+<h2 id="input">Аудиовход</h2>
+<p>FX &gt; INPUT: гитара, голос или драм-машина в микс и через весь мастер. LEVEL, DRIVE; GATE: дорожка, чьи ноты
+открывают вход (барабаны рубят гитару); FEEDS: вход вместо дорожки как источник для INFECT (голос говорит через пэд
+вокодером VOX). INPUT SENDS: его панорама и посылы. F5: LINE, MIC или HI-Z. Браузер в первый раз спросит
+микрофон.</p>
+
+<h2 id="projects">Проекты</h2>
+<img class="screen shot-m" src="../shots/projects.png" alt="PROJECTS" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>MENU</b> открывается плитками всех своих страниц. <b>SHIFT + MENU</b> (в Rack: SHIFT + HOME, потом первая
+    плитка) ведёт в <b>PROJECTS</b>.</li>
+  <li>PROJECTS хранит 32 проекта целиком: музыку, части A-D, все педалборды и записи сэмплера. ENC 1 или DATA выбирают
+    место; ENC 2 и 3 задают имя по буквам; <b>F5</b> сохраняет; <b>ENTER дважды</b> загружает (SHIFT: удаляет).</li>
+  <li><b>SHIFT + F5</b> экспортирует проект файлом <code>.kxp</code> в папку <code>VIBE FM/kriechstrom/</code> там, куда
+    пишет хост (карта VIBE, папка плагина, папка, выбранная в браузере). <b>FILES</b> показывает эти файлы; ENTER
+    импортирует. В плагине можно просто перетащить <code>.kxp</code> на окно.</li>
+  <li><b>PARTS A-D</b> это четыре части одной песни, которые цепляет SONG (слоты проекта FM-1).</li>
+  <li>Музыка как есть сейчас сохраняется сама и будет на месте при следующем запуске (F1 на стартовом экране).</li>
+</ul>
+
+<h2 id="daw">В DAW: выходы и параметры</h2>
+<ul>
+  <li><b>MENU &gt; OUTPUTS</b>: если в DAW дать плагину больше выходов, каждая дорожка идёт на свою пару (T1 на OUT
+    3/4 .. T4 на 9/10), общие эффекты на 11/12, вход на 13/14; мастер остаётся на 1/2. Части снимаются до износа
+    мастера, поэтому пиши OUT 1/2 как готовый звук, а части как добавки к нему; для чистого мультитрека сначала выключи
+    эффекты мастера.</li>
+  <li>Микшер, звуки, огибающие, посылы и эффекты мастера доступны DAW как параметры для автоматизации; транспорт и темп
+    ведёт DAW. Через VIBE FM Link контроллер показывает страницу и четыре ручки.</li>
+</ul>
+
+<h2 id="midi">MIDI, CV, клок, ножная педаль</h2>
+<ul>
+  <li><b>MIDI &amp; CV</b>: ноты каждой дорожки на своём канале, клок (24 PPQ, START и STOP), одна дорожка на CV и
+    GATE.</li>
+  <li><b>FOOT PEDAL</b>: экспрессия крутит DAMAGE, WALL или уровень (ENC 1); свитч запускает, кидает DICE, тормозит
+    плёнку или замораживает (ENC 2). Без педали клик по странице задаёт положение экспрессии, клик по свитчу нажимает
+    его.</li>
+  <li><b>CLOCK</b>: темп, свинг, источник клока.</li>
+</ul>
+
+<h2 id="display">Экран и сцена</h2>
+<ul>
+  <li>Экран изнашивается вместе со звуком: фигура за страницами растёт с DAMAGE и WALL; на каждом ударе барабанов за
+    страницей вырастает разряд; DAMAGE рвёт картинку, SPLICE вырезает полосы, HISS даёт зерно.
+    <b>MENU &gt; DISPLAY</b>: SCREEN WEAR OFF, LOW (по умолчанию) или FULL, и LIGHTNING вкл/выкл.</li>
+  <li><b>Сцена</b> (плагин и Playground): вторая картинка со всеми четырьмя паттернами, разрядом поверх осциллографа
+    мастера и цепочкой мастера ручками. Шаги и ручки работают мышью.</li>
+</ul>
+
+<h2 id="credits">Благодарности и исходники</h2>
+<p>KRIECHSTROM для VIBE FM это свободная программа (GPL-3.0). Внутри работает код
+<a href="https://github.com/Xforsa/kriechstrom">KRIECHSTROM</a> для FM-1, построенный на
+<a href="https://github.com/hugelton/Felucca">Felucca</a> Лео Куроситы (Hügelton Instruments), с частями
+<a href="https://github.com/erikdevos/glitchbox">Glitchbox</a> от erikdevos. Собрано на
+<a href="https://github.com/Vibe-FM-SDK/vibe-fm-sdk">VIBE FM SDK</a>. Исходники, благодарности и лицензии на
+<a href="https://github.com/Xforsa/kriechstrom-vibe">GitHub</a>.</p>
+</main>
+<footer>KRIECHSTROM для VIBE FM @VERSION@, Grigorii Bezborodov · на KRIECHSTROM и Felucca · GPL-3.0 · <a href="https://github.com/Xforsa/kriechstrom-vibe">исходники на GitHub</a></footer>
+</body>
+</html>

@@ -239,3 +239,4 @@ ul.feats > li:hover { border-left-color: #fff; background: #1a0a09; }
 h2[id], [id] { scroll-margin-top: 70px; }
 .split.fig { grid-template-columns: 1fr 1.2fr; margin: 40px 0; }
 .split.fig img { border-radius: 8px; }
+.screen.shot-m { max-width: 560px; margin: 16px 0 10px; }

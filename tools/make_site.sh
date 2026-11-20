@@ -8,5 +8,6 @@ rm -rf build/site && mkdir -p build/site/shots build/site/media
 cp site/style.css site/vibe.js build/site/
 cp site/media/* build/site/media/
 for s in sound seq seq-drum master stage pedals sampler mixer env fm6 song start home delay reverb foot clock damage projects outputs menu; do cp "docs/$s.png" build/site/shots/; done
-for p in index.html ru.html; do sed "s/@VERSION@/$V/g" "site/$p" > "build/site/$p"; done
+mkdir -p build/site/manual
+for p in index.html ru.html manual/en.html manual/ru.html; do sed "s/@VERSION@/$V/g" "site/$p" > "build/site/$p"; done
 echo "build/site ($V)"

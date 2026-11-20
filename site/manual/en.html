@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRIECHSTROM for VIBE FM: manual</title>
+<link rel="icon" type="image/png" href="../media/icon-32.png">
+<link rel="apple-touch-icon" href="../media/icon-180.png">
+<link rel="stylesheet" href="../style.css?v=@VERSION@">
+<script src="../vibe.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="../index.html">KRIECH<b>STROM</b></a>
+  <nav><a href="../index.html">Home</a><a href="../index.html#cheat">Cheat sheet</a><a href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest">Download</a><a href="https://github.com/Xforsa/kriechstrom-vibe">GitHub</a><a href="ru.html">По-русски</a></nav>
+</header>
+<img class="band" src="../media/band.jpg" alt="" width="1600" height="360">
+<main>
+<h1>MANUAL <span class="red">/</span> <span class="red">@VERSION@</span></h1>
+<p class="lead">KRIECHSTROM for VIBE FM: the dark industrial and EBM groovebox of the M-VAVE FM-1 as a native Vibe. Four
+tracks, a step sequencer, distorted synths, drums, a master that wears the mix out, pedalboards, a sampler and an
+audio input.</p>
+<p class="note">The sounds and the effects are the FM-1 firmware's own; the
+<a href="https://xforsa.github.io/kriechstrom/manual/en.html">FM-1 manual</a> describes each engine and effect in
+depth. This manual covers how to play it on the VIBE, in the Playground and in the plugin. The
+<a href="../index.html#cheat">cheat sheet</a> has every control on one page; on the device, HOME shows the controls of
+the page you are on.</p>
+
+<h2 id="run">Getting it running</h2>
+<ul>
+  <li><b>In the browser:</b> open the <a href="https://play.thefirmwarehub.com/">Playground</a>, press Power on, choose
+    <b>Load your own .wasm…</b> in the list at the top and pick <code>kriechstrom.wasm</code> from the
+    <a href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest">latest release</a> (or drop the file onto the
+    device). Sound starts after the first click.</li>
+  <li><b>In a DAW:</b> open VIBE FM VST and drop <code>kriechstrom.zip</code> onto its window.</li>
+  <li><b>No ENTER key on the panel?</b> The Playground's and the plugin's panels have none: a click on the
+    <b>DATA</b> knob (without turning it) is ENTER.</li>
+  <li><b>No MENU key?</b> The plugin's Rack view has none: <b>SHIFT + HOME</b> opens MENU, or click MENU at the top of
+    the display. View: Full shows every key, the pads and the keyboard.</li>
+  <li><b>The ↵ key</b> left of the display is RETURN: back to the page before, step by step.</li>
+</ul>
+
+<h2 id="screen">The display</h2>
+<img class="screen shot-m" src="../shots/sound.png" alt="The SOUND page" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>Top line:</b> the families SOUND ENV LFO ARP FX SEQ and MENU (the one open is underlined), the tempo, play and
+    record. A click on a family opens it; a click on the logo opens HOME.</li>
+  <li><b>The four tracks:</b> number, engine and sound, a level line. The selected one is white; click one to select
+    it (or F1-F4).</li>
+  <li><b>The page:</b> its number on a white plate, its name, and dots on the right for the family's pages
+    (<kbd>&lt;</kbd> <kbd>&gt;</kbd>, or the family's key again, step through them; a click on a dot jumps).</li>
+  <li><b>The picture:</b> what the page is about, live.</li>
+  <li><b>The four cards:</b> the values encoders 1-4 turn. In the plugin and the browser a drag up or down in a card's
+    column turns that encoder.</li>
+  <li><b>The soft keys:</b> F1-F4 select a track, F5 is the page's action (its name is shown), F6 is UNDO.</li>
+</ul>
+
+<h2 id="first">First five minutes</h2>
+<img class="screen shot-m" src="../shots/start.png" alt="The start screen" width="480" height="320" loading="lazy">
+<ol>
+  <li>At the start pick <b>F2 THE DEMO SONG</b> (F1 goes on where you left it, F3 is an empty project, F4 one of your
+    projects).</li>
+  <li><b>PLAY</b>: four tracks play. The pads' top row mutes them.</li>
+  <li>Turn <b>B</b>: DAMAGE wears the whole mix out (SHIFT + B: WALL). The display wears with it.</li>
+  <li>Press a pad of the second row: <b>DICE</b> writes that track a new part.</li>
+  <li>Hold a pad of the third row: 1/16 repeat, tape stop, freeze, gate.</li>
+  <li><b>SEQ</b> four times to SONG, <b>F5</b>: the whole demo song, about a minute and a half.</li>
+  <li><b>HOME</b> on any page: what each control does there, and how its effect goes on and off.</li>
+</ol>
+
+<h2 id="sounds">Sounds</h2>
+<ul>
+  <li><b>SOUND</b> shows the selected track's sound big and its neighbours in a list. <b>DATA</b> steps through the
+    sounds (a click on one in the list loads it), <b>SHIFT + DATA</b> through the engines.</li>
+  <li>SOUND again: the engine's own values (EDIT 1, EDIT 2; FILTER on ANALOG, the lanes on DRUM, the slices on SLICE,
+    the operators on FM6), then VOICE 1-3, SAMPLER and MY SOUNDS.</li>
+  <li><b>F5 OOPS</b> changes two or three values at random; F6 takes it back.</li>
+  <li><b>MY SOUNDS</b>: 32 slots of your own. ENC 1 or DATA picks, F5 saves the track's sound there (SHIFT: erase),
+    ENTER loads.</li>
+  <li><b>A</b> is the selected track's level.</li>
+</ul>
+
+<h2 id="seq">The sequencer</h2>
+<img class="screen shot-m" src="../shots/seq-drum.png" alt="The drum grid" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>STEPS</b>: a piano roll, or on a drum track a grid of eight lanes; the whole pattern above it. The pads are
+    the 16 steps shown (lit as they play); DATA moves the cursor, ENTER switches the step, a click on the grid too.
+    ENC 1-4: STEP, NOTE (on drums the LANE), TIME, FLAG (accent, slide).</li>
+  <li><b>DETAIL</b>: the cursor step's CHANCE (or a condition), RATCH, NUDGE and VEL. DATA moves the step.</li>
+  <li><b>AUTOMATION</b>: the locks and the recorded movements; ENC 1 or DATA picks a row, ENTER acts on it.</li>
+  <li><b>SONG</b>: sections in order, each a part (A-D) per track and its repeats; ENC 1 or DATA picks a section; F5 plays the song.</li>
+  <li><b>REC</b> arms the selected track: playing, the keys record live.</li>
+  <li>A controller with an 8 x 8 grid (a Launchpad) shows all 64 steps at once on SEQ.</li>
+</ul>
+
+<h2 id="dice">DICE and MOOD</h2>
+<p>DICE writes a track a new part in the current MOOD: pads 5-8 (one per track), or F5 on SEQ. <b>SHIFT + F5</b> on
+SEQ steps through the eight moods (MACHINE to HUSH); the name shows at the bottom. The mood is one for all tracks.</p>
+
+<h2 id="pads">The pads</h2>
+<div class="tw"><table>
+<tr><th>Pads</th><th>As they are</th><th>With SHIFT</th></tr>
+<tr><td>1-4</td><td>mute T1-T4</td><td>solo (again: all back)</td></tr>
+<tr><td>5-8</td><td>DICE on T1-T4</td><td>OOPS on T1-T4</td></tr>
+<tr><td>9-12</td><td>hold: 1/16 repeat, tape stop, freeze, gate</td><td>hold: roll, reverb throw, echo throw, filter</td></tr>
+<tr><td>13-16</td><td>KICK SNARE CLAP HAT, with velocity</td><td>the kit's other four lanes</td></tr>
+</table></div>
+<p>While SHIFT is on, the display names every pad. On <b>SEQ</b> the pads are the steps. On <b>MASTER</b> pads 5-8
+switch DAMAGE, WALL, SPLICE and HAUNT on and off (lit while on); on a <b>pedalboard</b> pads 5-7 bypass pedals 1-3
+and pad 8 all of them.</p>
+
+<h2 id="fx">Effects</h2>
+<img class="screen shot-m" src="../shots/master.png" alt="MASTER" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>MASTER</b>: the whole mix's wear. ENC 1-4: DAMAGE (tape or digital dropouts), CHAR (tape to digital), WALL (a
+    wall of sound), HISS. The tiles below show each effect of the chain as a machine of its own; a click on a tile
+    opens that effect's page. WEAR on the left: how far the mix is worn.</li>
+  <li><b>SENDS</b>: the selected track's DIST and its sends to the chorus, the delay and the reverb.</li>
+  <li><b>SLICER, DELAY, REVERB, CHORUS</b>: the track's slicer and the effects all tracks share.</li>
+  <li><b>DAMAGE, RESONATE, SPLICE, HAUNT</b>: the master's effects, a page each. RESONATE: four strings in a chord
+    ringing with the mix. SPLICE: the tape cut and glued back wrong. HAUNT: a reversed swell into the snare, or the tape
+    braking at the bar's end.</li>
+  <li><b>On and off:</b> HOME says how on each page (an amount at 0 is off). An effect that is off says so on its
+    picture, and what turns it on.</li>
+</ul>
+
+<h2 id="pedals">Pedalboards</h2>
+<img class="screen shot-m" src="../shots/pedals.png" alt="PEDALS" width="480" height="320" loading="lazy">
+<ul>
+  <li>Each track has three pedals in a row (the first is the project's INSERT, as on the FM-1), the input has three,
+    the whole mix two (INPUT PEDALS and MASTER PEDALS, at the end of FX).</li>
+  <li>The pedal the knobs turn is framed red: pick it with DATA, F5 or a click. ENC 1 its type (one of thirteen:
+    SOFT HARD FOLD FUZZ CRUSH PHASR FLANG CHOR MUFF BASS SMASH DAMG INFCT), SHIFT + ENC 1 its mix, ENC 2-4 its knobs.</li>
+  <li>The window of each pedal shows what it does to a wave; the LED and the signal on the cables show how hard.</li>
+</ul>
+
+<h2 id="sampler">The sampler</h2>
+<img class="screen shot-m" src="../shots/sampler.png" alt="SAMPLER" width="480" height="320" loading="lazy">
+<p>SOUND &gt; SAMPLER. ENC 1 the source (the input or the whole mix), ENC 2 the length (1, 2 or 4 bars), ENC 3 the
+slot (USR1-3). <b>F5 REC</b> records from the start of the next bar. Then give a track the SLICE engine with that slot
+as its source: the recording is cut where its hits are, played from the keys and the steps. The recordings are kept
+and saved with your projects.</p>
+
+<h2 id="input">The audio input</h2>
+<p>FX &gt; INPUT: a guitar, a voice or a drum machine into the mix, through the whole master. LEVEL, DRIVE; GATE: a
+track whose notes open the input (the drums chop the guitar); FEEDS: the input stands in for a track as INFECT's
+source (a voice talks through a pad with VOX). INPUT SENDS: its pan and sends. F5: LINE, MIC or HI-Z. The browser asks
+for the microphone the first time.</p>
+
+<h2 id="projects">Projects</h2>
+<img class="screen shot-m" src="../shots/projects.png" alt="PROJECTS" width="480" height="320" loading="lazy">
+<ul>
+  <li><b>MENU</b> opens on its pages as tiles. <b>SHIFT + MENU</b> (in Rack: SHIFT + HOME, then the first tile) goes to
+    <b>PROJECTS</b>.</li>
+  <li>PROJECTS keeps 32 whole projects: the music, parts A-D, every pedalboard and the sampler's recordings. ENC 1 or
+    DATA picks a place; ENC 2 and 3 spell its name; <b>F5</b> saves; <b>ENTER twice</b> loads (SHIFT: deletes).</li>
+  <li><b>SHIFT + F5</b> exports the project as a <code>.kxp</code> file into <code>VIBE FM/kriechstrom/</code> on the
+    host's writing place (the VIBE's card, the plugin's folder, a folder the browser was given). <b>FILES</b> lists
+    them; ENTER imports one. In the plugin, drop a <code>.kxp</code> onto the window.</li>
+  <li><b>PARTS A-D</b> are the four parts of one song that SONG chains (the FM-1's project slots).</li>
+  <li>The music as it is now is kept by itself and is there at the next start (F1 on the start screen).</li>
+</ul>
+
+<h2 id="daw">In a DAW: outputs and parameters</h2>
+<ul>
+  <li><b>MENU &gt; OUTPUTS</b>: give the plugin more outputs in the DAW and each track goes out on its own pair (T1 on
+    OUT 3/4 .. T4 on 9/10), the shared effects on 11/12, the input on 13/14; the master stays on 1/2. The parts come
+    before the master's wear, so record OUT 1/2 as the finished sound and the parts to add to it; for a clean
+    multitrack, turn the master's effects off first.</li>
+  <li>The mixer, the sounds, the envelopes, the sends and the master's effects are parameters the DAW can automate; the
+    DAW's transport and tempo lead. Under VIBE FM Link the controller shows the page and the four knobs.</li>
+</ul>
+
+<h2 id="midi">MIDI, CV, clock, foot pedal</h2>
+<ul>
+  <li><b>MIDI &amp; CV</b>: every track's notes on its own channel, the clock (24 PPQ, START and STOP), one track on CV
+    and gate.</li>
+  <li><b>FOOT PEDAL</b>: the expression pedal turns DAMAGE, WALL or the level (ENC 1); the switch plays, DICEs, stops
+    the tape or freezes (ENC 2). Without a pedal, a click on the page sets the expression, a click on the switch
+    presses it.</li>
+  <li><b>CLOCK</b>: BPM, swing, the clock's source.</li>
+</ul>
+
+<h2 id="display">The display and the stage</h2>
+<ul>
+  <li>The display wears with the sound: the figure behind the pages grows with DAMAGE and WALL; on each drum hit a
+    discharge grows behind the page; DAMAGE tears the picture, SPLICE cuts bands out, HISS adds grain.
+    <b>MENU &gt; DISPLAY</b>: SCREEN WEAR OFF, LOW (the default) or FULL, and LIGHTNING on or off.</li>
+  <li><b>The stage</b> (the plugin and the Playground): a second picture with all four patterns, the discharge over the
+    master's scope and the master's chain on knobs. Steps and knobs work with the mouse.</li>
+</ul>
+
+<h2 id="credits">Credits and source</h2>
+<p>KRIECHSTROM for VIBE FM is free software (GPL-3.0). It runs the code of
+<a href="https://github.com/Xforsa/kriechstrom">KRIECHSTROM</a> for the FM-1, built on
+<a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita (Hügelton Instruments), with parts of
+<a href="https://github.com/erikdevos/glitchbox">Glitchbox</a> by erikdevos. Built with the
+<a href="https://github.com/Vibe-FM-SDK/vibe-fm-sdk">VIBE FM SDK</a>. The source, the credits and the licences are on
+<a href="https://github.com/Xforsa/kriechstrom-vibe">GitHub</a>.</p>
+</main>
+<footer>KRIECHSTROM for VIBE FM @VERSION@ by Grigorii Bezborodov · on KRIECHSTROM and Felucca · GPL-3.0 · <a href="https://github.com/Xforsa/kriechstrom-vibe">source on GitHub</a></footer>
+</body>
+</html>

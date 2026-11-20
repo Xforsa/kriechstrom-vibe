@@ -57,7 +57,7 @@ th { color: var(--red); font-weight: 700; }
 .tw { overflow-x: auto; }
 figure { margin: 18px 0; }
 audio { display: block; width: 100%; max-width: 440px; height: 36px; margin: 10px 0 2px; color-scheme: dark; }
-.demo { display: block; font-size: 15px; color: var(--mid); margin-bottom: 6px; }
+.demo { display: block; font-size: 17px; color: var(--mid); margin-bottom: 6px; }
 figure img {
   width: 100%;
   max-width: 480px;
@@ -169,8 +169,8 @@ ul.feats ul { padding-left: 20px; }
   transform: translateY(-2px);
 }
 .shots figcaption {
-  font: 600 13px/1.4 "IBM Plex Mono", ui-monospace, monospace;
-  letter-spacing: 0.06em;
+  font: 600 15px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   margin-top: 14px;
 }
@@ -208,7 +208,7 @@ main { max-width: 1180px; }
 .shots { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px 18px; margin: 28px 0; }
 .shots figure img { max-width: none; }
 .wide { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); margin: 18px 0 8px; }
-.cap { color: var(--mid); font-size: 16px; margin: 0 0 18px; }
+.cap { color: var(--mid); font-size: 18px; margin: 0 0 18px; }
 .also { border: 1px solid var(--line); border-left: 3px solid var(--red); background: var(--surf); border-radius: 6px;
   padding: 14px 18px; margin: 24px 0; }
 ul.feats.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
@@ -217,9 +217,9 @@ ul.feats.grid > li { margin: 0; }
 .cheat section { background: var(--surf); border: 1px solid var(--line); border-top: 3px solid var(--red); border-radius: 6px;
   padding: 4px 14px 2px; }
 .cheat h3 { margin: 10px 0 2px; font: 800 18px/1.2 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.08em; }
-.cheat table { font-size: 15px; margin: 6px 0 10px; }
+.cheat table { font-size: 17px; margin: 6px 0 10px; }
 .cheat td { padding: 5px 6px; }
-.cheat td:first-child { font: 600 13px/1.5 "IBM Plex Mono", ui-monospace, monospace; color: #fff; white-space: nowrap;
+.cheat td:first-child { font: 600 15px/1.5 "IBM Plex Mono", ui-monospace, monospace; color: #fff; white-space: nowrap;
   width: 1%; padding-right: 12px; }
 .band { width: 100%; margin: 24px 0 0; }
 @media (max-width: 760px) {
@@ -231,9 +231,11 @@ ul.feats.grid > li { margin: 0; }
 }
 
 /* one time, as they come into view (vibe.js): nothing moves on its own after that */
-.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal { opacity: 0.35; transform: translateY(14px); transition: opacity 0.6s ease, transform 0.6s ease; }
 .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
 ul.feats > li { transition: border-color 0.2s, background 0.2s; }
 ul.feats > li:hover { border-left-color: #fff; background: #1a0a09; }
 h2[id], [id] { scroll-margin-top: 70px; }
+.split.fig { grid-template-columns: 1fr 1.2fr; margin: 40px 0; }
+.split.fig img { border-radius: 8px; }

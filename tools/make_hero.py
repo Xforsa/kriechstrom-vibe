@@ -5,6 +5,7 @@
 #   site/media/hero.jpg        1920 x 900   the figure from the right, a second one rising from the lower left
 #   site/media/hero-flash.jpg  1920 x 900   the same figure white-hot (the strike: style.css blends it in now and then)
 #   site/media/band.jpg        1600 x 360   the strip at the foot of the page
+#   site/media/figure.jpg      900 x 900    the figure alone, from its centre
 #   python3 tools/make_hero.py   (Pillow)
 import math, random, sys
 from pathlib import Path
@@ -28,4 +29,5 @@ hot = Image.eval(m, lambda v: min(255, int(v * 1.9)))
 flash = A.burn(Image.new("RGB", (w, h)), hot, 7)
 A.scanlines(flash).save(out / "hero-flash.jpg", quality=80, optimize=True)
 A.band(SEED + 1).save(out / "band.jpg", quality=84, optimize=True)
-print("site/media: hero.jpg hero-flash.jpg band.jpg")
+A.tracking(SEED + 5).resize((900, 900), Image.LANCZOS).save(out / "figure.jpg", quality=82, optimize=True)
+print("site/media: hero.jpg hero-flash.jpg band.jpg figure.jpg")

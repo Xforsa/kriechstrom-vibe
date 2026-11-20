@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="media/icon-32.png">
 <link rel="apple-touch-icon" href="media/icon-180.png">
 <meta name="description" content="KRIECHSTROM для VIBE FM: грувбокс под мрачный индастриал и EBM с M-VAVE FM-1 как родной Vibe, с педалбордами, сэмплером, аудиовходом, MIDI-выходом, сценой и экраном, который изнашивается вместе со звуком.">
-<link rel="stylesheet" href="style.css?v=@VERSION@-2">
+<link rel="stylesheet" href="style.css?v=@VERSION@-3">
 <script src="vibe.js" defer></script>
 </head>
 <body>
@@ -35,9 +35,8 @@ VST. При запуске прошивка спрашивает: продолж
   <img class="screen" src="media/wear.webp" alt="Экран VIBE, пока поднимаются DAMAGE, CHAR, HISS и WALL" width="480" height="320" loading="lazy">
   <div>
     <h2>Экран изнашивается вместе со звуком</h2>
-    <p>Kriechstrom по-немецки ток утечки: он ползёт по стареющей изоляции и оставляет ветвистый след. Этот след растёт за
-    каждой страницей настолько, насколько DAMAGE и WALL износили микс; картинка рвётся на ударах и зернится от HISS.
-    Каждый эффект и каждая педаль показывают, что делают, своим разрядом. Насколько сильно изнашивается экран, задаёт
+    <p>След тока утечки растёт за каждой страницей настолько, насколько DAMAGE и WALL износили микс; картинка рвётся на ударах и зернится от HISS.
+    У каждого эффекта и каждой педали своя картинка того, что они делают: DAMAGE это плёнка в дырах, WALL кладка кирпичей, RESONATE четыре звенящие струны, педаль показывает, что делает с волной. Насколько сильно изнашивается экран, задаёт
     MENU &gt; DISPLAY: OFF, LOW (как здесь) или FULL.</p>
     <audio controls preload="none" src="media/wear.m4a"></audio><span class="demo">Тот же момент: четыре дорожки с самого
     начала, DAMAGE, CHAR, HISS и WALL постепенно выкручены.</span>
@@ -47,21 +46,29 @@ VST. При запуске прошивка спрашивает: продолж
 <div class="shots reveal">
   <figure><img src="shots/sound.png" alt="SOUND" loading="lazy"><figcaption>Звуки по именам</figcaption></figure>
   <figure><img src="shots/pedals.png" alt="PEDALS" loading="lazy"><figcaption>Три педали на дорожку</figcaption></figure>
-  <figure><img src="shots/master.png" alt="MASTER" loading="lazy"><figcaption>Мастер, у каждого эффекта свой разряд</figcaption></figure>
+  <figure><img src="shots/master.png" alt="MASTER" loading="lazy"><figcaption>Мастер: у каждого эффекта своя машинка</figcaption></figure>
   <figure><img src="shots/seq.png" alt="SEQ" loading="lazy"><figcaption>Шаги как пиано-ролл</figcaption></figure>
   <figure><img src="shots/seq-drum.png" alt="SEQ барабаны" loading="lazy"><figcaption>Восемь линий барабанов</figcaption></figure>
   <figure><img src="shots/sampler.png" alt="SAMPLER" loading="lazy"><figcaption>Сэмплер, нарезка по ударам</figcaption></figure>
   <figure><img src="shots/mixer.png" alt="MIXER" loading="lazy"><figcaption>Микшер</figcaption></figure>
+  <figure><img src="shots/damage.png" alt="DAMAGE" loading="lazy"><figcaption>DAMAGE: плёнка, кирпичи, зерно</figcaption></figure>
+  <figure><img src="shots/delay.png" alt="DLY" loading="lazy"><figcaption>Дилей: его повторы</figcaption></figure>
+  <figure><img src="shots/reverb.png" alt="REVERB" loading="lazy"><figcaption>Ревер: комната, пружина, зал</figcaption></figure>
+  <figure><img src="shots/foot.png" alt="FOOT PEDAL" loading="lazy"><figcaption>Ножная педаль и что она крутит</figcaption></figure>
+  <figure><img src="shots/clock.png" alt="CLOCK" loading="lazy"><figcaption>Клок</figcaption></figure>
   <figure><img src="shots/env.png" alt="ENV" loading="lazy"><figcaption>Огибающая вживую</figcaption></figure>
   <figure><img src="shots/fm6.png" alt="FM6" loading="lazy"><figcaption>Алгоритм FM6</figcaption></figure>
   <figure><img src="shots/song.png" alt="SONG" loading="lazy"><figcaption>Песня</figcaption></figure>
-  <figure><img src="shots/start.png" alt="START WITH" loading="lazy"><figcaption>Демо, пусто или как было</figcaption></figure>
   <figure><img src="shots/home.png" alt="HOME" loading="lazy"><figcaption>HOME: контролы этой страницы</figcaption></figure>
 </div>
 
 <img class="wide reveal" src="shots/stage.png" alt="Сцена: четыре паттерна, разряд, цепочка мастера" width="960" height="540" loading="lazy">
 <p class="cap">Сцена, вторая картинка 960 x 540: все четыре паттерна с курсорами, разряд поверх осциллографа мастера,
 цепочка мастера ручками. Шаги и ручки работают мышью.</p>
+
+<div class="split fig reveal"><img src="media/figure.jpg" alt="Фигура Лихтенберга" width="900" height="900" loading="lazy">
+<p class="lead">Kriechstrom по-немецки ток утечки: он ползёт по стареющей изоляции и оставляет ветвистый след, как этот,
+фигуру Лихтенберга. На VIBE она растёт за каждой страницей, пока мастер изнашивает микс.</p></div>
 
 <h2>Что добавляет VIBE</h2>
 <ul class="feats grid reveal">
@@ -71,7 +78,7 @@ VST. При запуске прошивка спрашивает: продолж
     контрол на текущей странице.</li>
   <li><b>Педалборды.</b> У FM-1 одна педаль на дорожку. Здесь у каждой дорожки три подряд, у входа ещё три и две на
     весь микс, любая из тринадцати педалей KRIECHSTROM (FUZZ, MUFF, SMASH, DAMG, INFCT ..), на родном коде FM-1.
-    Стальные корпуса с ручками-клювиками; что педаль делает, трещит разрядом за её именем и по кабелю.</li>
+    В окошке каждой видно вживую, что она делает с волной; педаль под ручками выбирают DATA, F5 или тап.</li>
   <li><b>Сэмплер.</b> Вход или весь микс, 1, 2 или 4 такта с начала следующего такта в слоты USR1-3; дорожка играет
     запись как SLICE, нарезанную по ударам, с клавиш и шагов. Сохраняется между запусками.</li>
   <li><b>Аудиовход.</b> Гитара, голос или драм-машина в микс и через весь мастер, с DRIVE, посылами и своими педалями;
@@ -79,8 +86,8 @@ VST. При запуске прошивка спрашивает: продолж
     говорит через пэд вокодером VOX.</li>
   <li><b>Пэды и контроллеры.</b> Мьют и DICE для каждой дорожки, эффекты на удержание (повтор 1/16, остановка плёнки,
     заморозка, гейт), четыре линии барабанов с силой удара. На SEQ пэды становятся 16 шагами; 64 пэда Launchpad это все
-    64 шага. Ножная педаль: экспрессия крутит DAMAGE, WALL или уровень, свитч запускает, кидает DICE, тормозит плёнку
-    или замораживает.</li>
+    64 шага. Ножная педаль: экспрессия это рука на DAMAGE, WALL или уровне, свитч запускает, кидает DICE, тормозит плёнку
+    или замораживает; на её странице и то и другое можно тянуть и нажимать мышью.</li>
   <li><b>MIDI OUT, CV, DAW.</b> Ноты каждой дорожки на своём канале, клок 24 PPQ со START и STOP, одна дорожка на CV и
     GATE. В DAW: микшер, звук, огибающая, посылы и эффекты мастера как параметры, транспорт и темп DAW; VIBE FM Link
     показывает на контроллере страницу и четыре ручки.</li>
@@ -147,8 +154,8 @@ F1-F4; <kbd>&lt;</kbd> <kbd>&gt;</kbd> листают страницы груп�
 <tr><td>MIXER</td><td>ENC 1-4 уровни T1-T4 (SHIFT: панорама)</td></tr>
 <tr><td>PROJECT</td><td>слоты A-D: ENC 1 слот, ENTER загрузить (SHIFT: демо), F5 сохранить (SHIFT: новый)</td></tr>
 <tr><td>MIDI OUT &amp; CV</td><td>MIDI OUT, CHANNEL, CLOCK, CV TRACK</td></tr>
-<tr><td>FOOT PEDAL</td><td>EXPRESSION: DAMAGE, WALL, LEVEL; SWITCH: PLAY, DICE, STOP, FREEZE</td></tr>
-<tr><td>DISPLAY</td><td>SCREEN WEAR: OFF, LOW, FULL</td></tr>
+<tr><td>FOOT PEDAL</td><td>что крутит экспрессия (DAMAGE, WALL, LEVEL) и что делает свитч (PLAY, DICE, STOP, FREEZE); педаль тянется мышью, свитч нажимается</td></tr>
+<tr><td>DISPLAY</td><td>SCREEN WEAR: OFF, LOW, FULL, все три показаны рядом</td></tr>
 <tr><td>CLOCK</td><td>BPM, свинг, источник клока</td></tr>
 </table></section>
 </div>

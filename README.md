@@ -27,24 +27,27 @@ mark grows behind every page as the master wears the mix out.
   FM6's algorithm as operators and wires, needle meters on the mixer, tape reels on the master, glyphs on the drum
   lanes. HOME shows what every control does on the page you are on.
 - **Pedalboards:** three pedals a track (the first is the project's INSERT, as on the FM-1, two more after it), three
-  on the input, two on the whole mix; any of KRIECHSTROM's thirteen, run by the FM-1's own code. Drawn as steel boxes;
-  what a pedal does crackles as a spark behind its name and along its cable, each type its own kind of spark. The
-  extra pedals are kept in `pedals.kxs`.
+  on the input, two on the whole mix; any of KRIECHSTROM's thirteen, run by the FM-1's own code. Each pedal shows on
+  its window what it does to a wave, live; DATA, F5 or a click picks the one the knobs turn. The extra pedals are kept
+  in `pedals.kxs`.
 - **The sampler:** the input or the mix, recorded for 1, 2 or 4 bars from the next bar into the user slots USR1-3
   (the FM-1's format, IMA ADPCM); a track plays it as SLICE, cut where its hits are, or as SAMPLE across the keys.
   Kept in `usr1.kxu` .. `usr3.kxu`.
 - **The start:** where you left it, the demo song or an empty project.
 - **The display wears with the sound:** the creep figure grows with DAMAGE and WALL and pulses with the level; DAMAGE
   tears the picture on the drum hits, CHAR towards DIGITAL splits its colours, SPLICE cuts bands of it, HAUNT's DRAG
-  sags it over the last beat of a bar, HISS adds grain. On MASTER each effect is a spark of its own kind, as hard
-  as it is set and the mix is loud. MENU > DISPLAY sets how much the screen wears: OFF, LOW (the default), FULL.
+  sags it over the last beat of a bar, HISS adds grain. Each effect has a picture of its own, moving with the
+  sound: DAMAGE a tape bitten full of holes (square ones as CHAR goes DIGITAL), WALL bricks laid, RESONATE four
+  strings in the chord, SPLICE the sixteenths glued back wrong, HAUNT the swell or the brake, HISS grain; the delay its
+  echoes, the reverb a room, a spring or a hall, the slicer its pattern, the clock its beats. MENU > DISPLAY sets how much the screen wears: OFF, LOW (the default), FULL.
   The pages slide, a value turned lights up, and the pages move with the sound: the spectrum, the envelope and the
   LFO where they are, the playhead's trail.
 - **The pads:** mute and DICE per track, hold effects (repeat 1/16, tape stop, freeze, gate), four drum lanes with
   velocity; on the SEQ page the pads are the 16 steps shown, lit as they play. A controller with an 8 x 8 grid (a
   Launchpad) has all 64 steps. The steps can be clicked on the display.
-- **A foot pedal (MENU > FOOT PEDAL):** the expression pedal turns DAMAGE, WALL or the track's level; the footswitch
-  plays, DICEs, stops the tape or freezes.
+- **A foot pedal (MENU > FOOT PEDAL):** the expression pedal turns DAMAGE, WALL or the track's level (the page shows
+  the pedal and a gauge of what it turns); the footswitch plays, DICEs, stops the tape or freezes. Without a pedal both
+  work with the mouse on that page.
 - **The audio input (IN 1, IN 2):** a guitar, a voice or a drum machine into the mix and through the whole master,
   with DRIVE, sends to the delay, reverb and chorus, a GATE opened by a track's notes, and as a track's stand-in for
   INFECT (a voice through the VOX vocoder on a pad, a guitar ducking the bass).
@@ -117,7 +120,7 @@ sh tests/run.sh            # the tests, vibe-check among them
   firmware does; `kx_core.h` the KRIECHSTROM sources, `kx_audio.h` the audio flow and the resampler, `kx_ctl.h` what
   the controls do in the core, `kx_input.h` the audio input, `kx_midi.h` MIDI OUT and CV, `kx_store.h` storage,
   `kx_daw.h` the DAW, `kx_pedals.h` the pedalboards, `kx_sampler.h` the sampler, `kx_ui.h` and `kx_draw.h` the
-  pages, `kx_pics.h` the pictures and the sparks, `kx_live.h` the live parts of the pages, `kx_creep.h` and
+  pages, `kx_pics.h` and `kx_te.h` the pictures, `kx_live.h` the live parts of the pages, `kx_creep.h` and
   `kx_wear.h` the creep and the display's wear, `kx_stage.h` the stage. `icon.png` is drawn by `tools/make_icon.py`.
 - `core/kriechstrom/` KRIECHSTROM for the FM-1, a git submodule. Its sound and edit code is used as it is; the one
   changes for VIBE FM are three hooks in `fx.c` (the audio input, the extra pedals, INFECT's sources for them),

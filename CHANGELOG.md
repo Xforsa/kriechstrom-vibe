@@ -16,8 +16,16 @@ On KRIECHSTROM 0.5.2 for the FM-1.
 - HOME tells how the page's effect goes on and off; an effect's page that is off says on its picture what turns it on
   (the delay, the reverb and the chorus also when no track sends to them)
 
+- MENU opens on its pages as tiles (PROJECTS first); SHIFT + MENU goes straight to PROJECTS; the start offers one of
+  your projects too
+- the pads' second layer (SHIFT): solo, OOPS per track, four more effects to hold (roll, reverb throw, echo throw,
+  filter), the drum kit's other four lanes; shown with each pad named
+- on MASTER pads 5-8 switch DAMAGE, WALL, SPLICE and HAUNT on and off; on a pedalboard pedals 1-3 are bypassed, pad 8
+  all
+
 ### Changed
 - the cards at the foot of a page sit on the host's four knob columns, so a drag in a column turns the knob its card shows
+- MOOD is SHIFT + F5 on SEQ only (the four pads did the same thing); PROJECT is PARTS A-D, MY PROJECTS is PROJECTS
 
 ### Fixed
 - the demo song's message was cut off

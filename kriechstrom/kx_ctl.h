@@ -34,6 +34,7 @@ enum {
     KXC_SREC,         /* a = source (0 input, 1 mix), b = bars (0: as long as fits), c = slot: record (again: stop) */
     KXC_SLICE,        /* a = slot: the selected track plays it, SLICE on USR a + 1 */
     KXC_PED,          /* a = owner (PO_*), b = slot, c = field (PD_*), v = detents: a pedal (kx_pedals.h) */
+    KXC_PEDSET,       /* a = owner, b = slot, c = field, v = the value: a pedal's field set (kx_pedals.h) */
     KXC_PSAVE,        /* a = MY PROJECTS' entry: copy what a save needs (kx_proj.h) */
     KXC_PLOAD,        /* kxp_buf into the core (kx_proj.h) */
     KXC_INCFG,        /* a = IC_*, v = detents (b = 1: v is the value): the audio input's settings (kx_input.h) */
@@ -314,6 +315,14 @@ static void kx_apply(const kx_cmd *k)
         break;
     case KXC_PED:
         kx_ped_turn(k->a, k->b, k->c, k->v);
+        break;
+    case KXC_PEDSET:
+        if (k->a < PO_N && k->b < (uint32_t)kx_ped_slots(k->a) && k->c < PD_N) {
+            int16_t v[PD_N];
+            kx_ped_get(k->a, k->b, v);
+            v[k->c] = (int16_t)k->v;
+            kx_ped_set(k->a, k->b, v);
+        }
         break;
     case KXC_DEMO:
         if (chain_busy() || song.playing)

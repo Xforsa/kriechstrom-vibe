@@ -33,7 +33,7 @@ mark grows behind every page as the master wears the mix out.
 - **The sampler:** the input or the mix, recorded for 1, 2 or 4 bars from the next bar into the user slots USR1-3
   (the FM-1's format, IMA ADPCM); a track plays it as SLICE, cut where its hits are, or as SAMPLE across the keys.
   Kept in `usr1.kxu` .. `usr3.kxu`.
-- **The start:** where you left it, the demo song or an empty project.
+- **The start:** where you left it, the demo song, an empty project, or one of your projects.
 - **The display wears with the sound:** the creep figure grows with DAMAGE and WALL and pulses with the level; DAMAGE
   tears the picture on the drum hits, CHAR towards DIGITAL splits its colours, SPLICE cuts bands of it, HAUNT's DRAG
   sags it over the last beat of a bar, HISS adds grain. Each effect has a picture of its own, moving with the
@@ -64,7 +64,7 @@ mark grows behind every page as the master wears the mix out.
   and F5 the whole song, MENU > PROJECT and SHIFT + ENTER bring it back.
 - **Storage:** the music as it is now is kept by itself (`session.krp`), four project slots that SONG plays in a chain,
   32 user sounds. The files are KRIECHSTROM's FM-1 formats.
-- **My projects (MENU > MY PROJECTS):** 32 whole projects, each in one `.kxp` file: the music, the four slots, every
+- **Projects (MENU > PROJECTS, or SHIFT + MENU, or the start's fourth choice):** 32 whole projects, each in one `.kxp` file: the music, the four slots, every
   pedalboard and the sampler's recordings. Named with ENC 2 and 3, saved with F5, loaded with ENTER twice. SHIFT + F5
   exports one as a file into `VIBE FM/kriechstrom/` on the host's writing place; MENU > PROJECT FILES imports them,
   and a `.kxp` dropped on the plugin's window is imported too.
@@ -81,10 +81,10 @@ mark grows behind every page as the master wears the mix out.
 | | |
 |---|---|
 | keys | play the selected track (its chord keys and arpeggiator) |
-| pads 1-4 | mute a track (SHIFT: select it) |
-| pads 5-8 | DICE: a new part for that track in the MOOD (SHIFT: the next MOOD) |
-| pads 9-12 | held: repeat 1/16, tape STOP, FREEZE, GATE |
-| pads 13-16 | KICK, SNARE, CLAP, HAT on the drum track, with velocity |
+| pads 1-4 | mute a track (SHIFT: solo it; again: all back) |
+| pads 5-8 | DICE: a new part for that track in the MOOD (SHIFT: OOPS on it); on MASTER: DAMAGE, WALL, SPLICE, HAUNT on and off; on a pedalboard: pedal 1-3 bypassed, 4 all |
+| pads 9-12 | held: repeat 1/16, tape STOP, FREEZE, GATE (SHIFT: ROLL, REV THROW, ECHO THROW, FILTER) |
+| pads 13-16 | KICK, SNARE, CLAP, HAT on the drum track, with velocity (SHIFT: the other four lanes) |
 | SOUND ENV LFO ARP FX SEQ | the pages; the same key again: the next page of that family |
 | ◀ ▶ | the family's pages |
 | encoders 1-4 | the four values on the page |
@@ -94,7 +94,7 @@ mark grows behind every page as the master wears the mix out.
 | F1-F4 | select track 1-4 |
 | F5 | the page's action: OOPS on SOUND, DICE on SEQ (SHIFT: MOOD), REC on SAMPLER, the next pedal on PEDALS, SAVE on PROJECT, the input's type on INPUT |
 | F6 | UNDO |
-| MENU | the mixer, the project slots, my projects and their files, MIDI OUT and CV, the outputs, the foot pedal, the display, the clock |
+| MENU | its pages as tiles: projects, project files, parts A-D, mixer, outputs, MIDI OUT and CV, foot pedal, display, clock (SHIFT + MENU: straight to PROJECTS) |
 | SHIFT | held or tapped (then it holds for the next control); the pads' second functions are shown |
 | PLAY, STOP, REC | the transport; REC arms the selected track for live recording |
 | ENTER | on SEQ: the cursor's step on or off; on PROJECT: load the slot |

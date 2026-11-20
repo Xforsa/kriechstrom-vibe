@@ -799,6 +799,42 @@ static void kx_draw_foot(int x, int y, int w, int h)
     vg_text("SWITCH", sx + 56, y + h - 18, VG_SMALL, TE_MID, VG_CENTER);
 }
 
+/* MENU: its pages as tiles, each with its mark; the one ENC 1 / DATA picks framed */
+static void kx_hub_icon(int i, int cx, int cy, uint32_t c)
+{
+    int k;
+    switch (i) {
+    case 0: vg_rect(cx - 10, cy - 8, 20, 16, c); vg_rect(cx - 6, cy - 8, 12, 5, 0x000000); break;      /* a disk */
+    case 1: vg_rect(cx - 9, cy - 10, 14, 20, c); vg_tri((float)(cx + 5), (float)(cy - 10), (float)(cx + 9), (float)(cy - 6),
+                                                        (float)(cx + 5), (float)(cy - 6), c); break;      /* a file */
+    case 2: for (k = 0; k < 4; k++) vg_rect(cx - 11 + k * 6, cy - 6, 4, 12, k ? c : C_RED); break;     /* four parts */
+    case 3: for (k = 0; k < 4; k++) vg_rect(cx - 10 + k * 6, cy - 2 - (k * 3) % 8, 3, 10, c); break;  /* faders */
+    case 4: for (k = 0; k < 3; k++) vg_circle((float)(cx - 8 + k * 8), (float)cy, 3.0f, c); break;      /* jacks */
+    case 5: vg_circle((float)cx, (float)cy, 9.0f, c); vg_circle((float)cx, (float)cy, 6.0f, 0x000000);
+            for (k = 0; k < 5; k++) vg_rect(cx - 5 + k * 2 + (k > 2 ? 1 : 0), cy - 3 + (k == 2 ? 3 : 0), 1, 1, c); break;   /* DIN */
+    case 6: vg_line((float)(cx - 10), (float)(cy + 6), (float)(cx + 10), (float)(cy - 4), 4.0f, c); break;   /* a treadle */
+    case 7: vg_frame(cx - 11, cy - 8, 22, 16, 2, c); vg_line((float)(cx - 4), (float)(cy - 6), (float)(cx + 2), (float)(cy + 6), 1.5f, C_RED); break;
+    default: vg_tri((float)(cx - 8), (float)(cy + 9), (float)(cx + 8), (float)(cy + 9), (float)cx, (float)(cy - 10), c);
+             vg_line((float)cx, (float)(cy + 6), (float)(cx + 6), (float)(cy - 6), 2.0f, 0x000000); break;   /* a metronome */
+    }
+}
+static void kx_draw_hub(int x, int y, int w, int h)
+{
+    int i, tw = (w - 4 * 6) / 5, th = (h - 6) / 2;
+    for (i = 0; i < KX_HUB_N; i++) {
+        int tx = x + (i % 5) * (tw + 6), ty = y + (i / 5) * (th + 6), on = i == kx_hub_sel;
+        char b[4] = {(char)('0' + (i + 1) / 10), (char)('0' + (i + 1) % 10), 0};
+        vg_rect(tx, ty, tw, th, on ? 0x2A2A30 : 0x16161A);
+        vg_rect(tx, ty, tw, 2, on ? C_RED : 0x2A2A30);
+        vg_text(b, tx + 4, ty + 4, VG_SMALL, 0x8A8A94, VG_LEFT);
+        kx_hub_icon(i, tx + tw - 18, ty + 16, on ? TE_INK : 0x8A8A94);
+        vg_text(KX_HUB_NAME[i], tx + 5, ty + th - 20, VG_BOLD, on ? C_WHITE : TE_INK, VG_LEFT);
+        if (on)
+            vg_frame(tx - 1, ty - 1, tw + 2, th + 2, 1, C_RED);
+    }
+    vg_text("ENC 1 / DATA, ENTER OR A CLICK OPENS", x + w, y + h - 2, VG_SMALL, 0x8A8A94, VG_RIGHT);
+}
+
 /* MY PROJECTS: the name being given (its letter underlined), then 16 of the 32 entries; used ones white */
 static void kx_draw_plib(int x, int y, int w, int h)
 {
@@ -973,7 +1009,7 @@ static void kx_draw_project(int x, int y, int w, int h)
     char nm[16];
     project_cur_name(nm);
     vg_text(nm[0] ? nm : "UNTITLED", x + 4, y, VG_BIG, C_WHITE, VG_LEFT);
-    vg_text("ENC 1 SLOT  ENTER LOAD  F5 SAVE  SHIFT+F5 NEW  SHIFT+ENTER DEMO", x + 4, y + 28,
+    vg_text("THE FOUR PARTS SONG CHAINS. WHOLE PROJECTS: MENU > PROJECTS", x + 4, y + 28,
             VG_SMALL, C_DIM, VG_LEFT);
     for (i = 0; i < 4u; i++) {
         int bx = x + (int)i * (w / 4), used = kx_slot_used[i];
@@ -1007,9 +1043,9 @@ static void kx_draw_help(void)
     /* HOME: the left column is this page (what encoders 1-4 turn here, DATA, ENTER, F5), the right one the controls
      * that are the same everywhere */
     static const char *const G[] = {
-        "KEYS", "the selected track", "PADS 1-4", "mute (SHIFT: select)", "PADS 5-8", "DICE (SHIFT: MOOD)",
-        "PADS 9-12", "hold: live effects", "PADS 13-16", "kick snare clap hat", "K1-K6", "the page families",
-        "A", "track level", "B", "DMG (SHIFT: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "mixer, project, MIDI",
+        "KEYS", "the selected track", "PADS 1-4", "mute (SHIFT: solo)", "PADS 5-8", "DICE (SHIFT: OOPS)",
+        "PADS 9-12", "hold FX (SHIFT: +4)", "PADS 13-16", "drums (SHIFT: +4)", "K1-K6", "the page families",
+        "A", "track level", "B", "DMG (SHIFT: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "all (SHIFT: projects)",
         "SHIFT", "hold, or tap once",
     };
     static char lab[4][24];
@@ -1049,9 +1085,11 @@ static void kx_draw_help(void)
     else if (pg == PG_USER)
         ew = "load the sound";
     else if (pg == PG_PLIB)
-        ew = "twice: load (SHIFT: delete)";
+        ew = "2x: load (SHIFT: del)";
     else if (pg == PG_PFILES)
         ew = "import the file";
+    else if (pg == PG_HUB)
+        ew = "open the tile's page", dw = "the tile";
     else if (pg >= 0 && pg < (int)NPAGES && PAGES[pg].graph == GR_EVENTS)
         ew = "the row's action";
     if (kx_streq(f5, "OOPS")) f5w = "OOPS: random values";
@@ -1060,7 +1098,7 @@ static void kx_draw_help(void)
     else if (kx_streq(f5, "PLAY")) f5w = "play the song";
     else if (kx_streq(f5, "NEXT")) f5w = "the next pedal";
     else if (pg == PG_PLIB)
-        f5w = "save here (SHIFT: export)";
+        f5w = "save (SHIFT: export)";
     else if (pg == PG_PFILES)
         f5w = "look again / pick a folder";
     else if (kx_streq(f5, "SAVE") || kx_streq(f5, "NEW") || kx_streq(f5, "ERASE"))
@@ -1093,47 +1131,61 @@ static void kx_draw_help(void)
     while (n < 22)                                /* (the page's column, then the right one) */
         r[n++] = "", r[n++] = "";
     for (k = 0; k < (int)(sizeof G / sizeof G[0]) && n < 44; k++)
-        r[n++] = G[k];
+        r[n++] = G[k] && kx_streq(G[k], "DICE (SHIFT: OOPS)") && pg == PG_MASTER ? "DMG WALL SPLC HAUNT" :
+                 G[k] && kx_streq(G[k], "DICE (SHIFT: OOPS)") && IS_PED_PAGE(pg) ? "pedal 1-3 off, 4 all" : G[k];
     vg_controls(kx_title(pg), r, n / 2);
 }
 
 /* SHIFT held or tapped: what the pads and the other controls do with it */
 static void kx_draw_shift(void)
 {
-    static const char *const ROW[4] = {"SELECT", "MOOD", "", "KICK SNARE CLAP HAT"};
+    /* SHIFT held or tapped: the pads' second layer, each pad named where it is */
+    static const char *const L[16] = {"SOLO 1", "SOLO 2", "SOLO 3", "SOLO 4", "OOPS 1", "OOPS 2", "OOPS 3", "OOPS 4",
+                                      "ROLL", "REV THR", "ECHO TH", "FILTER", "", "", "", ""};
     uint32_t r, k;
-    int x = 236, y = 94;
-    vg_rect_a(x - 8, y - 4, 244, 118, 0x000000, 0.82f);
-    vg_frame(x - 8, y - 4, 244, 118, 1, C_RED);
-    vg_text(kx_shift_latch ? "SHIFT (FOR THE NEXT ONE)" : "SHIFT", x, y, VG_BOLD, C_RED, VG_LEFT);
+    int x = 236, y = 92, cw = 58, ch = 23;
+    int dt = kx_drum_track();
+    vg_rect_a(x - 8, y - 4, 248, 120, 0x000000, 0.88f);
+    vg_frame(x - 8, y - 4, 248, 120, 1, C_RED);
+    vg_text(kx_shift_latch ? "SHIFT: THE PADS (FOR ONE)" : "SHIFT: THE PADS", x, y, VG_BOLD, C_RED, VG_LEFT);
     for (r = 0; r < 4u; r++)
         for (k = 0; k < 4u; k++) {
-            int px = x + (int)k * 26, py = y + 20 + (int)r * 22;
-            uint32_t col = r == 0u ? TRK_RGB[k] : r == 1u ? C_RED : 0x3A3A40;
-            vg_round(px, py, 22, 18, 3, vg_mix(C_BG, col, r < 2u ? 0.8f : 0.4f));
+            int px = x + (int)k * cw, py = y + 20 + (int)r * ch;
+            uint32_t col = r == 0u ? TRK_RGB[k] : r == 1u ? TRK_RGB[k] : r == 2u ? 0xFF8030 : 0xA0A0FF;
+            const char *t = L[r * 4u + k];
+            vg_round(px, py, cw - 4, ch - 3, 3, vg_mix(C_BG, col, 0.35f));
+            if (r == 3u)
+                t = dt >= 0 ? drum_lane_name(&trk[dt], 4u + k) : "-";
+            if (r == 1u && kx_page == PG_MASTER) {
+                static const char *const M[4] = {"DAMAGE", "WALL", "SPLICE", "HAUNT"};
+                t = M[k];
+            } else if (r == 1u && IS_PED_PAGE(kx_page)) {
+                static const char *const P[4] = {"PEDAL 1", "PEDAL 2", "PEDAL 3", "ALL"};
+                t = P[k];
+            }
+            vg_text(t, px + (cw - 4) / 2, py + 2, VG_SMALL, C_WHITE, VG_CENTER);
         }
-    for (r = 0; r < 4u; r++)
-        vg_text(r == 2u ? "(hold: effects)" : ROW[r], x + 110, y + 21 + (int)r * 22, VG_SMALL, r < 2u ? C_WHITE : C_DIM, VG_LEFT);
 }
 
 /* the start: where you left it, the demo song, or nothing */
 static void kx_draw_start(void)
 {
-    static const char *const T[3] = {"WHERE YOU LEFT IT", "THE DEMO SONG", "AN EMPTY PROJECT"};
-    static const char *const W[3] = {"the music as it was", "E minor, 100 BPM: four parts and a SONG", "four tracks, no steps"};
+    static const char *const T[4] = {"WHERE YOU LEFT IT", "THE DEMO SONG", "AN EMPTY PROJECT", "ONE OF MY PROJECTS"};
+    static const char *const W[4] = {"the music as it was", "E minor, 100 BPM: four parts and a SONG", "four tracks, no steps",
+                                     "PROJECTS: pick one, ENTER twice loads it"};
     uint32_t i;
-    vg_rect_a(0, 30, 480, 256, 0x000000, 0.86f);
-    vg_text("START WITH", 24, 60, VG_BOLD, C_RED, VG_LEFT);
-    for (i = 0; i < 3u; i++) {
-        int y = 88 + (int)i * 56, on = (int)i == kx_start_sel, off = i == 0u && !kx_had_session;
+    vg_rect_a(0, 30, 480, 256, 0x000000, 0.88f);
+    vg_text("START WITH", 24, 52, VG_BOLD, C_RED, VG_LEFT);
+    for (i = 0; i < 4u; i++) {
+        int y = 76 + (int)i * 44, on = (int)i == kx_start_sel, off = i == 0u && !kx_had_session;
         char f[3] = {'F', (char)('1' + i), 0};
-        vg_rect(24, y, 432, 48, on ? vg_mix(C_BG, C_RED, 0.3f) : 0x141416);
-        vg_rect(24, y, 4, 48, on ? C_RED : 0x2A2A2E);
-        vg_text(f, 40, y + 14, VG_BOLD, off ? 0x70707A : C_RED, VG_LEFT);
-        vg_text(T[i], 74, y + 6, VG_BIG, off ? 0x70707A : C_WHITE, VG_LEFT);
-        vg_text(off ? "nothing kept yet" : W[i], 74, y + 30, VG_SMALL, off ? 0x70707A : C_DIM, VG_LEFT);
+        vg_rect(24, y, 432, 40, on ? vg_mix(C_BG, C_RED, 0.3f) : 0x141416);
+        vg_rect(24, y, 4, 40, on ? C_RED : 0x2A2A2E);
+        vg_text(f, 40, y + 11, VG_BOLD, off ? 0x70707A : C_RED, VG_LEFT);
+        vg_text(T[i], 74, y + 2, VG_MED, off ? 0x70707A : C_WHITE, VG_LEFT);
+        vg_text(off ? "nothing kept yet" : W[i], 74, y + 21, VG_SMALL, off ? 0x70707A : 0xB4B4BC, VG_LEFT);
     }
-    vg_text("DATA + ENTER, OR F1 F2 F3.  THE KEYS AND PADS PLAY AT ONCE", 240, 262, VG_SMALL, 0x8A8A94, VG_CENTER);
+    vg_text("DATA + ENTER, OR F1-F4.  THE KEYS AND PADS PLAY AT ONCE", 240, 256, VG_SMALL, 0x8A8A94, VG_CENTER);
 }
 
 static void kx_draw_toast(void)
@@ -1205,9 +1257,20 @@ static void kx_leds(void)
         const track_t *t = &trk[i];
         float a = (float)clamp(t->peak, 0, 32767) / 32768.0f;
         vibe_led_pad((int)i, TRK_RGB[i], t->p[P_MUTE] ? 0.05f : 0.35f + 0.65f * a);
-        vibe_led_pad(4 + (int)i, TRK_RGB[i], 0.25f);
-        vibe_led_pad(8 + (int)i, C_RED, 0.2f);
-        vibe_led_pad(12 + (int)i, C_WHITE, kx_drum_track() >= 0 ? 0.25f : 0.03f);
+        if (kx_page == PG_MASTER) {               /* DAMAGE WALL SPLICE HAUNT: lit while on */
+            static const uint8_t G[4] = {G_DMG, G_WALL, G_SPLICE, G_HAUNT};
+            vibe_led_pad(4 + (int)i, C_RED, song.g[G[i]] ? 1.0f : 0.06f);
+        } else if (IS_PED_PAGE(kx_page)) {        /* the pedals: their colour, lit while they work */
+            uint32_t o = kx_ped_owner(kx_page);
+            int16_t v[PD_N] = {0};
+            if (i < (uint32_t)kx_ped_slots(o))
+                kx_ped_get(o, i, v);
+            vibe_led_pad(4 + (int)i, v[0] ? PED_RGB[clamp(v[0], 0, IT_N - 1)] : C_WHITE,
+                         i == 3u ? 0.3f : v[0] ? (v[PD_MIX] ? 1.0f : 0.08f) : 0.0f);
+        } else
+            vibe_led_pad(4 + (int)i, kx_shift ? C_WHITE : TRK_RGB[i], 0.25f);
+        vibe_led_pad(8 + (int)i, kx_shift ? 0xFF8030 : C_RED, 0.2f);
+        vibe_led_pad(12 + (int)i, kx_shift ? 0xA0A0FF : C_WHITE, kx_drum_track() >= 0 ? 0.25f : 0.03f);
     }
 }
 
@@ -1314,6 +1377,8 @@ static void kx_ui_draw(void)
         kx_draw_user(8, 96, 464, 110);
     } else if (pg == PG_SAMPLER) {
         kx_draw_sampler(8, 96, 464, 110);
+    } else if (pg == PG_HUB) {
+        kx_draw_hub(4, 96, 472, 98);
     } else if (pg == PG_PLIB) {
         kx_draw_plib(4, 96, 472, 110);
     } else if (pg == PG_PFILES) {

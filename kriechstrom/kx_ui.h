@@ -471,9 +471,20 @@ static uint32_t kx_bank(void)                     /* SEQ: the 16 steps shown */
     return song.playing ? (t->seq_idx % len) / 16u : ui.cursor / 16u;
 }
 
+static vibe_device_info kx_dev;                   /* (SDK 19/20: a bigger pad grid, a Launchpad 8 x 8) */
 static void kx_pad(uint32_t id, int down, float vel)
 {
     uint32_t row = id / 4u, col = id % 4u;
+    if (id >= 16u) {                              /* a bigger grid's pads: on SEQ, all 64 steps of the track */
+        if (kx_page == PG_GRID && down && id < NSTEP)
+            kx_post(KXC_STEP, song.sel, id, drum_track(TSEL) ? ui.lane : 255u, 0);
+        return;
+    }
+    if (kx_page == PG_GRID && kx_dev.pads >= NSTEP) {   /* (on 8 x 8 the first 16 are steps 1-16 too) */
+        if (down)
+            kx_post(KXC_STEP, song.sel, id, drum_track(TSEL) ? ui.lane : 255u, 0);
+        return;
+    }
     if (kx_page == PG_GRID) {                     /* the SEQ page: the pads are the 16 steps shown */
         if (down) {
             uint32_t s = kx_bank() * 16u + id;
@@ -700,6 +711,7 @@ static void kx_ui_init(void)
 {
     vf_mode(VF_ON_HOLD);                          /* (DATA is the sounds' here: ENTER held 0.6 s = FOCUS) */
     vf_clicks(1);
+    vibe_device(&kx_dev);
     kx_open(FA_SOUND, 0);
     kx_start_sel = kx_had_session ? 0 : 1;
 }
@@ -751,8 +763,29 @@ static void kx_ui_event(const vibe_event *e)
         break;
     }
     case VIBE_EV_PAD:
-        if (e->id < 16u)
-            kx_pad(e->id, e->down, e->value);
+        kx_pad(e->id, e->down, e->value);
+        break;
+    case VIBE_EV_TOUCH:                           /* a click into the display (plugin, browser): the steps, the pedals */
+        if (e->id == VIBE_TOUCH_DOWN) {
+            int x = VIBE_TOUCH_X(e), y = VIBE_TOUCH_Y(e);
+            if (kx_page == PG_GRID && x >= 52 && x < 474 && y >= 110 && y < 206) {
+                int cw = (466 - 44) / 16, c = (x - 52) / cw;
+                uint32_t s = kx_bank() * 16u + (uint32_t)(c < 0 ? 0 : c > 15 ? 15 : c);
+                uint32_t lane = drum_track(TSEL) ? (uint32_t)clamp(7 - (y - 110) * 8 / 96, 0, NLANE - 1) : 255u;
+                kx_post(KXC_STEP, song.sel, s, lane, 0);
+                if (lane < NLANE)
+                    kx_post(KXC_LANE, lane, 0, 0, 0);
+                kx_post(KXC_CURSOR, 0, 0, 0, (int32_t)s);
+            } else if (IS_PED_PAGE(kx_page) && y >= 92 && y < 208) {
+                int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page));
+                int gap = (472 - 60 - ns * 128) / (ns + 1), j;
+                for (j = 0; j < ns; j++) {
+                    int px = 4 + 30 + gap + j * (128 + gap);
+                    if (x >= px && x < px + 128)
+                        kx_ped_focus[fi] = j;
+                }
+            }
+        }
         break;
     case VIBE_EV_BUTTON:
         kx_button(e->id, e->down);

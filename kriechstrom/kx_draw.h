@@ -913,6 +913,19 @@ static void kx_leds(void)
         vibe_led_button(VB_F1 + (int)i, TRK_RGB[i], i == song.sel ? 1.0f : 0.15f);
     vibe_led_button(VB_PLAY, C_RED, song.playing ? 1.0f : 0.1f);
     vibe_led_button(VB_REC, C_RED, song.rec & (1u << song.sel) ? 1.0f : 0.1f);
+    if (kx_page == PG_GRID && kx_dev.pads >= NSTEP) {   /* a Launchpad 8 x 8: all 64 steps, the playhead */
+        const track_t *t = TSEL;
+        uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), play = t->seq_idx % len;
+        for (i = 0; i < NSTEP; i++) {
+            const step_t *st = &t->step[i];
+            int on = drum_track(t) ? (int)((step_lanes(st) >> ui.lane) & 1u) : step_on(st);
+            if (song.playing && i == play)
+                vibe_led_pad((int)i, C_WHITE, 1.0f);
+            else
+                vibe_led_pad((int)i, TRK_RGB[song.sel], i >= len ? 0.0f : on ? 0.9f : 0.06f);
+        }
+        return;
+    }
     if (kx_page == PG_GRID) {
         const track_t *t = TSEL;
         uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), b = kx_bank(), play = t->seq_idx % len;
@@ -1078,6 +1091,15 @@ static void kx_ui_draw(void)
         last_order = order;
     }
     kx_draw_soft();
+    {   /* VIBE FM Link (SDK 24): a controller with a screen (an FM-1 under VIBE FM Link) shows the page and encoders 1-4 */
+        uint32_t k;
+        vibe_link_page(kx_title(pg));
+        for (k = 0; k < 4u; k++) {
+            kx_card c;
+            kx_card_of(kp, k, &c);
+            vibe_link_encoder(VE_1 + (int)k, c.on ? c.label : "", c.on ? c.val : "");
+        }
+    }
     kx_wear_fx(kx_fb, 480, 320);
     if (kx_shift && !kx_start)
         kx_draw_shift();

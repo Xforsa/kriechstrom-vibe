@@ -881,12 +881,147 @@ static void kx_ui_init(void)
     kx_start_sel = kx_had_session ? 0 : 1;
 }
 
+/* ---- clicks into the display (SDK 18: the plugin's and the browser's window) -----------------------------------------
+ * The host keeps the VIBE FM layout's zones: the soft keys (y 282-320) are F1-F6, and on the four knob columns
+ * (x 10-470, 115 px each, y 40-282) a drag up or down turns encoder 1-4 of that column; a plain click anywhere comes here.
+ * What a click does is what is under it: a family's tab, a track, a page's dot, an entry of a list, a slot, a pedal, a
+ * step, a master effect (its page), one of DISPLAY's three wears, a row of the start screen. */
+static int kx_same(const char *a, const char *b)
+{
+    while (*a && *a == *b)
+        a++, b++;
+    return *a == *b;
+}
+static void kx_goto(uint32_t fa, const char *title)   /* a page of a family, by its title */
+{
+    uint32_t i;
+    kx_family_pages(fa);
+    for (i = 0; i < kx_pn; i++)
+        if (kx_pl[i] < NPAGES && kx_same(PAGES[kx_pl[i]].title, title)) {
+            kx_fam = (uint8_t)fa;
+            kx_fpage[fa] = (uint8_t)i;
+            kx_page = kx_pl[i];
+            return;
+        }
+}
+static void kx_touch(int x, int y)
+{
+    if (kx_help) {                                /* HOME's overlay: a click closes it */
+        kx_help = 0;
+        return;
+    }
+    if (y < 28) {                                 /* the header: the logo HOME, the families, PLAY / STOP */
+        static const char *const K[6] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ"};
+        int tx = 120, i;
+        if (x < 112) {
+            kx_help = 1;
+            return;
+        }
+        if (x >= 380) {
+            kx_post(KXC_PLAY, 3, 0, 0, 0);
+            return;
+        }
+        for (i = 0; i < 6; i++) {
+            int w = vg_text_width(K[i], VG_SMALL);
+            if (x >= tx - 6 && x < tx + w + 6) {
+                kx_open((uint32_t)i, 1);
+                return;
+            }
+            tx += w + 12;
+        }
+        if (x >= tx - 6)
+            kx_open(FA_MENU, 1);
+        return;
+    }
+    if (y < 76) {                                 /* the four tracks: select */
+        int k = (x - 8) / 118;
+        if (k >= 0 && k < NTRK)
+            kx_post(KXC_SEL, (uint32_t)k, 0, 0, 0);
+        return;
+    }
+    if (y < 93) {                                 /* the title line: a page's dot (or the next page) */
+        uint32_t i;
+        kx_family_pages(kx_fam);
+        for (i = 0; i < kx_pn && kx_pn > 1u; i++) {
+            int dx = 470 - (int)(kx_pn - 1u - i) * 10;
+            if (x >= dx - 5 && x < dx + 5) {
+                kx_fpage[kx_fam] = (uint8_t)i;
+                kx_page = kx_pl[i];
+                return;
+            }
+        }
+        kx_page_step(1);
+        return;
+    }
+    if (y >= 206)                                 /* the cards: theirs is the drag (the host turns the encoder) */
+        return;
+    if (kx_page == PG_GRID || (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].scope == SC_STEP)) {
+        if (x >= 52 && x < 474 && y >= 110) {     /* a step (and a drum lane) on or off */
+            int cw = (466 - 44) / 16, c = (x - 52) / cw;
+            uint32_t s = kx_bank() * 16u + (uint32_t)(c < 0 ? 0 : c > 15 ? 15 : c);
+            uint32_t lane = drum_track(TSEL) ? (uint32_t)clamp(7 - (y - 110) * 8 / 96, 0, NLANE - 1) : 255u;
+            if (kx_page == PG_GRID)
+                kx_post(KXC_STEP, song.sel, s, lane, 0);
+            if (lane < NLANE)
+                kx_post(KXC_LANE, lane, 0, 0, 0);
+            kx_post(KXC_CURSOR, 0, 0, 0, (int32_t)s);
+        }
+    } else if (IS_PED_PAGE(kx_page)) {            /* a pedal: the one the knobs turn */
+        int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page)), j;
+        for (j = 0; j < ns; j++) {
+            int px = kx_ped_x((uint32_t)ns, (uint32_t)j);
+            if (x >= px && x < px + KX_PED_W)
+                kx_ped_focus[fi] = j;
+        }
+    } else if (kx_page == PG_BROWSE && x >= 336) {   /* a sound of the list */
+        uint32_t total, cur = preset_pos(&total), r = (uint32_t)((y - 95) / 17);
+        if (total && r < 7u) {
+            int32_t d = (int32_t)preset_visible(cur, total, r) - (int32_t)cur;
+            if (d)
+                kx_post(KXC_PRESET, 0, 0, 0, d);
+        }
+    } else if (kx_page == PG_MASTER && y >= 148) {   /* an effect of the chain: its page */
+        static const char *const P[6] = {"DAMAGE", "DAMAGE", "RESONATE", "SPLICE", "HAUNT", "DAMAGE"};
+        int i = (x - 4) / ((472 - 20) / 6 + 4);
+        kx_goto(FA_FX, P[clamp(i, 0, 5)]);
+    } else if (kx_page == PG_MIXER) {             /* a meter: its track */
+        int k = (x - 4) / 118;
+        if (k >= 0 && k < NTRK)
+            kx_post(KXC_SEL, (uint32_t)k, 0, 0, 0);
+    } else if (kx_page == PG_PROJECT && y >= 150) {
+        kx_slot_pick = clamp((x - 4) / 118, 0, 3);
+    } else if (kx_page == PG_PLIB && y >= 130) {
+        int col = (x - 4) / 118, row = (y - 130) / 19;
+        if (col >= 0 && col < 4 && row >= 0 && row < 4)
+            kxp_pick(kxp_sel / 16 * 16 + col * 4 + row);
+    } else if (kx_page == PG_PFILES && y >= 114) {
+        int r = (y - 114) / 15;
+        if (r >= 0 && r < 6 && kxp_lsel / 6 * 6 + r < kxp_nlist)
+            kxp_lsel = kxp_lsel / 6 * 6 + r;
+    } else if (kx_page == PG_USER) {
+        int col = (x - 8) / 116, row = (y - 96) / 13;
+        if (col >= 0 && col < 4 && row >= 0 && row < 8)
+            kx_user_pick = col * 8 + row;
+    } else if (kx_page == PG_DISPLAY) {           /* one of the three wears */
+        int k = (x - 12) / 154;
+        if (k >= 0 && k < 3)
+            kx_post(KXC_INCFG, IC_SCREEN, 1, 0, k);
+    } else if (kx_page == PG_FOOT) {              /* the pedal: as far down as clicked; the switch */
+        if (x < 190)
+            kx_foot_set((float)(186 - y) / 80.0f);
+        else if (x >= 352)
+            kx_foot_switch(1), kx_foot_switch(0);
+    } else if (kx_page == PG_SAMPLER && x < 52 && y >= 116 && y < 166)
+        kx_soft(4);                               /* (the big REC: as F5) */
+}
+
 static void kx_ui_event(const vibe_event *e)
 {
     int fid;
     if (e->type <= VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE || e->type == VIBE_EV_PEDAL || e->type == VIBE_EV_TOUCH)
         kx_idle_t = vibe_frames() ? vibe_frames() : 1;
-    if (e->type == VIBE_EV_BUTTON || e->type == VIBE_EV_PAD || e->type == VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE)
+    if (e->type == VIBE_EV_BUTTON || e->type == VIBE_EV_PAD || e->type == VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE ||
+        e->type == VIBE_EV_TOUCH)
         kx_boot_done = 1;                         /* (the power-on picture ends at the first touch) */
     if (kx_start && kx_boot_done && e->type == VIBE_EV_BUTTON && e->down) {   /* the start screen */
         uint32_t b = e->id;
@@ -905,6 +1040,16 @@ static void kx_ui_event(const vibe_event *e)
             kx_start = 0;
             return;
         }
+    }
+    if (kx_start && kx_boot_done && e->type == VIBE_EV_TOUCH && e->id == VIBE_TOUCH_DOWN) {   /* a row clicked */
+        int ty = VIBE_TOUCH_Y(e), pick = ty >= 88 && ty < 256 ? (ty - 88) / 56 : -1;
+        if (pick == 1)
+            kx_post(KXC_DEMO, 0, 0, 0, 0);
+        else if (pick == 2)
+            kx_post(KXC_SLOT, 0, 2, 0, 0);
+        if (pick >= 0)
+            kx_start = 0;
+        return;
     }
     if (kx_start && kx_boot_done && e->type == VIBE_EV_ENCODER && e->id == VE_DATA) {
         kx_start_sel = (kx_start_sel + (e->value > 0 ? 1 : 2)) % 3;
@@ -930,38 +1075,9 @@ static void kx_ui_event(const vibe_event *e)
     case VIBE_EV_PAD:
         kx_pad(e->id, e->down, e->value);
         break;
-    case VIBE_EV_TOUCH:                           /* a click into the display (plugin, browser): the steps, the pedals */
-        if (e->id == VIBE_TOUCH_DOWN) {
-            int x = VIBE_TOUCH_X(e), y = VIBE_TOUCH_Y(e);
-            if (kx_page == PG_GRID && x >= 52 && x < 474 && y >= 110 && y < 206) {
-                int cw = (466 - 44) / 16, c = (x - 52) / cw;
-                uint32_t s = kx_bank() * 16u + (uint32_t)(c < 0 ? 0 : c > 15 ? 15 : c);
-                uint32_t lane = drum_track(TSEL) ? (uint32_t)clamp(7 - (y - 110) * 8 / 96, 0, NLANE - 1) : 255u;
-                kx_post(KXC_STEP, song.sel, s, lane, 0);
-                if (lane < NLANE)
-                    kx_post(KXC_LANE, lane, 0, 0, 0);
-                kx_post(KXC_CURSOR, 0, 0, 0, (int32_t)s);
-            } else if (IS_PED_PAGE(kx_page) && y >= 92 && y < 208) {
-                int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page)), j;
-                for (j = 0; j < ns; j++) {
-                    int px = kx_ped_x((uint32_t)ns, (uint32_t)j);
-                    if (x >= px && x < px + KX_PED_W)
-                        kx_ped_focus[fi] = j;
-                }
-            }
-        }
-        if (kx_page == PG_FOOT) {                 /* the FOOT PEDAL page: drag the pedal, press the switch */
-            int x = VIBE_TOUCH_X(e), y = VIBE_TOUCH_Y(e);
-            static int drag;
-            if (e->id == VIBE_TOUCH_DOWN)
-                drag = x < 190 && y >= 96 && y < 210;
-            if (drag && e->id != VIBE_TOUCH_UP)
-                kx_foot_set((float)(196 - y) / 90.0f);
-            if (e->id == VIBE_TOUCH_UP)
-                drag = 0;
-            if (x >= 352 && y >= 96 && y < 210 && e->id != VIBE_TOUCH_MOVE)
-                kx_foot_switch(e->id == VIBE_TOUCH_DOWN);
-        }
+    case VIBE_EV_TOUCH:                           /* a click into the display (plugin, browser): kx_touch */
+        if (e->id == VIBE_TOUCH_DOWN)
+            kx_touch(VIBE_TOUCH_X(e), VIBE_TOUCH_Y(e));
         break;
     case VIBE_EV_BUTTON:
         kx_button(e->id, e->down);

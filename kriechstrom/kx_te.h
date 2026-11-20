@@ -534,6 +534,44 @@ static void te_chord(int x, int y, int w, int h, const track_t *t)
     }
 }
 
+/* what turns the page's effect on, when it is off: a plate over the picture */
+static void te_off(int x, int y, int w, int h, const char *how)
+{
+    int tw = vg_text_width(how, VG_BOLD) + 24;
+    vg_rect(x + w / 2 - tw / 2, y + h / 2 - 13, tw, 26, 0x000000);
+    vg_frame(x + w / 2 - tw / 2, y + h / 2 - 13, tw, 26, 1, TE_MID);
+    vg_text(how, x + w / 2, y + h / 2 - 8, VG_BOLD, TE_INK, VG_CENTER);
+}
+static int te_sends(uint32_t id)                  /* any track sending to that effect */
+{
+    uint32_t k;
+    for (k = 0; k < NTRK; k++)
+        if (trk[k].p[id] > 0)
+            return 1;
+    return 0;
+}
+/* the page's effect off: how it goes on (0 if it is on, or the page has nothing to switch) */
+static const char *te_off_how(const page_t *p, const track_t *t)
+{
+    if (te_is(p->title, "DLY"))
+        return song.g[G_DMIX] ? (te_sends(P_DLY) ? 0 : "ON, BUT NO TRACK SENDS: FX > SENDS, DLY") : "OFF: ENC 4 (MIX) TURNS IT ON";
+    if (te_is(p->title, "REVERB"))
+        return te_sends(P_REV) ? 0 : "NO TRACK SENDS: FX > SENDS, REV";
+    if (te_is(p->title, "CHORUS"))
+        return te_sends(P_CHOR) ? 0 : "NO TRACK SENDS: FX > SENDS, CHO";
+    if (te_is(p->title, "SLICER"))
+        return t->p[P_SLCR] ? 0 : "OFF: ENC 1 (SLCR) TURNS IT ON";
+    if (te_is(p->title, "DAMAGE"))
+        return song.g[G_DMG] || song.g[G_WALL] || song.g[G_HISS] ? 0 : "OFF: TURN DMG, WALL OR HISS UP";
+    if (te_is(p->title, "RESONATE"))
+        return song.g[G_RES] ? 0 : "OFF: ENC 1 (AMT) TURNS IT ON";
+    if (te_is(p->title, "SPLICE"))
+        return song.g[G_SPLICE] ? 0 : "OFF: ENC 1 (AMT) TURNS IT ON";
+    if (te_is(p->title, "HAUNT"))
+        return song.g[G_HAUNT] ? 0 : "OFF: ENC 1 (MODE) SUCK OR DRAG";
+    return 0;
+}
+
 static int te_page(int pg, int x, int y, int w, int h)
 {
     const page_t *p = &PAGES[pg];
@@ -582,6 +620,11 @@ static int te_page(int pg, int x, int y, int w, int h)
         te_chord(x + 4, y + 2, w - 8, h - 4, t);
     else
         return 0;
+    {
+        const char *how = te_off_how(p, t);
+        if (how)
+            te_off(x, y, w, h, how);
+    }
     return 1;
 }
 

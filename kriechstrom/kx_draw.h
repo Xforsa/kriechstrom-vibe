@@ -115,7 +115,7 @@ static void kx_draw_cards(int pg, int y)
     vg_rect(8, y - 4, 464, 1, 0x26262A);
     for (k = 0; k < 4u; k++) {
         kx_card c;
-        int x = 8 + (int)k * 118, w = 110, f = VG_BIG | VG_X2;
+        int x = 10 + (int)k * 115, w = 108, f = VG_BIG | VG_X2;   /* (the host's knob columns: x 10 + 115 k) */
         kx_card_of(pg, k, &c);
         if (k)
             vg_rect(x - 5, y + 2, 1, 66, 0x26262A);
@@ -1066,6 +1066,23 @@ static void kx_draw_help(void)
     else if (kx_streq(f5, "SAVE") || kx_streq(f5, "NEW") || kx_streq(f5, "ERASE"))
         f5w = pg == PG_PROJECT ? "save (SHIFT: new)" : "save (SHIFT: erase)";
     else if (f5[0]) f5w = "the input's mode";
+    {   /* how this page's effect goes on and off */
+        static const char *const OO[][2] = {
+            {"MASTER", "each at 0 is off"}, {"PEDALS", "TYPE OFF, or MIX 0"}, {"INPUT PEDALS", "TYPE OFF, or MIX 0"},
+            {"MASTER PEDALS", "TYPE OFF, or MIX 0"}, {"SENDS", "a send at 0: none"}, {"SLICER", "ENC 1: OFF GATE STUT"},
+            {"DELAY", "MIX 0 is off"}, {"REVERB", "the tracks' REV sends"}, {"CHORUS", "the tracks' CHO sends"},
+            {"DAMAGE", "each at 0 is off"}, {"RESONATE", "AMT 0 is off"}, {"SPLICE", "AMT 0 is off"},
+            {"HAUNT", "MODE OFF / SUCK / DRAG"}, {"INPUT", "LEVEL 0 is off"}, {"ARP", "MODE OFF is off"},
+        };
+        uint32_t q;
+        for (q = 0; q < sizeof OO / sizeof OO[0]; q++)
+            if (kx_streq(kx_title(pg), OO[q][0])) {
+                r[n++] = "ON / OFF", r[n++] = OO[q][1];
+                break;
+            }
+        if (pg == PG_MASTER)
+            r[n++] = "CLICK A TILE", r[n++] = "that effect's page";
+    }
     r[n++] = "DATA", r[n++] = dw;
     if (ew[0])
         r[n++] = "ENTER", r[n++] = ew;
@@ -1390,7 +1407,7 @@ static void kx_ui_draw(void)
             vf_key(VB_F1 + (int)i, 8 + (int)i * 118, 30, 110, 44);
         if (pg != PG_MIXER)
             for (i = 0; i < 4u; i++)
-                vf_encoder(VE_1 + (int)i, 6 + (int)i * 118, 204, 114, 74);
+                vf_encoder(VE_1 + (int)i, 8 + (int)i * 115, 204, 113, 74);
         for (i = 0; i < 6u; i++)
             vf_key(VB_F1 + (int)i, 4 + (int)i * 80, 286, 74, 32);
         vf_end(C_WHITE);

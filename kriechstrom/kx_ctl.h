@@ -320,7 +320,7 @@ static void kx_apply(const kx_cmd *k)
             transport_req = 2;
         kx_ped_clear();
         kx_demo_load(0);
-        ui_message("DEMO SONG: SEQ > SONG, F5");
+        ui_message("DEMO: SEQ > SONG, F5");
         break;
     case KXC_PSAVE:
         kxp_capture_audio(k->a);

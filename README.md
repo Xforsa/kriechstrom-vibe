@@ -98,7 +98,8 @@ mark grows behind every page as the master wears the mix out.
 | SHIFT | held or tapped (then it holds for the next control); the pads' second functions are shown |
 | PLAY, STOP, REC | the transport; REC arms the selected track for live recording |
 | ENTER | on SEQ: the cursor's step on or off; on PROJECT: load the slot |
-| HOME | what every control does on this page; RETURN goes back to SOUND |
+| HOME | what every control does on this page, and how its effect goes on and off; RETURN goes back to SOUND |
+| the mouse (plugin, browser) | a click on what is shown: a tab, a track, a page's dot, a step, a pedal, a sound of the list, a master effect's tile, a slot, a project; a drag up or down in one of the four columns turns that column's knob (the host's layout) |
 
 Every control on the display can also be reached with DATA and ENTER (hold ENTER for 0.6 s: FOCUS). The full cheat
 sheet, page by page, is on the [site](https://xforsa.github.io/kriechstrom-vibe/#cheat).

@@ -5,6 +5,22 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Added
+- the mouse (the plugin, the browser): a click on what is shown does what it shows: the families' tabs, the tracks, the
+  pages' dots, the steps, the pedals, the sounds of the list, the master's tiles (each opens its effect's page), the
+  slots, the projects, MY SOUNDS, DISPLAY's wears, the foot pedal, the start screen's rows; the logo is HOME
+- HOME tells how the page's effect goes on and off; an effect's page that is off says on its picture what turns it on
+  (the delay, the reverb and the chorus also when no track sends to them)
+
+### Changed
+- the cards at the foot of a page sit on the host's four knob columns, so a drag in a column turns the knob its card shows
+
+### Fixed
+- the demo song's message was cut off
 ## [0.5.2] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1 (with empty hooks for the outputs in fx.c).

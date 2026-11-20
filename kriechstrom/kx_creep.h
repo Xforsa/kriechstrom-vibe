@@ -130,8 +130,8 @@ static float cr_wear(void)
 /* a cached picture of the figure: drawn again only when the wear moved; a frame copies it, as bright as k (256 = as
  * drawn). The stage's and the MASTER page's boxes; `restore` is the picture being drawn (vg_* go back to it) */
 typedef struct { uint16_t *px; int w, h, wear; } cr_cache_t;
-static uint16_t cr_px_stage[352 * 346], cr_px_master[62 * 62];
-static cr_cache_t cr_stage = {cr_px_stage, 352, 346, -1}, cr_master = {cr_px_master, 62, 62, -1};
+static uint16_t cr_px_stage[352 * 346], cr_px_master[48 * 48];
+static cr_cache_t cr_stage = {cr_px_stage, 352, 346, -1}, cr_master = {cr_px_master, 48, 48, -1};
 static void cr_cache_blit(cr_cache_t *c, uint16_t *fb, int fw, int fh, int x, int y, float wear, int k)
 {
     int q = (int)(wear * 60.0f + 0.5f), j, i;

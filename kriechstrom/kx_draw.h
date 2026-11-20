@@ -42,7 +42,7 @@ static void kx_draw_header(void)
     kx_logo(8, 6, VG_BOLD);
     for (i = 0; i < 6u; i++) {                    /* the families (K1 .. K6): the open one red, underlined */
         int w = vg_text_width(K[i], VG_SMALL), on = kx_fam == i;
-        vg_text(K[i], x, 7, VG_SMALL, on ? C_WHITE : 0x55555C, VG_LEFT);
+        vg_text(K[i], x, 7, VG_SMALL, on ? C_WHITE : 0xB4B4BC, VG_LEFT);
         if (on)
             vg_rect(x, 22, w, 2, C_RED);
         x += w + 12;
@@ -71,14 +71,14 @@ static void kx_draw_tracks(void)
     for (i = 0; i < NTRK; i++) {
         const track_t *t = &trk[i];
         int x = 8 + (int)i * 118, sel = i == song.sel, mute = t->p[P_MUTE] != 0;
-        uint32_t col = TRK_RGB[i], ink = mute ? 0x3A3A40 : sel ? C_WHITE : 0x9A9AA2;
+        uint32_t col = TRK_RGB[i], ink = mute ? 0x6A6A72 : sel ? C_WHITE : 0xC4C4CC;
         char nm[17], n[2] = {(char)('1' + i), 0};
         float a = (float)clamp(t->peak, 0, 32767) / 32768.0f;
         vg_rect(x, 32, 110, sel ? 3 : 1, mute ? 0x2A2A2E : sel ? col : vg_mix(C_BG, col, 0.45f));
         if (!mute)
             vg_rect(x, 32, (int)(a * 110.0f), 3, vg_mix(col, C_WHITE, 0.3f));
-        vg_text(n, x, 39, VG_BOLD, mute ? 0x3A3A40 : col, VG_LEFT);
-        vg_text(ENGINES[eng_idx(t->eng_req)]->name, x + 13, 40, VG_SMALL, mute ? 0x3A3A40 : 0x6A6A72, VG_LEFT);
+        vg_text(n, x, 39, VG_BOLD, mute ? 0x70707A : col, VG_LEFT);
+        vg_text(ENGINES[eng_idx(t->eng_req)]->name, x + 13, 40, VG_SMALL, mute ? 0x70707A : 0x9A9AA4, VG_LEFT);
         if (mute)
             vg_text("MUTE", x + 110, 40, VG_SMALL, C_RED, VG_RIGHT);
         else if (song.rec & (1u << i))
@@ -95,7 +95,7 @@ static void kx_draw_title(const char *t, const char *what)
     uint32_t i;
     vg_text(t, 8, 78, VG_BOLD, C_RED, VG_LEFT);
     if (what)
-        vg_text(what, 8 + vg_text_width(t, VG_BOLD) + 10, 78, VG_SMALL, 0x55555C, VG_LEFT);
+        vg_text(what, 8 + vg_text_width(t, VG_BOLD) + 10, 78, VG_SMALL, 0x8A8A94, VG_LEFT);
     for (i = 0; i < kx_pn && kx_pn > 1u; i++) {
         int x = 470 - (int)(kx_pn - 1u - i) * 10;
         vg_rect(x - 2, i == kx_fpage[kx_fam] ? 81 : 83, 5, i == kx_fpage[kx_fam] ? 7 : 3,
@@ -128,12 +128,12 @@ static void kx_draw_cards(int pg, int y)
                 vg_rect(x - 4, y - 3, (int)((float)(w + 8) * a), 2, col);
             }
         }
-        vg_text(c.label, x, y + 2, VG_SMALL, 0x6A6A72, VG_LEFT);
+        vg_text(c.label, x, y + 2, VG_SMALL, 0xCACAD2, VG_LEFT);
         if (vg_text_width(c.val, f) > w - 4)
             f = VG_BIG;
         vg_text(c.val, x - 1, f == VG_BIG ? y + 28 : y + 16, f, C_WHITE, VG_LEFT);
         if (c.unit && c.unit[0])
-            vg_text(c.unit, x + w, y + 2, VG_SMALL, 0x55555C, VG_RIGHT);
+            vg_text(c.unit, x + w, y + 2, VG_SMALL, 0xA8A8B0, VG_RIGHT);
         kx_ladder(x, y + 64, w, 4, c.pos, c.bip, col);
     }
 }
@@ -157,7 +157,7 @@ static void kx_draw_soft(void)
             if (kx_soft_t[i] && age < 1.0f)
                 vg_rect_a(x + 4, 288, 70, 28, C_WHITE, 0.6f * (1.0f - age));
         }
-        vg_text(s, x + 39, 293, VG_BOLD, sel ? C_BG : i < 4u ? vg_mix(0x6A6A72, TRK_RGB[i], 0.5f) : C_TEXT, VG_CENTER);
+        vg_text(s, x + 39, 293, VG_BOLD, sel ? C_BG : i < 4u ? vg_mix(0x9A9AA4, TRK_RGB[i], 0.5f) : C_TEXT, VG_CENTER);
     }
 }
 
@@ -400,7 +400,7 @@ static void kx_draw_grid(int x, int y, int w, int h)
 static void kx_draw_master(int x, int y, int w, int h)
 {
     static const char *const N[6] = {"DAMAGE", "WALL", "RESONATE", "SPLICE", "HAUNT", "HISS"};
-    int amt[6], i, bw = (w - 5 * 4) / 6, cs = h - 48;
+    int amt[6], i, bw = (w - 5 * 4) / 6, cs = h - 62;
     float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
     char b[8];
     amt[0] = song.g[G_DMG];
@@ -421,23 +421,25 @@ static void kx_draw_master(int x, int y, int w, int h)
         for (j = 0; j < n; j++) {
             float f = tm * (0.25f + heat * 0.6f) + (float)j / (float)n;
             float sx = (float)x + (f - (float)(int)f) * (float)w;
-            vg_circle(sx, (float)(y + h - 47), 1.5f + heat * 1.5f, vg_mix(C_RED, C_WHITE, heat));
+            vg_circle(sx, (float)(y + h - 61), 1.5f + heat * 1.5f, vg_mix(C_RED, C_WHITE, heat));
         }
     }
     for (i = 0; i < 6; i++) {
-        int bx = x + i * (bw + 4), by = y + h - 44;
+        int bx = x + i * (bw + 4), by = y + h - 58;
         float a = (float)clamp(amt[i], 0, 127) / 127.0f;
-        static const uint8_t KIND[6] = {KB_ARC, KB_WALL, KB_RING, KB_CUT, KB_SAG, KB_DUST};
-        vg_round(bx, by, bw, 42, 4, vg_mix(C_PANEL, C_RED, a * 0.22f));
-        vg_text(N[i], bx + bw / 2, by + 4, VG_SMALL, a > 0 ? C_WHITE : C_DIM, VG_CENTER);
-        /* each effect a discharge of its own kind across its tile, as hard as it is set and the mix is loud */
-        vg_rect(bx + 4, by + 27, 4, 4, a > 0 ? 0x8A8A90 : 0x3A3A40);   /* (the two electrodes) */
-        vg_rect(bx + bw - 8, by + 27, 4, 4, a > 0 ? 0x8A8A90 : 0x3A3A40);
-        if (a > 0)
-            kx_bolt((float)(bx + 8), (float)(by + 29), (float)(bx + bw - 8), (float)(by + 29),
-                    0.15f + 0.85f * a * (0.6f + 0.4f * (heat > 1.0f ? 1.0f : heat)), 60u + (uint32_t)i, KIND[i], C_RED, 9.0f);
-        else
-            vg_rect(bx + 8, by + 29, bw - 16, 1, 0x26262A);
+        int ix = bx + 4, iy = by + 20, iw = bw - 8, ih = 32;
+        vg_round(bx, by, bw, 56, 4, a > 0 ? 0x1C1C20 : 0x121214);
+        vg_rect(bx, by, bw, 2, a > 0 ? C_RED : 0x26262A);
+        vg_text(N[i], bx + bw / 2, by + 3, VG_SMALL, a > 0 ? TE_INK : 0x9A9AA4, VG_CENTER);
+        /* each effect its own machine, small (kx_te.h): the tape, the bricks, the strings, the cuts, the brake, grain */
+        switch (i) {
+        case 0: te_tape(ix, iy, iw, ih, a, te_g(G_DMGC), heat); break;
+        case 1: te_wall(ix, iy, iw, ih, a, heat); break;
+        case 2: te_strings(ix, iy - 2, iw, ih + 4, a, heat, 0); break;
+        case 3: te_splice(ix - 2, iy, iw + 4, ih, a); break;
+        case 4: te_haunt(ix, iy - 2, iw, ih + 4, a > 0 ? clamp(song.g[G_HAUNT], 0, 2) : 0, a); break;
+        default: te_hiss(ix, iy, iw, ih, a); break;
+        }
     }
 }
 
@@ -472,7 +474,7 @@ static void kx_draw_browse(int x, int y, int w, int h)
             vg_round(lx, ry - 1, 136, 17, 3, vg_mix(C_PANEL, col, 0.3f));
             vg_rect(lx, ry - 1, 3, 17, col);
         }
-        vg_text(b, lx + 8, ry, VG_SMALL, n == cur ? C_WHITE : r == 0u || r == 6u ? 0x4A4A50 : C_DIM, VG_LEFT);
+        vg_text(b, lx + 8, ry, VG_SMALL, n == cur ? C_WHITE : r == 0u || r == 6u ? 0x7A7A84 : C_DIM, VG_LEFT);
     }
 }
 
@@ -488,9 +490,20 @@ static void kx_draw_input(int x, int y, int w, int h)
 {
     uint32_t i, kw = kx_kin_w;
     float mid = (float)y + (float)(h - 28) * 0.5f, k = (float)(h - 28) * 0.45f / 32768.0f, px = 0, py = 0;
-    if (!kx_in_on) {
-        vg_text("NO INPUT", x + w / 2, y + 2, VG_BIG, C_DIM, VG_CENTER);
-        vg_text("CONNECT IN 1 / IN 2, OR ALLOW THE MICROPHONE", x + w / 2, y + 30, VG_SMALL, C_DIM, VG_CENTER);
+    if (!kx_in_on) {                               /* nothing comes in: two jacks, a plug waiting */
+        int j;
+        te_dots(x, y, w, h - 20, 8);
+        for (j = 0; j < 2; j++) {
+            int jx = x + 40 + j * 90, jy = y + 34;
+            vg_circle((float)jx, (float)jy, 20.0f, 0x2A2A30);
+            vg_circle((float)jx, (float)jy, 12.0f, 0x111113);
+            vg_circle((float)jx, (float)jy, 6.0f, 0x000000);
+            vg_text(j ? "IN 2" : "IN 1", jx, jy + 26, VG_BOLD, TE_INK, VG_CENTER);
+        }
+        vg_rect(x + 240, y + 30, 60, 8, 0x8A8A92);   /* (the plug) */
+        vg_rect(x + 300, y + 28, 40, 12, 0x3A3A42);
+        vg_rect(x + 340, y + 32, w - 344, 4, 0x1E1E22);
+        vg_text("NO INPUT: PLUG IN, OR ALLOW THE MICROPHONE", x + 4, y + h - 26, VG_BOLD, TE_INK, VG_LEFT);
         return;
     }
     vg_rect(x, (int)mid, w - 30, 1, C_LINE);
@@ -530,9 +543,9 @@ static void kx_draw_midi(int x, int y, int w, int h)
     for (k = 0; k < NTRK; k++) {
         int ry = y + (int)k * (h / 4), ch = (kx_ic[IC_MCH] - 1 + (int)k) % 16 + 1;
         char b[8];
-        vg_text("CH", x, ry + 4, VG_SMALL, 0x55555C, VG_LEFT);
+        vg_text("CH", x, ry + 4, VG_SMALL, 0x8A8A94, VG_LEFT);
         vg_itoa(ch, b);
-        vg_text(b, x + 22, ry + 2, VG_BOLD, kx_ic[IC_MOUT] ? TRK_RGB[k] : 0x3A3A40, VG_LEFT);
+        vg_text(b, x + 22, ry + 2, VG_BOLD, kx_ic[IC_MOUT] ? TRK_RGB[k] : 0x70707A, VG_LEFT);
         vg_rect(x + 52, ry + h / 8, w - 120, 1, 0x26262A);
         for (i = 0; i < kx_mo_n[k] && i < 16u; i++) {
             int nx = x + 52 + (int)kx_mo_on[k][i] * (w - 120) / 128;
@@ -568,7 +581,7 @@ static void kx_draw_song(int x, int y, int w, int h)
         for (k = 0; k < NTRK; k++) {
             uint32_t sl = chain_config.row[r].slot[k];
             char s2[2] = {sl < 4u ? (char)('A' + sl) : '-', 0};
-            vg_text(s2, x + 74 + (int)k * 60, ry, VG_BOLD, sl < 4u ? (on && k == ui.song_trk ? C_WHITE : TRK_RGB[k]) : 0x3A3A40,
+            vg_text(s2, x + 74 + (int)k * 60, ry, VG_BOLD, sl < 4u ? (on && k == ui.song_trk ? C_WHITE : TRK_RGB[k]) : 0x70707A,
                     VG_LEFT);
         }
         b[0] = 'x';
@@ -634,7 +647,7 @@ static void kx_draw_user(int x, int y, int w, int h)
         up_slot_label(l, s);
         if (on)
             vg_rect(cx, cy, cw - 4, rh - 1, vg_mix(C_BG, C_RED, 0.25f));
-        vg_text(l, cx + 4, cy, VG_SMALL, on ? C_WHITE : 0x55555C, VG_LEFT);
+        vg_text(l, cx + 4, cy, VG_SMALL, on ? C_WHITE : 0x8A8A94, VG_LEFT);
         if (up_used(s)) {
             up_name(s, b);
             b[10] = 0;
@@ -645,176 +658,170 @@ static void kx_draw_user(int x, int y, int w, int h)
 
 /* ---- the pedalboard: each pedal drawn as one (its enclosure in its type's colour, a name plate, three knobs, the LED
  * lit by what it does, the footswitch), patch cables between them with the signal running along */
-/* the pedals: welded steel boxes, each type its paint (worn off the edges), its name stencilled on, four screws, chicken
- * head knobs, a hex nut round the footswitch, a jewel LED. What a pedal does leaves it as a spark along its cable out */
-static const uint32_t PED_RGB[IT_N] = {0x26262A, 0xB0702E, 0xA8281E, 0xB89A3A, 0x6A3A7C, 0x4E7A3A, 0x2E7A86, 0x3A5A98,
-                                       0x3A8A72, 0x6E6E3A, 0x7A4A2A, 0x5E5E64, 0x8A2A14, 0x903060};
-static const uint8_t PED_SPARK[IT_N] = {KB_ARC, KB_ARC, KB_ARC, KB_ARC, KB_ARC, KB_CUT, KB_RING, KB_RING,
-                                        KB_RING, KB_WALL, KB_WALL, KB_WALL, KB_CUT, KB_SAG};
+/* the pedals: flat graphite boxes, a stripe of the type's colour, three knobs with their names, a black window where
+ * the pedal shows what it does to a wave (kx_te.h), its name, the footswitch and the LED */
+static const uint32_t PED_RGB[IT_N] = {0x26262A, 0xE08A3A, 0xE0402A, 0xE8C040, 0xA060D0, 0x60C050, 0x40B8C8, 0x5A8AE8,
+                                       0x50D0A0, 0xB8B850, 0xC07A40, 0xA8A8B0, 0xFF3A20, 0xE050A0};
 static void kx_knob(float cx, float cy, float r, float pos, uint32_t ink)
 {
     float a = 0.375f - pos * 0.75f, dx = vd_sin(a + 0.25f), dy = -vd_sin(a);   /* (270 degrees, as a real one) */
-    vg_circle(cx, cy + 1.5f, r, 0x000000);
-    vg_circle(cx, cy, r, 0x101012);
-    vg_circle(cx, cy, r - 1.5f, 0x1E1E21);
-    vg_tri(cx + dx * (r + 2.0f), cy + dy * (r + 2.0f), cx - dy * 4.0f, cy + dx * 4.0f, cx + dy * 4.0f, cy - dx * 4.0f,
-           0x0A0A0B);                              /* (the chicken head's pointer) */
-    vg_line(cx, cy, cx + dx * (r + 1.0f), cy + dy * (r + 1.0f), 1.6f, ink);
-}
-static void kx_screw(float x, float y, uint32_t seed)
-{
-    float a = (float)(seed % 97u) / 97.0f;
-    vg_circle(x, y, 3.2f, 0x0C0C0D);
-    vg_circle(x, y, 2.5f, 0x6A6A70);
-    vg_line(x - vd_sin(a + 0.25f) * 2.2f, y - vd_sin(a) * 2.2f, x + vd_sin(a + 0.25f) * 2.2f, y + vd_sin(a) * 2.2f,
-            1.0f, 0x1A1A1C);
-}
-static void kx_hex(float cx, float cy, float r, uint32_t col)
-{
-    int k;
-    for (k = 0; k < 6; k++) {
-        float a0 = (float)k / 6.0f, a1 = (float)(k + 1) / 6.0f;
-        vg_tri(cx, cy, cx + vd_sin(a0 + 0.25f) * r, cy + vd_sin(a0) * r, cx + vd_sin(a1 + 0.25f) * r, cy + vd_sin(a1) * r,
-               col);
-    }
+    vg_circle(cx, cy, r + 1.0f, 0x000000);
+    vg_circle(cx, cy, r, 0x3C3C42);
+    vg_circle(cx, cy, r - 2.0f, 0x18181B);
+    vg_line(cx + dx * 2.0f, cy + dy * 2.0f, cx + dx * (r - 1.0f), cy + dy * (r - 1.0f), 2.2f, ink);
 }
 static void kx_pedal(int x, int y, int w, int h, const int16_t *v, int focus, float lvl, int num)
 {
     int ty = clamp(v[0], 0, IT_N - 1), k;
-    uint32_t paint = vg_mix(PED_RGB[ty], 0x222225, 0.45f), seed = (uint32_t)(ty * 131 + num * 17 + 7);
-    uint32_t dim = focus ? 0u : 1u;
+    uint32_t col = PED_RGB[ty];
     char n[2] = {(char)('1' + num), 0};
-    if (!ty) {                                                      /* an empty place on the board: its outline */
-        vg_frame(x, y, w, h, 1, 0x26262A);
-        for (k = 0; k < w; k += 12)
-            vg_line((float)(x + k), (float)(y + h), (float)(x + k + 10), (float)(y + h - 10), 1.0f, 0x1A1A1C);
-        vg_text(n, x + 6, y + 4, VG_SMALL, 0x3A3A40, VG_LEFT);
-        vg_text("EMPTY", x + w / 2, y + h / 2 - 12, VG_BOLD, focus ? C_DIM : 0x3A3A40, VG_CENTER);
-        vg_text(focus ? "TURN ENC 1" : "", x + w / 2, y + h / 2 + 8, VG_SMALL, 0x4A4A50, VG_CENTER);
-        if (focus) {
-            vg_rect(x - 3, y - 3, 14, 2, C_RED), vg_rect(x - 3, y - 3, 2, 14, C_RED);
-            vg_rect(x + w - 11, y + h + 1, 14, 2, C_RED), vg_rect(x + w + 1, y + h - 11, 2, 14, C_RED);
-        }
+    if (!ty) {                                                      /* an empty place on the board */
+        vg_round(x, y, w, h, 6, 0x111113);
+        vg_frame(x, y, w, h, 1, focus ? C_RED : 0x2E2E34);
+        vg_text(n, x + 6, y + 4, VG_BOLD, 0x9A9AA4, VG_LEFT);
+        vg_text("EMPTY", x + w / 2, y + h / 2 - 18, VG_BOLD, focus ? TE_INK : 0x9A9AA4, VG_CENTER);
+        if (focus)
+            vg_text("ENC 1: A PEDAL", x + w / 2, y + h / 2 + 2, VG_SMALL, TE_MID, VG_CENTER);
         return;
     }
-    vg_rect(x + 3, y + 4, w, h, 0x000000);                          /* (its shadow) */
-    vg_rect(x, y, w, h, 0x3A3A3E);                                  /* the steel, its edges bright, worn */
-    vg_rect(x + 2, y + 2, w - 4, h - 4, paint);
-    vg_rect(x + 2, y + h - 5, w - 4, 3, vg_mix(paint, 0x000000, 0.4f));
-    for (k = 0; k < 9; k++) {                                       /* the paint worn off: bare steel, rust */
-        uint32_t r = seed * (uint32_t)(k + 3) * 2654435761u;
-        int sx = x + 4 + (int)(r % (uint32_t)(w - 8)), sy = y + 4 + (int)((r >> 8) % (uint32_t)(h - 8));
-        if (k < 5)
-            vg_line((float)sx, (float)sy, (float)sx + (float)((r >> 16) % 13u) - 6.0f, (float)sy + (float)((r >> 20) % 5u),
-                    1.0f, vg_mix(paint, 0x8A8A90, 0.45f));
-        else
-            vg_circle((float)sx, (float)sy, 1.0f + (float)((r >> 12) % 3u), vg_mix(paint, 0x5A2A10, 0.6f));
-    }
-    kx_screw((float)(x + 6), (float)(y + 6), seed);
-    kx_screw((float)(x + w - 6), (float)(y + 6), seed + 3u);
-    kx_screw((float)(x + 6), (float)(y + h - 8), seed + 5u);
-    kx_screw((float)(x + w - 6), (float)(y + h - 8), seed + 9u);
-    for (k = 0; k < 3; k++) {                                       /* the three knobs */
+    vg_round(x + 2, y + 3, w, h, 6, 0x000000);                      /* (its shadow) */
+    vg_round(x, y, w, h, 6, focus ? 0x34343A : 0x26262A);
+    vg_rect(x + 6, y, w - 12, 1, 0x4A4A52);
+    vg_rect(x, y + 6, w, 4, col);                                   /* the type's stripe */
+    vg_text(n, x + 5, y + 12, VG_SMALL, 0xA8A8B0, VG_LEFT);
+    for (k = 0; k < 3; k++) {                                       /* the knobs, their names in full */
         const param_desc_t *dd = ins_desc(ty, (uint32_t)k);
         float pos = dd->max > dd->min ? (float)(v[1 + k] - dd->min) / (float)(dd->max - dd->min) : 0.0f;
         float cx = (float)x + (float)w * (0.2f + 0.3f * (float)k);
-        char lb[5];
-        str_cpy(lb, dd->label, sizeof lb);       /* (four letters: three fit side by side) */
-        kx_knob(cx, (float)y + 20.0f, 9.0f, pos, C_WHITE);
-        vg_text(lb, (int)cx, y + 31, VG_SMALL, vg_mix(paint, 0x000000, 0.65f), VG_CENTER);
+        char lb[6];
+        str_cpy(lb, dd->label, sizeof lb);
+        kx_knob(cx, (float)y + 24.0f, 9.0f, pos, C_WHITE);
+        vg_text(lb, (int)cx, y + 35, VG_SMALL, TE_INK, VG_CENTER);
     }
-    {   /* the name on a black glass window, stencilled (the letters' bridges cut in); behind it the pedal's own
-         * discharge, as hard as it works, in its kind (an arc, a ring, a cut ..) */
-        float a = vd_sqrt(lvl > 1.0f ? 1.0f : lvl);
-        int tw = vg_text_width(N_ITYPE[ty], VG_BOLD), tx = x + w / 2 - tw / 2, i;
-        vg_rect(x + 6, y + 46, w - 12, 26, 0x070708);
-        vg_rect(x + 6, y + 46, w - 12, 1, 0x000000);
-        vg_rect(x + 6, y + 71, w - 12, 1, vg_mix(paint, 0xFFFFFF, 0.2f));
-        if (v[PD_MIX])
-            kx_bolt((float)(x + 9), (float)(y + 59), (float)(x + w - 9), (float)(y + 59), a * 0.9f, seed,
-                    PED_SPARK[ty], vg_mix(PED_RGB[ty], 0xE02010, 0.5f), 10.0f);
-        for (i = -1; i <= 1; i += 2)              /* (a black rim round the letters: the spark stays behind them) */
-            vg_text(N_ITYPE[ty], x + w / 2 + i, y + 50, VG_BOLD, 0x000000, VG_CENTER),
-            vg_text(N_ITYPE[ty], x + w / 2, y + 50 + i, VG_BOLD, 0x000000, VG_CENTER);
-        vg_text(N_ITYPE[ty], x + w / 2, y + 50, VG_BOLD, vg_mix(PED_RGB[ty], 0xFFFFFF, 0.55f + 0.4f * a), VG_CENTER);
-        (void)tx, (void)tw;
-    }
-    {                                                               /* the jewel LED: as bright as what it does */
+    vg_rect(x + 5, y + 52, w - 10, 28, 0x050506);                   /* the window: what it does to a wave */
+    te_ped_icon(ty, x + 8, y + 54, w - 16, 24, v, v[PD_MIX] ? lvl : 0.0f, v[PD_MIX] ? col : 0x4A4A50);
+    vg_text(N_ITYPE[ty], x + 6, y + h - 22, VG_BOLD, TE_INK, VG_LEFT);
+    {                                                               /* the LED: as bright as what it does */
         float a = lvl > 1.0f ? 1.0f : lvl;
-        float lx = (float)(x + w - 18), ly = (float)(y + h - 22);
-        uint32_t led = v[PD_MIX] ? vg_mix(0x400808, 0xFF3020, 0.35f + 0.65f * a) : 0x300606;
+        float lx = (float)(x + w - 36), ly = (float)(y + h - 14);
         if (v[PD_MIX] && a > 0.05f)
-            vg_circle(lx, ly, 8.0f, vg_mix(paint, 0xFF3020, 0.4f * a));
-        vg_circle(lx, ly, 4.5f, 0x0A0A0B);
-        vg_circle(lx, ly, 3.5f, led);
-        vg_circle(lx - 1.0f, ly - 1.0f, 1.0f, vg_mix(led, 0xFFFFFF, 0.6f));
+            vg_circle(lx, ly, 6.0f, vg_mix(0x26262A, 0xFF3020, 0.5f * a));
+        vg_circle(lx, ly, 3.0f, v[PD_MIX] ? vg_mix(0x501008, 0xFF3020, 0.4f + 0.6f * a) : 0x300606);
     }
-    kx_hex((float)(x + w / 2), (float)(y + h - 20), 12.0f, 0x55555C);  /* the footswitch: a nut, the button */
-    kx_hex((float)(x + w / 2), (float)(y + h - 21), 10.5f, 0x8A8A90);
-    vg_circle((float)(x + w / 2), (float)(y + h - 21), 7.0f, 0x2A2A2E);
-    vg_circle((float)(x + w / 2), (float)(y + h - 22), 6.0f, 0xB8B8BE);
-    vg_text(n, x + 14, y + h - 28, VG_BOLD, vg_mix(paint, 0x000000, 0.55f), VG_LEFT);
-    if (dim)                                                        /* (the ones not in focus sit back) */
-        vg_rect_a(x, y, w + 3, h + 4, 0x000000, 0.38f);
-    else {
-        vg_rect(x - 4, y - 4, 16, 3, C_RED), vg_rect(x - 4, y - 4, 3, 16, C_RED);
-        vg_rect(x + w - 12, y + h + 1, 16, 3, C_RED), vg_rect(x + w + 1, y + h - 12, 3, 16, C_RED);
+    vg_circle((float)(x + w - 16), (float)(y + h - 14), 9.0f, 0x111113);   /* the footswitch */
+    vg_circle((float)(x + w - 16), (float)(y + h - 14), 7.0f, 0xA8A8B0);
+    vg_circle((float)(x + w - 16), (float)(y + h - 15), 4.0f, 0xD8D8DC);
+    if (focus) {                                                    /* (the one the knobs turn) */
+        vg_frame(x - 3, y - 3, w + 6, h + 6, 2, C_RED);
     }
 }
 static void kx_draw_pedals(int pg, int x, int y, int w, int h)
 {
     uint32_t o = kx_ped_owner(pg), j, ns = (uint32_t)kx_ped_slots(o);
-    int pw = 116, gap = (w - 60 - (int)ns * pw) / (int)(ns + 1u), px[PED_SLOTS], cy = y + h / 2 + 4;
-    float sig = 0.0f;
-    const char *in = o == PO_IN ? "IN 1/2" : o == PO_MASTER ? "MIX" : "SOUND";
+    int pw = KX_PED_W, px[PED_SLOTS], cy = y + h / 2 + 4;
+    float tm = te_t();
+    const char *in = o == PO_IN ? "IN" : o == PO_MASTER ? "MIX" : "SOUND";
     const char *out = o == PO_MASTER ? "MASTER" : "MIX";
     int16_t v[PED_SLOTS][PD_N];
     for (j = 0; j < ns; j++) {
-        px[j] = x + 30 + gap + (int)j * (pw + gap);
+        px[j] = kx_ped_x(ns, j) - 4 + x;
         kx_ped_get(o, j, v[j]);
     }
-    sig = o < NTRK ? (float)clamp(trk[o].peak, 0, 32767) / 32768.0f : kx_ped_lvl[o][0];
-    /* the cables: IN to the first, one to the next, the last to OUT; on each, a spark as hard as the pedal before it
-     * works (the first: the sound coming in, quietly) */
+    /* the cables: IN to the first, one to the next, the last to OUT; the signal runs along as square pulses, as many
+     * and as bright as the pedal before it works */
     for (j = 0; j <= ns; j++) {
         float x0 = j ? (float)(px[j - 1] + pw) : (float)x, x1 = j < ns ? (float)px[j] : (float)(x + w), a;
-        vg_line(x0, (float)cy, x1, (float)cy, 4.0f, 0x111113);
-        vg_line(x0, (float)cy, x1, (float)cy, 2.0f, 0x2E2E34);
+        int k;
+        vg_rect((int)x0, cy - 1, (int)(x1 - x0), 3, 0x3A3A40);
         if (!j)
-            a = sig * 0.35f;
-        else {
-            const int16_t *pv = v[j - 1];
-            a = pv[0] && pv[PD_MIX] ? vd_sqrt(kx_ped_lvl[o][j - 1]) * 1.3f * (float)pv[PD_MIX] / 127.0f : 0.0f;
+            a = o < NTRK ? (float)clamp(trk[o].peak, 0, 32767) / 32768.0f : kx_ped_lvl[o][0];
+        else
+            a = v[j - 1][0] && v[j - 1][PD_MIX] ? kx_ped_lvl[o][j - 1] * 2.0f : 0.0f;
+        for (k = 0; k < 3 && a > 0.03f; k++) {
+            float f = te_wrap(tm * 0.8f + (float)k / 3.0f);
+            vg_rect((int)(x0 + f * (x1 - x0)) - 2, cy - 2, 4, 5, vg_mix(C_RED, TE_INK, vd_minf(a, 1.0f)));
         }
-        kx_bolt(x0 + 2.0f, (float)cy, x1 - 2.0f, (float)cy, a, o * 8u + j, j ? PED_SPARK[clamp(v[j - 1][0], 0, IT_N - 1)] : KB_ARC,
-                j ? C_RED : 0x8A8A90, 12.0f);
     }
-    vg_text(in, x, cy - 20, VG_SMALL, C_DIM, VG_LEFT);
-    vg_text(out, x + w, cy - 20, VG_SMALL, C_DIM, VG_RIGHT);
+    (void)in, (void)out;
+    vg_tri((float)(x + w - 8), (float)(cy - 5), (float)(x + w - 8), (float)(cy + 6), (float)(x + w), (float)(cy + 1), TE_MID);
     for (j = 0; j < ns; j++)
         kx_pedal(px[j], y + 4, pw, h - 8, v[j], (int)j == kx_ped_focus[kx_ped_fi(pg)], kx_ped_lvl[o][j] * 2.0f, (int)j);
 }
 
-/* FOOT PEDAL: an expression pedal (its position) and a footswitch, drawn as they are on the floor */
+/* FOOT PEDAL: the expression pedal is a hand on a knob: what it turns (DAMAGE, WALL or the level) is shown as a gauge
+ * beside it, moving with it. The switch, with what it does. Both can be clicked: drag the pedal, press the switch */
 static void kx_draw_foot(int x, int y, int w, int h)
 {
-    int cx = x + w / 4, cy = y + h / 2 + 18, fx = x + 3 * w / 4;
-    float lift = kx_foot_expr * 34.0f;            /* (the side view: the toe end rises with the pedal pushed up) */
-    char b[8];
-    vg_round(cx - 58, cy + 8, 116, 14, 3, 0x1A1A1C);
-    vg_tri((float)cx + 50.0f, (float)cy + 8.0f, (float)cx + 58.0f, (float)cy + 8.0f, (float)cx + 54.0f, (float)cy - 2.0f, 0x3A3A40);
-    vg_line((float)cx + 54.0f, (float)cy, (float)cx - 54.0f, (float)cy - lift, 12.0f, 0x2C2C30);
-    vg_line((float)cx + 54.0f, (float)cy - 5.0f, (float)cx - 54.0f, (float)cy - lift - 5.0f, 2.0f, 0x55555C);
-    vg_itoa((int)(kx_foot_expr * 100.0f + 0.5f), b);
+    int ex = x, ew = 170, gx = x + 196, sx = x + w - 120, cy = y + h - 36, k;
+    float e = kx_foot_expr, lift = e * 50.0f;
+    char b[12];
+    int tgt = clamp(kx_ic[IC_EXPR], 0, 3);
+    float val = tgt == 1 ? te_g(G_DMG) : tgt == 2 ? te_g(G_WALL) : tgt == 3 ? (float)TSEL->p[P_LEVEL] / 127.0f : 0.0f;
+    te_dots(x, y, w, h, 8);
+    /* the pedal, from the side: the base, the hinge at the heel, the treadle up as far as it is pushed */
+    vg_rect(ex + 6, cy + 8, ew - 12, 10, 0x2A2A30);
+    vg_circle((float)(ex + ew - 20), (float)(cy + 4), 7.0f, TE_MID);
+    vg_line((float)(ex + ew - 20), (float)(cy + 2), (float)(ex + 14), (float)cy - lift, 14.0f, 0x3A3A42);
+    vg_line((float)(ex + ew - 20), (float)(cy - 5), (float)(ex + 14), (float)cy - lift - 7.0f, 3.0f, tgt ? C_RED : TE_LOW);
+    for (k = 0; k < 6; k++) {                     /* (its grip) */
+        float u = 0.15f + (float)k * 0.12f;
+        float gx0 = (float)(ex + ew - 20) + (float)(14 - (ew - 20)) * u, gy0 = (float)(cy - 2) - lift * u;
+        vg_rect((int)gx0 - 1, (int)gy0 - 6, 3, 3, 0x6A6A72);
+    }
+    vg_itoa((int)(e * 100.0f + 0.5f), b);
     str_cpy(b + str_len(b), "%", 2);
-    vg_text(b, cx + 66, cy + 4, VG_SMALL, C_TEXT, VG_LEFT);
-    vg_text(IC_EXPR_N[clamp(kx_ic[IC_EXPR], 0, 3)], cx, y + 2, VG_BOLD, kx_ic[IC_EXPR] ? C_RED : C_DIM, VG_CENTER);
-    vg_text("EXPRESSION", cx, y + h - 16, VG_SMALL, C_DIM, VG_CENTER);
-    vg_round(fx - 40, cy - 10, 80, 44, 6, 0x1A1A1C);
-    vg_circle((float)fx, (float)cy + 4.0f, 14.0f, kx_foot_down ? 0xC8C8CC : 0x6A6A70);
-    vg_circle((float)fx, (float)cy - 22.0f, 4.0f, kx_foot_down ? C_RED : 0x300606);
-    vg_text(IC_FSW_N[clamp(kx_ic[IC_FSW], 0, 3)], fx, y + 2, VG_BOLD, C_RED, VG_CENTER);
-    vg_text("SWITCH", fx, y + h - 16, VG_SMALL, C_DIM, VG_CENTER);
+    vg_text(b, ex + ew - 4, y + 2, VG_BIG, TE_INK, VG_RIGHT);
+    vg_text("EXPRESSION", ex + 6, y + h - 18, VG_SMALL, TE_MID, VG_LEFT);
+    /* what it turns: an arrow to a gauge of that value */
+    vg_line((float)(ex + ew + 2), (float)(y + h / 2), (float)(gx - 6), (float)(y + h / 2), 2.0f, tgt ? C_RED : TE_LOW);
+    vg_tri((float)(gx - 10), (float)(y + h / 2 - 5), (float)(gx - 10), (float)(y + h / 2 + 5), (float)(gx - 2), (float)(y + h / 2),
+           tgt ? C_RED : TE_LOW);
+    {
+        float r = 40.0f, ccx = (float)(gx + 50), ccy = (float)(y + h / 2 + 22);
+        int i;
+        for (i = 0; i < 24; i++) {
+            float a0 = 0.5f - (float)i / 24.0f * 0.5f, a1 = 0.5f - (float)(i + 1) / 24.0f * 0.5f;
+            uint32_t c = tgt && (float)i / 24.0f < val ? C_RED : 0x2A2A30;
+            vg_line(ccx + vd_sin(a0 + 0.25f) * r, ccy - vd_sin(a0) * r, ccx + vd_sin(a1 + 0.25f) * r, ccy - vd_sin(a1) * r, 7.0f, c);
+        }
+        vg_text(IC_EXPR_N[tgt], (int)ccx, (int)ccy - 18, VG_BOLD, tgt ? TE_INK : 0x9A9AA4, VG_CENTER);
+        vg_itoa((int)(val * 127.0f + 0.5f), b);
+        if (tgt)
+            vg_text(b, (int)ccx, (int)ccy - 2, VG_BOLD, C_RED, VG_CENTER);
+    }
+    /* the switch: a big button, lit while pressed, its action on it */
+    vg_round(sx, y + 8, 112, h - 30, 8, 0x26262A);
+    vg_circle((float)(sx + 56), (float)(y + 40), 22.0f, 0x111113);
+    vg_circle((float)(sx + 56), (float)(y + 40), 18.0f, kx_foot_down ? C_RED : 0x8A8A92);
+    vg_circle((float)(sx + 56), (float)(y + 39), 12.0f, kx_foot_down ? 0xFF6A50 : 0xC8C8CE);
+    vg_text(IC_FSW_N[clamp(kx_ic[IC_FSW], 0, 3)], sx + 56, y + 64, VG_BOLD, TE_INK, VG_CENTER);
+    vg_text("SWITCH", sx + 56, y + h - 18, VG_SMALL, TE_MID, VG_CENTER);
+}
+
+/* DISPLAY: the three ways the screen wears, side by side, the one set framed */
+static void kx_draw_display(int x, int y, int w, int h)
+{
+    static const char *const N[3] = {"OFF", "LOW", "FULL"};
+    int k, sw = (w - 32) / 3, sh = h - 30, cur = clamp(kx_ic[IC_SCREEN], 0, 2);
+    for (k = 0; k < 3; k++) {
+        int sx = x + 8 + k * (sw + 8), sy = y + 4, i, n = k == 0 ? 0 : k == 1 ? 5 : 16;
+        vg_rect(sx, sy, sw, sh, 0x0A0A0B);
+        vg_rect(sx + 4, sy + 4, sw / 3, 4, C_RED);                 /* (a page on it) */
+        for (i = 0; i < 3; i++)
+            vg_rect(sx + 4, sy + 14 + i * 10, sw - 8 - i * 20, 5, 0x3A3A40);
+        for (i = 0; i < 4; i++)
+            vg_rect(sx + 4 + i * (sw - 8) / 4, sy + sh - 22, (sw - 8) / 4 - 4, 16, 0x2A2A30);
+        for (i = 0; i < n; i++) {                                 /* (its wear: cracks, torn bands) */
+            uint32_t r = te_hash((uint32_t)(k * 97 + i * 13) + (uint32_t)(te_t() * (k == 2 ? 6.0f : 1.0f)));
+            int cx = sx + 4 + (int)(r % (uint32_t)(sw - 8)), cy = sy + 4 + (int)((r >> 10) % (uint32_t)(sh - 8));
+            if (k == 2 && (r >> 20) % 3u == 0u)
+                vg_rect(sx, cy, sw, 2, vg_mix(C_RED, 0x000000, 0.3f));
+            else
+                vg_line((float)cx, (float)cy, (float)cx + (float)((r >> 22) % 17u) - 8.0f, (float)cy + 6.0f, 1.2f, C_RED);
+        }
+        vg_frame(sx - 2, sy - 2, sw + 4, sh + 4, 2, k == cur ? C_RED : 0x26262A);
+        vg_text(N[k], sx + sw / 2, sy + sh + 6, VG_BOLD, k == cur ? TE_INK : 0x9A9AA4, VG_CENTER);
+    }
 }
 
 /* SAMPLER: the slot's sound as a waveform with SLICE's cuts on it; while it records, what comes in and how far it is */
@@ -843,9 +850,21 @@ static void kx_draw_sampler(int x, int y, int w, int h)
         vg_text(st == 1u ? "WAITING FOR THE BAR" : "RECORDING", x + 22, y, VG_BOLD, C_RED, VG_LEFT);
         return;
     }
-    if (!usr_nz[k]) {
-        vg_text("EMPTY SLOT", x + w / 2, y + 20, VG_BIG, C_DIM, VG_CENTER);
-        vg_text("F5 RECORDS THE INPUT OR THE MIX FROM THE NEXT BAR", x + w / 2, y + 52, VG_SMALL, C_DIM, VG_CENTER);
+    if (!usr_nz[k]) {                              /* empty: the bars it will take, a big REC on them */
+        static const int BARS[4] = {4, 1, 2, 4};
+        int nb = BARS[clamp(kx_ic[IC_SBARS], 0, 3)], i;
+        te_dots(x, y, w, h - 20, 8);
+        for (i = 0; i <= nb * 4; i++)
+            vg_rect(x + 60 + i * (w - 70) / (nb * 4), y + (i % 4 ? 30 : 18), i % 4 ? 1 : 2, i % 4 ? 30 : 54, i % 4 ? TE_LOW : TE_MID);
+        vg_circle((float)(x + 26), (float)(y + 44), 20.0f, 0x2A0806);
+        vg_circle((float)(x + 26), (float)(y + 44), 14.0f, C_RED);
+        {
+            char m[64];
+            str_cpy(m, IC_SSLOT_N[k], sizeof m);
+            str_cpy(m + str_len(m), " IS EMPTY: F5 RECORDS ", sizeof m - str_len(m));
+            str_cpy(m + str_len(m), kx_ic[IC_SSRC] ? "THE MIX" : "THE INPUT", sizeof m - str_len(m));
+            vg_text(m, x + 60, y + 78, VG_BOLD, TE_INK, VG_LEFT);
+        }
         return;
     }
     for (c = 0; c < 120u; c++) {                   /* the slot's picture */
@@ -882,8 +901,8 @@ static void kx_draw_project(int x, int y, int w, int h)
         int pick = (uint32_t)kx_slot_pick == i;
         vg_rect(bx + 4, y + 52, w / 4 - 8, h - 52, pick ? vg_mix(C_BG, C_RED, 0.22f) : 0x111113);
         vg_rect(bx + 4, y + 52, w / 4 - 8, 2, pick ? C_RED : 0x2A2A2E);
-        vg_text(SL[i], bx + 12, y + 58, VG_BIG, used ? C_WHITE : 0x3A3A40, VG_LEFT);
-        vg_text(used ? kx_slot_name[i] : "EMPTY", bx + 12, y + 84, VG_SMALL, used ? C_TEXT : 0x55555C, VG_LEFT);
+        vg_text(SL[i], bx + 12, y + 58, VG_BIG, used ? C_WHITE : 0x70707A, VG_LEFT);
+        vg_text(used ? kx_slot_name[i] : "EMPTY", bx + 12, y + 84, VG_SMALL, used ? C_TEXT : 0x8A8A94, VG_LEFT);
         (void)h;
     }
 }
@@ -975,9 +994,9 @@ static void kx_draw_shift(void)
 {
     static const char *const ROW[4] = {"SELECT", "MOOD", "", "KICK SNARE CLAP HAT"};
     uint32_t r, k;
-    int x = 250, y = 94;
-    vg_rect_a(x - 8, y - 4, 238, 118, 0x000000, 0.82f);
-    vg_frame(x - 8, y - 4, 238, 118, 1, C_RED);
+    int x = 236, y = 94;
+    vg_rect_a(x - 8, y - 4, 244, 118, 0x000000, 0.82f);
+    vg_frame(x - 8, y - 4, 244, 118, 1, C_RED);
     vg_text(kx_shift_latch ? "SHIFT (FOR THE NEXT ONE)" : "SHIFT", x, y, VG_BOLD, C_RED, VG_LEFT);
     for (r = 0; r < 4u; r++)
         for (k = 0; k < 4u; k++) {
@@ -1002,11 +1021,11 @@ static void kx_draw_start(void)
         char f[3] = {'F', (char)('1' + i), 0};
         vg_rect(24, y, 432, 48, on ? vg_mix(C_BG, C_RED, 0.3f) : 0x141416);
         vg_rect(24, y, 4, 48, on ? C_RED : 0x2A2A2E);
-        vg_text(f, 40, y + 14, VG_BOLD, off ? 0x3A3A40 : C_RED, VG_LEFT);
-        vg_text(T[i], 74, y + 6, VG_BIG, off ? 0x3A3A40 : C_WHITE, VG_LEFT);
-        vg_text(off ? "nothing kept yet" : W[i], 74, y + 30, VG_SMALL, off ? 0x3A3A40 : C_DIM, VG_LEFT);
+        vg_text(f, 40, y + 14, VG_BOLD, off ? 0x70707A : C_RED, VG_LEFT);
+        vg_text(T[i], 74, y + 6, VG_BIG, off ? 0x70707A : C_WHITE, VG_LEFT);
+        vg_text(off ? "nothing kept yet" : W[i], 74, y + 30, VG_SMALL, off ? 0x70707A : C_DIM, VG_LEFT);
     }
-    vg_text("DATA + ENTER, OR F1 F2 F3.  THE KEYS AND PADS PLAY AT ONCE", 240, 262, VG_SMALL, 0x55555C, VG_CENTER);
+    vg_text("DATA + ENTER, OR F1 F2 F3.  THE KEYS AND PADS PLAY AT ONCE", 240, 262, VG_SMALL, 0x8A8A94, VG_CENTER);
 }
 
 static void kx_draw_toast(void)
@@ -1118,7 +1137,7 @@ static int kx_splash(void)
         vg_rect_a(0, 118, 480, 86, C_BG, 0.65f * a);
         wk = vg_text("KRIECH", x, 128, VG_BIG | VG_X2, vg_mix(C_BG, C_WHITE, a), VG_LEFT);
         vg_text("STROM", x + wk, 128, VG_BIG | VG_X2, vg_mix(C_BG, C_RED, a), VG_LEFT);
-        vg_text("BUILT ON FELUCCA", 240, 182, VG_SMALL, vg_mix(C_BG, 0x6A6A72, a), VG_CENTER);
+        vg_text("BUILT ON FELUCCA", 240, 182, VG_SMALL, vg_mix(C_BG, 0x9A9AA4, a), VG_CENTER);
     }
     kx_wear_fx(kx_fb, 480, 320);
     return 1;
@@ -1178,6 +1197,8 @@ static void kx_ui_draw(void)
         kx_draw_user(8, 96, 464, 110);
     } else if (pg == PG_SAMPLER) {
         kx_draw_sampler(8, 96, 464, 110);
+    } else if (pg == PG_DISPLAY) {
+        kx_draw_display(4, 96, 472, 110);
     } else if (pg == PG_FOOT) {
         kx_draw_foot(8, 96, 464, 110);
     } else if (pg == PG_MIDI) {
@@ -1203,7 +1224,7 @@ static void kx_ui_draw(void)
         default:
             if (t->eng_req == ENGI_FM6 && (p->scope == SC_ENGINE || fop_page(p->graph)))
                 kx_draw_fm6(12, 94, 456, 112, song.sel, fop_page(p->graph) ? (int)fop_op : -1);   /* (kx_pics.h) */
-            else
+            else if (!te_page(pg, 4, 96, 472, 110))   /* (kx_te.h: the page's own picture, else the sound) */
                 kx_draw_scope(4, 98, 472, 106, p->scope == SC_GLOBAL ? C_RED : col, 1.2f);
             break;
         }

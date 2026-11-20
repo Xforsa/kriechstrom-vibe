@@ -12,7 +12,7 @@
 #define C_BG 0x09090A
 #define C_PANEL 0x141416
 #define C_LINE 0x26262A
-#define C_DIM 0x6A6A70
+#define C_DIM 0x9A9AA4
 #define C_TEXT 0xD8D8DC
 #define C_WHITE 0xF4F4F4
 #define C_RED 0xE01818
@@ -43,6 +43,12 @@ static float kx_foot_expr;                        /* the expression pedal's posi
 static int kx_foot_down;
 static int kx_ped_focus[3];                       /* the pedal in focus on each pedal page */
 static uint32_t kx_ped_owner(int pg) { return pg == PG_PEDALS_IN ? PO_IN : pg == PG_PEDALS_M ? PO_MASTER : song.sel; }
+#define KX_PED_W 138                                /* a pedal's width on the board, and where each is */
+static int kx_ped_x(uint32_t ns, uint32_t j)
+{
+    int gap = (472 - 24 - (int)ns * KX_PED_W) / (int)(ns + 1u);
+    return 4 + 12 + gap + (int)j * (KX_PED_W + gap);
+}
 static int kx_ped_fi(int pg) { return pg == PG_PEDALS_IN ? 1 : pg == PG_PEDALS_M ? 2 : 0; }                   /* when encoder 1-4 last moved its value (the card lights up) */            /* the start screen: 0 where you left it, 1 the demo song, 2 empty */
 static float kx_enc_acc[VE_COUNT];
 static uint32_t kx_toast_seq;
@@ -654,6 +660,30 @@ static void kx_turn(uint32_t enc, float detents)
     }
 }
 
+/* the foot pedal: the expression pedal turns what MENU > FOOT PEDAL says, the switch does what it says (from the
+ * PEDAL jack, or clicked on that page) */
+static void kx_foot_set(float v)
+{
+    int32_t q = (int32_t)(v * 127.0f + 0.5f);
+    kx_foot_expr = v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
+    if (kx_ic[IC_EXPR] == 1)
+        kx_post(KXC_PARAM, NTRK, G_DMG, 0, q);
+    else if (kx_ic[IC_EXPR] == 2)
+        kx_post(KXC_PARAM, NTRK, G_WALL, 0, q);
+    else if (kx_ic[IC_EXPR] == 3)
+        kx_post(KXC_PARAM, song.sel, P_LEVEL, 0, q);
+}
+static void kx_foot_switch(int down)
+{
+    kx_foot_down = down;
+    switch (kx_ic[IC_FSW]) {
+    case 0: if (down) kx_post(KXC_PLAY, 3, 0, 0, 0); break;
+    case 1: if (down) kx_post(KXC_TOOL, song.sel, TL_DICE, 0, 0); break;
+    case 2: kx_post(KXC_PERF, PF_TAPE, down ? 1u : 0u, 0, 0); break;
+    default: kx_post(KXC_PERF, PF_FRZ, down ? 1u : 0u, 0, 0); break;
+    }
+}
+
 static void kx_button(uint32_t b, int down)
 {
     if (b == VB_SHIFT) {                          /* held: as long as it is down; tapped: for the next control */
@@ -781,14 +811,25 @@ static void kx_ui_event(const vibe_event *e)
                     kx_post(KXC_LANE, lane, 0, 0, 0);
                 kx_post(KXC_CURSOR, 0, 0, 0, (int32_t)s);
             } else if (IS_PED_PAGE(kx_page) && y >= 92 && y < 208) {
-                int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page));
-                int gap = (472 - 60 - ns * 128) / (ns + 1), j;
+                int fi = kx_ped_fi(kx_page), ns = kx_ped_slots(kx_ped_owner(kx_page)), j;
                 for (j = 0; j < ns; j++) {
-                    int px = 4 + 30 + gap + j * (128 + gap);
-                    if (x >= px && x < px + 128)
+                    int px = kx_ped_x((uint32_t)ns, (uint32_t)j);
+                    if (x >= px && x < px + KX_PED_W)
                         kx_ped_focus[fi] = j;
                 }
             }
+        }
+        if (kx_page == PG_FOOT) {                 /* the FOOT PEDAL page: drag the pedal, press the switch */
+            int x = VIBE_TOUCH_X(e), y = VIBE_TOUCH_Y(e);
+            static int drag;
+            if (e->id == VIBE_TOUCH_DOWN)
+                drag = x < 190 && y >= 96 && y < 210;
+            if (drag && e->id != VIBE_TOUCH_UP)
+                kx_foot_set((float)(196 - y) / 90.0f);
+            if (e->id == VIBE_TOUCH_UP)
+                drag = 0;
+            if (x >= 352 && y >= 96 && y < 210 && e->id != VIBE_TOUCH_MOVE)
+                kx_foot_switch(e->id == VIBE_TOUCH_DOWN);
         }
         break;
     case VIBE_EV_BUTTON:
@@ -799,24 +840,10 @@ static void kx_ui_event(const vibe_event *e)
             kx_turn(e->id, e->value);
         break;
     case VIBE_EV_PEDAL:                           /* the foot pedal (the PEDAL jack: a switch or an expression pedal) */
-        if (e->id == VIBE_PEDAL_EXPR && kx_ic[IC_EXPR]) {
-            int32_t v = (int32_t)(e->value * 127.0f + 0.5f);
-            kx_foot_expr = e->value;
-            if (kx_ic[IC_EXPR] == 1)
-                kx_post(KXC_PARAM, NTRK, G_DMG, 0, v);
-            else if (kx_ic[IC_EXPR] == 2)
-                kx_post(KXC_PARAM, NTRK, G_WALL, 0, v);
-            else
-                kx_post(KXC_PARAM, song.sel, P_LEVEL, 0, v);
-        } else if (e->id == VIBE_PEDAL_SWITCH) {
-            kx_foot_down = e->down;
-            switch (kx_ic[IC_FSW]) {
-            case 0: if (e->down) kx_post(KXC_PLAY, 3, 0, 0, 0); break;
-            case 1: if (e->down) kx_post(KXC_TOOL, song.sel, TL_DICE, 0, 0); break;
-            case 2: kx_post(KXC_PERF, PF_TAPE, e->down ? 1u : 0u, 0, 0); break;
-            default: kx_post(KXC_PERF, PF_FRZ, e->down ? 1u : 0u, 0, 0); break;
-            }
-        }
+        if (e->id == VIBE_PEDAL_EXPR)
+            kx_foot_set(e->value);
+        else if (e->id == VIBE_PEDAL_SWITCH)
+            kx_foot_switch(e->down);
         break;
     case VIBE_EV_MIDI: {
         uint32_t st = e->midi[0];

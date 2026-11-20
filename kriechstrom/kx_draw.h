@@ -409,11 +409,18 @@ static void kx_draw_master(int x, int y, int w, int h)
     amt[3] = song.g[G_SPLICE];
     amt[4] = song.g[G_HAUNT] ? song.g[G_HAMT] : 0;
     amt[5] = song.g[G_HISS];
-    vg_rect(x, y, cs + 40, cs, 0x0D0D0F);
-    cr_cache_blit(&cr_master, kx_fb, 480, 320, x + 20, y, cr_wear(), 190 + (int)(heat * 160.0f));
-    vg_text("WEAR", x + 6, y + 4, VG_SMALL, C_DIM, VG_LEFT);
-    vg_itoa((int)(cr_wear() * 100.0f + 0.5f), b);
-    vg_text(b, x + 6, y + 18, VG_BOLD, C_WHITE, VG_LEFT);
+    {   /* WEAR: how far the mix is worn, as a column of cells (the top one sparks with the mix) */
+        int k, n = 6, ch = (cs - 4) / n, lit = (int)(cr_wear() * (float)n + 0.5f);
+        vg_rect(x, y, cs + 40, cs, 0x0D0D0F);
+        for (k = 0; k < n; k++) {
+            int cy = y + cs - 2 - (k + 1) * ch;
+            uint32_t c = k < lit ? (k == lit - 1 ? vg_mix(C_RED, 0xFFE0D0, heat > 1.0f ? 1.0f : heat) : C_RED) : 0x26262A;
+            vg_rect(x + cs + 18, cy + 1, 16, ch - 2, c);
+        }
+        vg_text("WEAR", x + 6, y + 4, VG_SMALL, C_DIM, VG_LEFT);
+        vg_itoa((int)(cr_wear() * 100.0f + 0.5f), b);
+        vg_text(b, x + 6, y + 18, VG_BIG, C_WHITE, VG_LEFT);
+    }
     kx_draw_reels(x + cs + 48, y, w - cs - 48, cs);
     {   /* the signal along the chain: sparks running left to right, as many and as fast as the mix is loud */
         float tm = (float)vibe_frames() / kx_sr;

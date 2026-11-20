@@ -34,7 +34,8 @@ mark grows behind every page as the master wears the mix out.
   (the FM-1's format, IMA ADPCM); a track plays it as SLICE, cut where its hits are, or as SAMPLE across the keys.
   Kept in `usr1.kxu` .. `usr3.kxu`.
 - **The start:** where you left it, the demo song, an empty project, or one of your projects.
-- **The display wears with the sound:** the creep figure grows with DAMAGE and WALL and pulses with the level; DAMAGE
+- **The display wears with the sound:** the creep figure grows with DAMAGE and WALL, and on every hit a pulse of
+  current runs through it; DAMAGE
   tears the picture on the drum hits, CHAR towards DIGITAL splits its colours, SPLICE cuts bands of it, HAUNT's DRAG
   sags it over the last beat of a bar, HISS adds grain. Each effect has a picture of its own, moving with the
   sound: DAMAGE a tape bitten full of holes (square ones as CHAR goes DIGITAL), WALL bricks laid, RESONATE four

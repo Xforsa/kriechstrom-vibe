@@ -5,6 +5,15 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- the figure behind the pages: on every hit a pulse of current runs through it from the root to the tips (not with
+  SCREEN WEAR OFF; white on FULL)
+- MASTER shows WEAR as a column of cells (its top one sparks with the mix) instead of the figure squeezed small
+
 ## [0.5.5] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

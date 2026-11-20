@@ -48,6 +48,33 @@ static void kx_bg_paint(uint16_t *fb)
         kx_ic[IC_SCREEN] == 1 ? 100 + (int)(heat * 80.0f) : 100;   /* (LOW: it breathes with the level, no flashes) */
     for (i = 0; i < BG_W * BG_H; i++)
         fb[i] = px_scale(kx_bg[i], k);
+    if (kx_ic[IC_SCREEN]) {                       /* a hit: a pulse of current runs through the figure, root to tips */
+        static float prev;
+        static uint64_t t0;
+        static float amt;
+        float lim = 8.0f + (0.30f + (float)wear / 40.0f * 0.70f) * 248.0f, u;
+        if (kx_fx_hit > 0.5f && kx_fx_hit > prev + 0.05f) {
+            t0 = vibe_frames() ? vibe_frames() : 1;
+            amt = kx_fx_hit > 1.0f ? 1.0f : kx_fx_hit;
+        }
+        prev = kx_fx_hit;
+        u = t0 ? (float)(vibe_frames() - t0) / (kx_sr * 0.42f) : 1.0f;
+        if (u < 1.0f) {
+            float front = u * (lim + 16.0f), sx = 300.0f / 1024.0f, sy = 260.0f / 1024.0f, s = sx < sy ? sx : sy;
+            float fade = (1.0f - u) * amt;
+            uint32_t j;
+            uint32_t hot = kx_ic[IC_SCREEN] == 2 ? 0xFFD8C8 : 0xE0502A;
+            for (j = 0; j < cr_n; j++) {
+                const cr_seg *g = &cr[j];
+                float o = (float)g->order, d = front - o, w;
+                if (o > lim || d < 0.0f || d > 16.0f)
+                    continue;
+                w = (g->depth == 0 ? 3.4f : g->depth == 1 ? 2.2f : 1.2f) * s * 1.6f + 0.6f;
+                vg_line(250.0f + g->x0 * sx, 70.0f + g->y0 * sy, 250.0f + g->x1 * sx, 70.0f + g->y1 * sy, w,
+                        vg_mix(0x4A160C, hot, fade * (1.0f - d / 16.0f)));
+            }
+        }
+    }
 }
 
 /* after the page: the wear of the picture (fb is w x h: the display or the stage) */

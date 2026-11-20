@@ -47,10 +47,9 @@ static void kx_draw_header(void)
             vg_rect(x, 22, w, 2, C_RED);
         x += w + 12;
     }
-    if (kx_fam == FA_MENU) {
-        vg_text("MENU", x, 7, VG_SMALL, C_WHITE, VG_LEFT);
+    vg_text("MENU", x, 7, VG_SMALL, kx_fam == FA_MENU ? C_WHITE : 0xB4B4BC, VG_LEFT);   /* (always: a click opens it) */
+    if (kx_fam == FA_MENU)
         vg_rect(x, 22, vg_text_width("MENU", VG_SMALL), 2, C_RED);
-    }
     vg_itoa(song.g[G_BPM], b);
     vg_text(b, 418, 4, VG_BIG, C_WHITE, VG_RIGHT);
     if (song.playing)
@@ -1045,7 +1044,7 @@ static void kx_draw_help(void)
     static const char *const G[] = {
         "KEYS", "the selected track", "PADS 1-4", "mute (SHIFT: solo)", "PADS 5-8", "DICE (SHIFT: OOPS)",
         "PADS 9-12", "hold FX (SHIFT: +4)", "PADS 13-16", "drums (SHIFT: +4)", "K1-K6", "the page families",
-        "A", "track level", "B", "DMG (SHIFT: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "all (SHIFT: projects)",
+        "A", "track level", "B", "DMG (SHIFT: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "or SHIFT + HOME",
         "SHIFT", "hold, or tap once",
     };
     static char lab[4][24];
@@ -1123,7 +1122,7 @@ static void kx_draw_help(void)
     }
     r[n++] = "DATA", r[n++] = dw;
     if (ew[0])
-        r[n++] = "ENTER", r[n++] = ew;
+        r[n++] = "ENTER/DATA", r[n++] = ew;
     if (f5w[0])
         r[n++] = "F5", r[n++] = f5w;
     r[n++] = "< >", r[n++] = "this family's pages";

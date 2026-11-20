@@ -5,6 +5,17 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Added
+- SHIFT + HOME opens MENU: the plugin's Rack view has no MENU key; MENU is always shown at the top of the display, a
+  click opens it
+
+### Changed
+- HOME names DATA pressed as ENTER and SHIFT + HOME as MENU
+
 ## [0.5.3] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

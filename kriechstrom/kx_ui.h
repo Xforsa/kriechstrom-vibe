@@ -878,7 +878,13 @@ static void kx_button(uint32_t b, int down)
     if (kx_help && b != VB_HOME && b != VB_RETURN)
         kx_help = 0;
     switch (b) {
-    case VB_HOME: kx_help = !kx_help; break;
+    case VB_HOME:                                 /* HOME: this page's controls; SHIFT + HOME: MENU (the plugin's Rack
+                                                   * view has no MENU key) */
+        if (kx_shift)
+            kx_help = 0, kx_open(FA_MENU, 1);
+        else
+            kx_help = !kx_help;
+        break;
     case VB_RETURN:
         if (kx_help)
             kx_help = 0;

@@ -102,6 +102,13 @@ sheet, page by page, is on the [site](https://xforsa.github.io/kriechstrom-vibe/
 - Both files are on the [releases](https://github.com/Xforsa/kriechstrom-vibe/releases) page. PLAY starts the four
   tracks' patterns at once.
 
+## Versions
+
+KRIECHSTROM for VIBE FM follows KRIECHSTROM for the FM-1: its version X.Y is the FM-1 line its sound comes from (0.5
+plays KRIECHSTROM 0.5.x), and a release that changes only the VIBE side counts up behind it (0.5.1, 0.5.2 ..). Each
+release names the FM-1 version inside it; `core/kriechstrom` points at that commit. The VIBE is never ahead of the FM-1
+in the sound: what is new in the sound comes to the FM-1 first, the VIBE takes it with the next X.Y.
+
 ## Build
 
 Needs [Zig 0.13.0](https://ziglang.org/download/#release-0.13.0) (`zig` on the PATH or `ZIG=/path/to/zig`), Python 3

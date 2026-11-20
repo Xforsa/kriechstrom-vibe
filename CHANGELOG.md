@@ -5,6 +5,29 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5] - 2026-11-20
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Added
+- pedalboards: three pedals a track (the project's INSERT and two more), three on the input, two on the whole mix, any
+  of KRIECHSTROM's thirteen; each shows on its window what it does to a wave; DATA, F5 or a click picks the pedal
+- the sampler (SOUND > SAMPLER): the input or the mix, 1, 2 or 4 bars from the next bar, into USR1-3, played as SLICE
+  cut at its hits or as SAMPLE; kept between sessions
+- a foot pedal (MENU > FOOT PEDAL): the expression pedal turns DAMAGE, WALL or the level, the switch plays, DICEs,
+  stops the tape or freezes; both work with the mouse on that page
+- pictures of their own for the master's effects (a tape bitten full of holes, bricks, strings, cut sixteenths, the
+  swell or the brake, grain), the delay, the reverb, the chorus, the slicer, the clock, the destinations, the drum
+  lanes, the voices and the display's three wears; needle meters on the mixer, tape reels on the master, FM6's
+  algorithm, glyphs on the drum lanes
+- HOME shows what each control does on the page you are on
+- clicks on the steps and the pedals; a Launchpad's 64 pads are all 64 steps; VIBE FM Link shows the page and the
+  four knobs on the controller
+
+### Changed
+- brighter text throughout; the knobs' names on the pedals in full
+- the core: KRIECHSTROM 0.5.2 (two more empty hooks in fx.c, for the pedals)
+
 ## [0.4] - 2026-11-19
 
 ### Added

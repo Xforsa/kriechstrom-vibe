@@ -7,5 +7,6 @@
   "image": "docs/card.png",
   "color": "#FF2018",
   "cheat": "https://xforsa.github.io/kriechstrom-vibe/#cheat",
+  "play": "https://play.thefirmwarehub.com/?fw=kriechstrom-vibe",
   "sounds": "CC0: Versilian Studios' VSCO-2 CE and VCSL (piano, flute, sax in the SAMPLE engine, via Felucca); tests/chord.wav is our own"
 }

@@ -93,7 +93,7 @@ mark grows behind every page as the master wears the mix out.
 | A | the selected track's level |
 | B | DAMAGE (SHIFT + B: WALL) |
 | F1-F4 | select track 1-4 |
-| F5 | the page's action: OOPS on SOUND, DICE on SEQ (SHIFT: MOOD), REC on SAMPLER, the next pedal on PEDALS, SAVE on PROJECT, the input's type on INPUT |
+| F5 | the page's action: OOPS on SOUND, DICE on SEQ (SHIFT: MOOD), REC on SAMPLER, the next pedal on PEDALS, SAVE on PROJECTS (SHIFT: export) and PARTS A-D, the input's type on INPUT |
 | F6 | UNDO |
 | MENU | its pages as tiles: projects, project files, parts A-D, mixer, outputs, MIDI OUT and CV, foot pedal, display, clock (SHIFT + MENU: straight to PROJECTS) |
 | SHIFT | held or tapped (then it holds for the next control); the pads' second functions are shown |

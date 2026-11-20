@@ -84,6 +84,7 @@ static void kx_cfg_poll(void);
 static void kx_store_poll(int now)
 {
     kx_cfg_poll();
+    kx_ped_poll(now);
     uint32_t s = __atomic_load_n(&kx_snap_seq, __ATOMIC_ACQUIRE), i;
     uint64_t ms = vibe_frames() * 1000u / (uint64_t)(kx_sr > 0 ? kx_sr : 48000.0f);
     if (s != kx_snap_seen) {

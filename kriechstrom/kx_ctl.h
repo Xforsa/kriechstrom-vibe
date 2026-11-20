@@ -31,6 +31,7 @@ enum {
     KXC_SONG,         /* SONG: play the chain from its first section, or stop */
     KXC_USER,         /* a = user sound slot, b: 0 load, 1 save (named by itself), 2 erase */
     KXC_DEMO,         /* the demo song into the empty slots, and as the music now */
+    KXC_PED,          /* a = owner (PO_*), b = slot, c = field (PD_*), v = detents: a pedal (kx_pedals.h) */
     KXC_INCFG,        /* a = IC_*, v = detents (b = 1: v is the value): the audio input's settings (kx_input.h) */
 };
 static int kx_silent_engine(uint32_t e) { return e == ENGI_SAMPLE || (FELUCCA_SLICE && e == 13u); }
@@ -236,8 +237,10 @@ static void kx_apply(const kx_cmd *k)
                 kx_slot_saved(k->a & 3u);
         } else if (k->b == 0u)
             project_load(k->a & 3u);
-        else
+        else {
             project_new();
+            kx_ped_clear();
+        }
         kx_slot_info();
         break;
     case KXC_VIEW:
@@ -285,9 +288,13 @@ static void kx_apply(const kx_cmd *k)
         }
         break;
     }
+    case KXC_PED:
+        kx_ped_turn(k->a, k->b, k->c, k->v);
+        break;
     case KXC_DEMO:
         if (chain_busy() || song.playing)
             transport_req = 2;
+        kx_ped_clear();
         kx_demo_load(0);
         ui_message("DEMO SONG: SEQ > SONG, F5");
         break;

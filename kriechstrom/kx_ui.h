@@ -23,9 +23,11 @@ static const uint32_t TRK_RGB[NTRK] = {0xE0301C, 0xE8A23A, 0xD9D2C2, 0x7896B0}; 
 enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
-enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER, PG_DISPLAY };
-#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : 3)
-#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY)
+enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER, PG_DISPLAY,
+       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT };
+#define IS_PED_PAGE(pg) ((pg) == PG_PEDALS || (pg) == PG_PEDALS_IN || (pg) == PG_PEDALS_M)
+#define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : (pg) == PG_DISPLAY ? 3 : 4)
+#define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY || (pg) == PG_FOOT)
 #define PG_MAX 24
 static uint8_t kx_pl[PG_MAX], kx_pn;              /* the open family's pages, in order */
 static uint8_t kx_fam, kx_fpage[FA_N];            /* the family open, each family's page */
@@ -34,7 +36,12 @@ static int kx_help, kx_shift, kx_in_asked, kx_slot_pick, kx_boot_done, kx_user_p
 static int kx_shift_latch, kx_shift_used;         /* SHIFT tapped: it holds for the next control (a mouse has one button) */
 static uint64_t kx_shift_t;
 static int kx_start = 1, kx_start_sel;
-static uint64_t kx_card_hot[4];                   /* when encoder 1-4 last moved its value (the card lights up) */            /* the start screen: 0 where you left it, 1 the demo song, 2 empty */
+static uint64_t kx_card_hot[4];
+static float kx_foot_expr;                        /* the expression pedal's position (the FOOT PEDAL page) */
+static int kx_foot_down;
+static int kx_ped_focus[3];                       /* the pedal in focus on each pedal page */
+static uint32_t kx_ped_owner(int pg) { return pg == PG_PEDALS_IN ? PO_IN : pg == PG_PEDALS_M ? PO_MASTER : song.sel; }
+static int kx_ped_fi(int pg) { return pg == PG_PEDALS_IN ? 1 : pg == PG_PEDALS_M ? 2 : 0; }                   /* when encoder 1-4 last moved its value (the card lights up) */            /* the start screen: 0 where you left it, 1 the demo song, 2 empty */
 static float kx_enc_acc[VE_COUNT];
 static uint32_t kx_toast_seq;
 static char kx_toast[24];
@@ -92,11 +99,14 @@ static void kx_family_pages(uint32_t fa)
         break;
     case FA_FX:
         ADD(PG_MASTER);
+        ADD(PG_PEDALS);
+        for (i = 0; i < NPAGES; i++)              /* (the INSERT pages: the PEDALS page has them) */
+            if (PAGES[i].fam == FAM_FX && kx_page_ok(i) && PAGES[i].graph != GR_INS)
+                ADD(i);
         ADD(PG_INPUT);
         ADD(PG_INPUT2);
-        for (i = 0; i < NPAGES; i++)
-            if (PAGES[i].fam == FAM_FX && kx_page_ok(i))
-                ADD(i);
+        ADD(PG_PEDALS_IN);
+        ADD(PG_PEDALS_M);
         break;
     case FA_SEQ:
         ADD(PG_GRID);
@@ -111,6 +121,7 @@ static void kx_family_pages(uint32_t fa)
         ADD(PG_MIXER);
         ADD(PG_PROJECT);
         ADD(PG_MIDI);
+        ADD(PG_FOOT);
         ADD(PG_DISPLAY);
         i = (uint32_t)kx_page_index("CLOCK");
         ADD(i);
@@ -151,6 +162,10 @@ static const char *kx_title(int pg)
     case PG_MIDI: return "MIDI OUT & CV";
     case PG_USER: return "MY SOUNDS";
     case PG_DISPLAY: return "DISPLAY";
+    case PG_FOOT: return "FOOT PEDAL";
+    case PG_PEDALS: return "PEDALS";
+    case PG_PEDALS_IN: return "INPUT PEDALS";
+    case PG_PEDALS_M: return "MASTER PEDALS";
     }
     if (pg >= 0 && pg < (int)NPAGES) {
         const page_t *p = &PAGES[pg];
@@ -167,6 +182,8 @@ static const char *kx_title(int pg)
 /* the page whose knobs the encoders turn (our pages lend one of KRIECHSTROM's), -1 none */
 static int kx_knob_page(void)
 {
+    if (IS_PED_PAGE(kx_page))
+        return kx_page;
     if (IS_IC_PAGE(kx_page))
         return kx_page;
     if (kx_page >= 0 && kx_page < (int)NPAGES)
@@ -181,8 +198,9 @@ static int kx_knob_page(void)
 }
 
 typedef struct { const char *label; char val[12]; const char *unit; float pos; int bip, on; } kx_card;
-static const uint8_t IN_SLOTS[4][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
-                                       {IC_MOUT, IC_MCH, IC_CLK, IC_CV}, {IC_SCREEN, 255, 255, 255}};
+static const uint8_t IN_SLOTS[5][4] = {{IC_LEVEL, IC_DRIVE, IC_GATE, IC_FEED}, {IC_PAN, IC_CHO, IC_DLY, IC_REV},
+                                       {IC_MOUT, IC_MCH, IC_CLK, IC_CV}, {IC_SCREEN, 255, 255, 255},
+                                       {IC_EXPR, IC_FSW, 255, 255}};
 static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 {
     if (IS_IC_PAGE(pg)) {                         /* the audio input's, MIDI OUT's (kx_input.h, kx_midi.h) */
@@ -198,6 +216,10 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
             str_cpy(c->val, IC_TRK[clamp(v, 0, NTRK)], sizeof c->val);
         else if (f == IC_SCREEN)
             str_cpy(c->val, IC_WEAR_N[clamp(v, 0, 2)], sizeof c->val);
+        else if (f == IC_EXPR)
+            str_cpy(c->val, IC_EXPR_N[clamp(v, 0, 3)], sizeof c->val);
+        else if (f == IC_FSW)
+            str_cpy(c->val, IC_FSW_N[clamp(v, 0, 3)], sizeof c->val);
         else if (f == IC_MOUT || f == IC_CLK)
             str_cpy(c->val, v ? "ON" : "OFF", sizeof c->val);
         else if (f == IC_MCH) {
@@ -218,6 +240,38 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
     const char *u = "";
     memset(c, 0, sizeof *c);
     c->label = "";
+    if (IS_PED_PAGE(pg)) {                        /* the pedal in focus: TYPE (SHIFT: MIX), its three */
+        uint32_t o = kx_ped_owner(pg), j = (uint32_t)kx_ped_focus[kx_ped_fi(pg)];
+        int16_t v[PD_N];
+        const param_desc_t *dd;
+        const char *un = "";
+        kx_ped_get(o, j, v);
+        c->on = 1;
+        if (slot == 0u) {
+            if (kx_shift) {
+                c->label = "MIX";
+                param_format(&TP[P_IMIX], v[PD_MIX], c->val, &un);
+                c->pos = (float)v[PD_MIX] / 127.0f;
+            } else {
+                c->label = "PEDAL";
+                str_cpy(c->val, N_ITYPE[clamp(v[0], 0, IT_N - 1)], sizeof c->val);
+                c->pos = (float)v[0] / (float)(IT_N - 1);
+                un = "MIX: SHIFT";
+            }
+            c->unit = un;
+            return;
+        }
+        if (!v[0]) {
+            c->on = 0;
+            return;
+        }
+        dd = ins_desc(v[0], slot - 1u);
+        c->label = dd->label;
+        param_format(dd, v[slot], c->val, &un);
+        c->unit = un;
+        c->pos = dd->max > dd->min ? (float)(v[slot] - dd->min) / (float)(dd->max - dd->min) : 0.0f;
+        return;
+    }
     if (pg == PG_USER) {                          /* MY SOUNDS: the slot, its sound */
         static const char *const L[4] = {"SLOT", "SOUND", "ENGINE", ""};
         uint32_t s = (uint32_t)kx_user_pick % UP_SLOTS;
@@ -474,7 +528,11 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
             kx_post(KXC_TOOL, song.sel, kx_shift ? TL_MOOD : TL_DICE, 0, 0);
         break;
     case FA_FX:
-        if (kx_page == PG_INPUT || kx_page == PG_INPUT2) {
+        if (IS_PED_PAGE(kx_page)) {               /* F5: the next pedal of the row */
+            int fi = kx_ped_fi(kx_page);
+            kx_ped_focus[fi] = (kx_ped_focus[fi] + 1) % kx_ped_slots(kx_ped_owner(kx_page));
+            kx_card_hot[0] = kx_card_hot[1] = kx_card_hot[2] = kx_card_hot[3] = vibe_frames();
+        } else if (kx_page == PG_INPUT || kx_page == PG_INPUT2) {
             int m = (kx_ic[IC_MODE] + 1) % 3;
             kx_post(KXC_INCFG, IC_MODE, 1, 0, m);
             vibe_input_mode(0, m);
@@ -497,7 +555,10 @@ static const char *kx_f5_name(void)
             return song.playing ? "STOP" : "PLAY";
         return kx_shift ? "MOOD" : "DICE";
     case FA_MENU: return kx_page == PG_PROJECT ? (kx_shift ? "NEW" : "SAVE") : "";
-    case FA_FX: return kx_page == PG_INPUT || kx_page == PG_INPUT2 ? IC_MODE_N[kx_ic[IC_MODE] % 3] : "";
+    case FA_FX:
+        if (IS_PED_PAGE(kx_page))
+            return "NEXT";
+        return kx_page == PG_INPUT || kx_page == PG_INPUT2 ? IC_MODE_N[kx_ic[IC_MODE] % 3] : "";
     default: return "";
     }
 }
@@ -514,7 +575,11 @@ static void kx_turn(uint32_t enc, float detents)
         kx_card_hot[enc] = vibe_frames();
     if (enc <= VE_4) {
         int pg = kx_knob_page();
-        if (kx_page == PG_USER) {
+        if (IS_PED_PAGE(kx_page)) {
+            uint32_t f = enc == VE_1 ? (kx_shift ? PD_MIX : PD_TYPE) : PD_A + (enc - VE_2);
+            kx_post(KXC_PED, kx_ped_owner(kx_page), (uint32_t)kx_ped_focus[kx_ped_fi(kx_page)], f,
+                    f == PD_TYPE ? (n > 0 ? 1 : -1) : n);
+        } else if (kx_page == PG_USER) {
             if (enc == VE_1)
                 kx_user_pick = clamp(kx_user_pick + n, 0, UP_SLOTS - 1);
         } else if (kx_page == PG_PROJECT) {
@@ -672,6 +737,26 @@ static void kx_ui_event(const vibe_event *e)
     case VIBE_EV_ENCODER:
         if (e->id < VE_COUNT)
             kx_turn(e->id, e->value);
+        break;
+    case VIBE_EV_PEDAL:                           /* the foot pedal (the PEDAL jack: a switch or an expression pedal) */
+        if (e->id == VIBE_PEDAL_EXPR && kx_ic[IC_EXPR]) {
+            int32_t v = (int32_t)(e->value * 127.0f + 0.5f);
+            kx_foot_expr = e->value;
+            if (kx_ic[IC_EXPR] == 1)
+                kx_post(KXC_PARAM, NTRK, G_DMG, 0, v);
+            else if (kx_ic[IC_EXPR] == 2)
+                kx_post(KXC_PARAM, NTRK, G_WALL, 0, v);
+            else
+                kx_post(KXC_PARAM, song.sel, P_LEVEL, 0, v);
+        } else if (e->id == VIBE_PEDAL_SWITCH) {
+            kx_foot_down = e->down;
+            switch (kx_ic[IC_FSW]) {
+            case 0: if (e->down) kx_post(KXC_PLAY, 3, 0, 0, 0); break;
+            case 1: if (e->down) kx_post(KXC_TOOL, song.sel, TL_DICE, 0, 0); break;
+            case 2: kx_post(KXC_PERF, PF_TAPE, e->down ? 1u : 0u, 0, 0); break;
+            default: kx_post(KXC_PERF, PF_FRZ, e->down ? 1u : 0u, 0, 0); break;
+            }
+        }
         break;
     case VIBE_EV_MIDI: {
         uint32_t st = e->midi[0];

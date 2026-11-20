@@ -108,7 +108,8 @@ static void kx_draw_cards(int pg, int y)
 {
     uint32_t k;
     uint32_t col = TRK_RGB[song.sel];
-    if ((pg >= 0 && pg < (int)NPAGES && PAGES[pg].scope == SC_GLOBAL) || IS_IC_PAGE(pg))
+    if ((pg >= 0 && pg < (int)NPAGES && PAGES[pg].scope == SC_GLOBAL) || IS_IC_PAGE(pg) || pg == PG_PEDALS_IN ||
+        pg == PG_PEDALS_M)
         col = C_RED;
     vg_rect(8, y - 4, 464, 1, 0x26262A);
     for (k = 0; k < 4u; k++) {
@@ -645,6 +646,122 @@ static void kx_draw_user(int x, int y, int w, int h)
     }
 }
 
+/* ---- the pedalboard: each pedal drawn as one (its enclosure in its type's colour, a name plate, three knobs, the LED
+ * lit by what it does, the footswitch), patch cables between them with the signal running along */
+static const uint32_t PED_RGB[IT_N] = {0x26262A, 0xC8762A, 0xB8261C, 0xD8B23A, 0x6A3A8C, 0x4E8A3A, 0x2E8A9A, 0x3A62B0,
+                                       0x3A9A82, 0x7A7A3A, 0x7A4A2A, 0x6A6A70, 0x8A2A14, 0xA0306A};
+static void kx_knob(float cx, float cy, float r, float pos, uint32_t ink)
+{
+    float a = 0.375f - pos * 0.75f;               /* (270 degrees, as a real one) */
+    vg_circle(cx, cy + 1.5f, r, 0x000000);
+    vg_circle(cx, cy, r, 0x1A1A1C);
+    vg_circle(cx, cy, r - 2.0f, 0x2C2C30);
+    vg_line(cx, cy, cx + vd_sin(a + 0.25f) * (r - 3.0f), cy - vd_sin(a) * (r - 3.0f), 2.0f, ink);
+}
+static void kx_pedal(int x, int y, int w, int h, const int16_t *v, int focus, float lvl, int num)
+{
+    int ty = clamp(v[0], 0, IT_N - 1), k;
+    uint32_t body = PED_RGB[ty], dark = vg_mix(body, 0x000000, 0.45f);
+    char n[2] = {(char)('1' + num), 0};
+    vg_round(x + 3, y + 4, w, h, 8, 0x000000);                      /* (its shadow) */
+    vg_round(x, y, w, h, 8, ty ? body : 0x18181A);
+    vg_round(x + 2, y + 2, w - 4, h / 2, 7, ty ? vg_mix(body, 0xFFFFFF, 0.10f) : 0x1C1C1F);   /* (the light on its top) */
+    vg_round(x + 2, y + h / 2, w - 4, h / 2 - 2, 7, ty ? body : 0x18181A);
+    if (focus)
+        vg_frame(x - 3, y - 3, w + 6, h + 6, 2, C_WHITE);
+    vg_text(n, x + 6, y + 4, VG_SMALL, ty ? vg_mix(body, 0x000000, 0.6f) : 0x3A3A40, VG_LEFT);
+    if (!ty) {                                                      /* an empty place on the board */
+        vg_text("EMPTY", x + w / 2, y + h / 2 - 8, VG_BOLD, 0x3A3A40, VG_CENTER);
+        vg_text("ENC 1", x + w / 2, y + h / 2 + 10, VG_SMALL, 0x2E2E34, VG_CENTER);
+        return;
+    }
+    for (k = 0; k < 3; k++) {                                       /* the three knobs */
+        const param_desc_t *dd = ins_desc(ty, (uint32_t)k);
+        float pos = dd->max > dd->min ? (float)(v[1 + k] - dd->min) / (float)(dd->max - dd->min) : 0.0f;
+        float cx = (float)x + (float)w * (0.2f + 0.3f * (float)k);
+        char lb[5];
+        str_cpy(lb, dd->label, sizeof lb);       /* (four letters: three fit side by side) */
+        kx_knob(cx, (float)y + 22.0f, 9.5f, pos, C_WHITE);
+        vg_text(lb, (int)cx, y + 34, VG_SMALL, dark, VG_CENTER);
+    }
+    vg_rect(x + 8, y + 52, w - 16, 22, 0x0E0E10);                   /* the name plate */
+    vg_text(N_ITYPE[ty], x + w / 2, y + 55, VG_BOLD, C_WHITE, VG_CENTER);
+    {                                                               /* the LED: as bright as what it does */
+        float a = lvl > 1.0f ? 1.0f : lvl;
+        uint32_t led = v[PD_MIX] ? vg_mix(0x400808, 0xFF3020, 0.35f + 0.65f * a) : 0x300606;
+        if (v[PD_MIX] && a > 0.05f)
+            vg_circle((float)(x + w - 12), (float)(y + 9), 7.0f, vg_mix(body, 0xFF3020, 0.35f * a));
+        vg_circle((float)(x + w - 12), (float)(y + 9), 3.5f, led);
+    }
+    vg_circle((float)(x + w / 2), (float)(y + h - 15), 10.0f, 0x0C0C0E);   /* the footswitch */
+    vg_circle((float)(x + w / 2), (float)(y + h - 16), 8.0f, 0x8A8A90);
+    vg_circle((float)(x + w / 2), (float)(y + h - 17), 5.0f, 0xC8C8CC);
+}
+static void kx_draw_pedals(int pg, int x, int y, int w, int h)
+{
+    uint32_t o = kx_ped_owner(pg), j, ns = (uint32_t)kx_ped_slots(o);
+    int pw = 128, gap = (w - 60 - (int)ns * pw) / (int)(ns + 1u), px[PED_SLOTS];
+    float tm = (float)vibe_frames() / kx_sr, sig = 0.0f;
+    const char *in = o == PO_IN ? "IN 1/2" : o == PO_MASTER ? "MIX" : "SOUND";
+    const char *out = o == PO_MASTER ? "MASTER" : "MIX";
+    for (j = 0; j < ns; j++)
+        px[j] = x + 30 + gap + (int)j * (pw + gap);
+    for (j = 0; j < ns; j++)
+        sig = kx_ped_lvl[o][j] > sig ? kx_ped_lvl[o][j] : sig;
+    if (o < NTRK)
+        sig = (float)clamp(trk[o].peak, 0, 32767) / 32768.0f;
+    {   /* the cables: IN to the first, one to the next, the last to OUT; the signal runs along when there is some */
+        int cy = y + h / 2 + 4, k;
+        vg_line((float)x, (float)cy, (float)px[0], (float)cy, 4.0f, 0x111113);
+        vg_line((float)x, (float)cy, (float)px[0], (float)cy, 2.0f, 0x3A3A40);
+        for (j = 0; j + 1u < ns; j++) {
+            vg_line((float)(px[j] + pw), (float)cy, (float)px[j + 1], (float)cy, 4.0f, 0x111113);
+            vg_line((float)(px[j] + pw), (float)cy, (float)px[j + 1], (float)cy, 2.0f, 0x3A3A40);
+        }
+        vg_line((float)(px[ns - 1] + pw), (float)cy, (float)(x + w), (float)cy, 4.0f, 0x111113);
+        vg_line((float)(px[ns - 1] + pw), (float)cy, (float)(x + w), (float)cy, 2.0f, 0x3A3A40);
+        if (sig > 0.02f)
+            for (k = 0; k < 9; k++) {
+                float f = tm * 0.6f + (float)k / 9.0f;
+                float sx = (float)x + (f - (float)(int)f) * (float)w;
+                int inside = 0;
+                for (j = 0; j < ns; j++)
+                    inside |= sx > (float)px[j] - 2.0f && sx < (float)(px[j] + pw) + 2.0f;
+                if (!inside)
+                    vg_circle(sx, (float)cy, 2.0f, vg_mix(C_RED, C_WHITE, sig));
+            }
+        vg_text(in, x, cy - 20, VG_SMALL, C_DIM, VG_LEFT);
+        vg_text(out, x + w, cy - 20, VG_SMALL, C_DIM, VG_RIGHT);
+    }
+    for (j = 0; j < ns; j++) {
+        int16_t v[PD_N];
+        kx_ped_get(o, j, v);
+        kx_pedal(px[j], y + 4, pw, h - 8, v, (int)j == kx_ped_focus[kx_ped_fi(pg)], kx_ped_lvl[o][j] * 2.0f, (int)j);
+    }
+}
+
+/* FOOT PEDAL: an expression pedal (its position) and a footswitch, drawn as they are on the floor */
+static void kx_draw_foot(int x, int y, int w, int h)
+{
+    int cx = x + w / 4, cy = y + h / 2 + 18, fx = x + 3 * w / 4;
+    float lift = kx_foot_expr * 34.0f;            /* (the side view: the toe end rises with the pedal pushed up) */
+    char b[8];
+    vg_round(cx - 58, cy + 8, 116, 14, 3, 0x1A1A1C);
+    vg_tri((float)cx + 50.0f, (float)cy + 8.0f, (float)cx + 58.0f, (float)cy + 8.0f, (float)cx + 54.0f, (float)cy - 2.0f, 0x3A3A40);
+    vg_line((float)cx + 54.0f, (float)cy, (float)cx - 54.0f, (float)cy - lift, 12.0f, 0x2C2C30);
+    vg_line((float)cx + 54.0f, (float)cy - 5.0f, (float)cx - 54.0f, (float)cy - lift - 5.0f, 2.0f, 0x55555C);
+    vg_itoa((int)(kx_foot_expr * 100.0f + 0.5f), b);
+    str_cpy(b + str_len(b), "%", 2);
+    vg_text(b, cx + 66, cy + 4, VG_SMALL, C_TEXT, VG_LEFT);
+    vg_text(IC_EXPR_N[clamp(kx_ic[IC_EXPR], 0, 3)], cx, y + 2, VG_BOLD, kx_ic[IC_EXPR] ? C_RED : C_DIM, VG_CENTER);
+    vg_text("EXPRESSION", cx, y + h - 16, VG_SMALL, C_DIM, VG_CENTER);
+    vg_round(fx - 40, cy - 10, 80, 44, 6, 0x1A1A1C);
+    vg_circle((float)fx, (float)cy + 4.0f, 14.0f, kx_foot_down ? 0xC8C8CC : 0x6A6A70);
+    vg_circle((float)fx, (float)cy - 22.0f, 4.0f, kx_foot_down ? C_RED : 0x300606);
+    vg_text(IC_FSW_N[clamp(kx_ic[IC_FSW], 0, 3)], fx, y + 2, VG_BOLD, C_RED, VG_CENTER);
+    vg_text("SWITCH", fx, y + h - 16, VG_SMALL, C_DIM, VG_CENTER);
+}
+
 static void kx_draw_project(int x, int y, int w, int h)
 {
     static const char *const SL[4] = {"A", "B", "C", "D"};
@@ -860,8 +977,12 @@ static void kx_ui_draw(void)
         kx_draw_mixer(4, 96, 472, 186);
     } else if (pg == PG_PROJECT) {
         kx_draw_project(4, 98, 472, 110);
+    } else if (IS_PED_PAGE(pg)) {
+        kx_draw_pedals(pg, 4, 92, 472, 116);
     } else if (pg == PG_USER) {
         kx_draw_user(8, 96, 464, 110);
+    } else if (pg == PG_FOOT) {
+        kx_draw_foot(8, 96, 464, 110);
     } else if (pg == PG_MIDI) {
         kx_draw_midi(8, 98, 464, 108);
     } else if (pg == PG_INPUT || pg == PG_INPUT2) {

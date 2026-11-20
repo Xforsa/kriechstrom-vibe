@@ -60,7 +60,12 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
 static struct { uint32_t stage; } felucca_dbg;
 
 /* the core's hook for the audio input (fx.c mix_block): kx_input.h */
-#ifndef KX_REF                                   /* (tests/core_ref.c: the FM-1's mix, no input) */
+#ifndef KX_REF                                   /* (tests/core_ref.c: the FM-1's mix, no input, no more pedals) */
 static void kx_in_mix(uint32_t n);
 #define KRST_EXT_MIX(n) kx_in_mix(n)
+struct track;
+static void kx_ped_track(struct track *t, int32_t *b, uint32_t n);   /* kx_pedals.h: a track's more pedals */
+static void kx_ped_begin(void);
+#define KRST_EXT_PEDALS(t, b, n) kx_ped_track(t, b, n)
+#define KRST_EXT_BEGIN() kx_ped_begin()
 #endif

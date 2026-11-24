@@ -78,6 +78,28 @@ ok = diff('out3-4.wav', 3.4, 4.3) < 0.01 and diff('out3-4.wav', 4.5, 6.7) > 0.5 
 ok = ok and max(diff('out9-10.wav', a, a + 2.0) for a in (3.4, 4.5, 6.9, 12.3)) < 0.01
 sys.exit(0 if ok else 1)
 PY
+# 10. the VIBE's own effects: each comes in softly, grows while held, never jumps louder than the mix
+mkdir -p build/t-fx build/t-fxd
+"$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/fx_held.json build/t-fx >/dev/null
+"$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/fx_dry.json build/t-fxd >/dev/null
+python3 - <<'PY' && ok "own effects: soft in, growing, level kept (8)" ok || ok "own effects" FAIL
+import wave, struct, math, sys
+def load(p):
+    w = wave.open(p); d = w.readframes(w.getnframes()); return struct.unpack('<%dh' % (len(d) // 2), d)[0::2], w.getframerate()
+a, sr = load('build/t-fx/audio.wav'); b, _ = load('build/t-fxd/audio.wav')
+def rms(x, s0, s1): seg = x[int(s0 * sr):int(s1 * sr)]; return math.sqrt(sum(v * v for v in seg) / max(1, len(seg)))
+def dif(s0, s1):
+    i0, i1 = int(s0 * sr), int(s1 * sr)
+    return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(i0, i1, 3)) / (sum(b[i] ** 2 for i in range(i0, i1, 3)) + 1))
+bad = []
+for k in range(8):
+    t = 4.4 + k * 7.2
+    if not 0.6 < rms(a, t, t + 0.05) / (rms(b, t, t + 0.05) + 1) < 1.5: bad.append((k, 'in'))
+    if rms(a, t + 3.6, t + 4.8) > 1.5 * rms(b, t + 3.6, t + 4.8): bad.append((k, 'loud'))
+    if k in (0, 1, 2, 3, 6, 7) and not dif(t + 3.6, t + 4.8) > dif(t, t + 1.2) + 0.1: bad.append((k, 'grow'))
+print(bad) if bad else None
+sys.exit(1 if bad else 0)
+PY
 # the screens for the site, README and manual, made anew (a change you can see shows in git as changed docs/*.png)
 python3 tools/make_shots.py >/dev/null && ok "screens: docs/*.png from this build" ok || ok "screens" FAIL
 [ $fail = 0 ] && echo "ALL PASSED" || { echo "FAILED"; exit 1; }

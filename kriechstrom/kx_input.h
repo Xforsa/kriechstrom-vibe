@@ -26,13 +26,13 @@ static const struct { const char *label; int16_t min, max, def; } IC_DESC[IC_N] 
     {"LIGHTNING", 0, 1, 1},                           /* (the live lightning behind the pages: kx_wear.h) */
     /* the effects pads 9-16 hold (0-7) and with SHIFT (8-15): MENU > PAD FX */
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_PRESS},
-    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_SHRED},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_PISTON},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_MAGNET},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_TUNNEL},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_SHREDDER},
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_BLACKOUT},
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_SHORTWAVE},
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_CORRODE},
-    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_HAMMER},
-    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_VOID},
-    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_STROBE},
     {"PAD FX", 0, KX_NFX - 1, PF_R16},
     {"PAD FX", 0, KX_NFX - 1, PF_TAPE},
     {"PAD FX", 0, KX_NFX - 1, PF_FRZ},

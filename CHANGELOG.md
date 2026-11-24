@@ -5,6 +5,20 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.19] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- the VIBE's own effects anew, each growing while held (a hint to all of it over two bars, in the tempo) and easing
+  back in a sixteenth: PRESS, PISTON (chopping faster and faster), MAGNET (metal strings singing SPINE's key out of the
+  mix), TUNNEL (driven away into the dark), SHREDDER (the bar's 1/16s repeated, shuffled, turned round), BLACKOUT,
+  SHORTWAVE, CORRODE; HAMMER, VOID and STROBE gone, and with STROBE the flashing
+- their levels evened (none jumps louder than the mix)
+
+### Fixed
+- BLACKOUT dropped to near silence for a moment when pressed (its tape read ahead of what was written)
+
 ## [0.5.18] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

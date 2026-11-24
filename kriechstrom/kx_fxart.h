@@ -56,13 +56,20 @@ static void kx_fx_art(int fx, float cx, float cy, float r, float u, float lv)
         vg_rect((int)(cx - r * 0.5f), (int)(cy - gap + 2), (int)(r * 1.0f), (int)(gap * 2.0f - 4.0f), vg_mix(0x08080A, red, 1.0f - d));
         break;
     }
-    case PN_SHRED:                                /* strips flung sideways, new each 1/32 */
-        for (i = 0; i < 9; i++) {
-            uint32_t q = ((uint32_t)(t * 32.0f) + (uint32_t)i * 7919u) * 2654435761u;
-            float y = cy - r * 0.7f + (float)i * r * 0.16f, off = ((float)(q >> 24) / 255.0f - 0.5f) * r * 0.8f;
-            vg_rect((int)(cx - r * 0.45f + off), (int)y, (int)(r * 0.9f), (int)(r * 0.1f), i & 1 ? ink : red);
+    case PN_SHREDDER: {                           /* the bar's sixteen slices, the one playing lit, moved about as it grows */
+        float d = kx_pn_depth[PN_SHREDDER];
+        int cur = (int)(((float)(beat_n % 4u) + ph) * 4.0f) % 16;
+        for (i = 0; i < 16; i++) {
+            uint32_t h = ((uint32_t)i * 2654435761u) ^ ((uint32_t)(t * 2.0f) * 40503u);
+            float x = cx - r * 0.72f + (float)(i % 8) * r * 0.18f, y = cy - r * 0.3f + (float)(i / 8) * r * 0.34f;
+            float dx = d > 0.35f ? ((float)((h >> 8) % 9u) - 4.0f) * r * 0.02f * d : 0.0f;
+            int rev = d > 0.7f && ((h >> 13) % 3u) == 0u;
+            vg_rect((int)(x + dx), (int)y, (int)(r * 0.15f), (int)(r * 0.28f), i == cur ? red : rev ? 0x5A2A2A : 0x3A3A40);
+            if (rev)
+                vg_tri(x + dx + r * 0.12f, y + r * 0.06f, x + dx + r * 0.12f, y + r * 0.22f, x + dx + r * 0.03f, y + r * 0.14f, ink);
         }
         break;
+    }
     case PN_BLACKOUT: {                           /* a bulb, its filament flickering, going out */
         float p = pn_pow, fl = p > 0.05f && (((uint32_t)(t * 23.0f) * 2654435761u) >> 28) < 3u ? 0.2f : 1.0f;
         float b = p * fl;
@@ -101,39 +108,40 @@ static void kx_fx_art(int fx, float cx, float cy, float r, float u, float lv)
         }
         break;
     }
-    case PN_HAMMER: {                             /* a hammer swung down on the anvil each 1/8, sparks on the blow */
-        float e = ph * 2.0f - (float)(int)(ph * 2.0f), lift = e < 0.12f ? 0.0f : (e - 0.12f) / 0.88f;
-        float px = cx + r * 0.55f, py = cy + r * 0.05f, ang = 0.75f + 0.17f * lift;   /* (from the pivot, towards the anvil) */
-        float hx = px + vd_sin(ang) * r * 0.8f, hy = py - vd_sin(ang + 0.25f) * r * 0.8f, nx = vd_sin(ang + 0.25f), ny = vd_sin(ang);
-        vg_rect((int)(cx - r * 0.55f), (int)(cy + r * 0.28f), (int)(r * 0.7f), (int)(r * 0.18f), 0x4A4A50);   /* (the anvil) */
-        vg_line(px, py, hx, hy, r * 0.07f, 0x8A6A40);
-        vg_line(hx - nx * r * 0.16f, hy - ny * r * 0.16f, hx + nx * r * 0.16f, hy + ny * r * 0.16f, r * 0.2f, 0x9A9AA2);
-        if (e < 0.25f)
-            for (i = 0; i < 12; i++) {
-                float a2 = 0.6f + (float)i * 0.025f + (i & 1 ? 0.3f : 0.0f), sl = (e / 0.25f) * r * 0.55f;
-                vg_line(cx - r * 0.2f, cy + r * 0.27f, cx - r * 0.2f + vd_sin(a2) * sl, cy + r * 0.27f - vd_sin(a2 + 0.25f) * sl,
-                        1.5f, vg_mix(0xFFE080, red, e * 4.0f));
-            }
+    case PN_PISTON: {                             /* a piston in its cylinder, faster as it grows */
+        float d = kx_pn_depth[PN_PISTON], div = d < 0.3f ? 1.0f : d < 0.6f ? 2.0f : d < 0.85f ? 4.0f : 8.0f;
+        float x = ph * div - (float)(int)(ph * div), stroke = x < 0.5f ? x * 2.0f : (1.0f - x) * 2.0f;
+        float py = cy - r * 0.55f + stroke * r * 0.6f;
+        vg_rect((int)(cx - r * 0.32f), (int)(cy - r * 0.7f), 3, (int)(r * 1.3f), 0x5A5A60);   /* (the cylinder) */
+        vg_rect((int)(cx + r * 0.32f) - 3, (int)(cy - r * 0.7f), 3, (int)(r * 1.3f), 0x5A5A60);
+        vg_rect((int)(cx - r * 0.28f), (int)py, (int)(r * 0.56f), (int)(r * 0.22f), 0x9A9AA2);   /* (the piston) */
+        vg_line(cx, py + r * 0.22f, cx + r * 0.25f * vd_sin(x), cy + r * 0.62f, r * 0.08f, 0x6A6A70);   /* (its rod) */
+        vg_circle(cx + r * 0.25f * vd_sin(x), cy + r * 0.62f, r * 0.08f, red);
+        for (i = 0; i < 4; i++)                   /* (how fast: 1/4 1/8 1/16 1/32) */
+            vg_rect((int)(cx + r * 0.45f), (int)(cy + r * 0.4f - (float)i * r * 0.16f), (int)(r * 0.18f), (int)(r * 0.1f),
+                    (float)(1 << i) <= div ? red : 0x2A2A30);
         break;
     }
-    case PN_VOID: {                               /* a black hole: rings falling in, dust spiralling */
-        for (i = 0; i < 5; i++) {
-            float k = 1.0f - (t * 0.6f + (float)i * 0.2f - (float)(int)(t * 0.6f + (float)i * 0.2f));
-            fa_ring(cx, cy, r * 0.9f * k, 1.5f, vg_mix(0x08080A, 0x6A1A10, k));
+    case PN_TUNNEL: {                             /* rings rushing away into the dark, the far end smaller as it grows */
+        float d = kx_pn_depth[PN_TUNNEL] * kx_pn_lv[PN_TUNNEL];
+        for (i = 0; i < 7; i++) {
+            float k = 1.0f - (t * (0.3f + 0.5f * d) + (float)i / 7.0f - (float)(int)(t * (0.3f + 0.5f * d) + (float)i / 7.0f));
+            fa_ring(cx, cy, r * (0.12f + 0.8f * k * k), 1.5f + 2.0f * k, vg_mix(0x08080A, vg_mix(0x6A6A70, red, d), k));
         }
-        for (i = 0; i < 24; i++) {
-            float k = 1.0f - (t * 0.4f + (float)i / 24.0f - (float)(int)(t * 0.4f + (float)i / 24.0f)), a = (float)i * 0.37f + k * 1.5f;
-            vg_rect((int)(cx + vd_sin(a) * r * 0.9f * k), (int)(cy - vd_sin(a + 0.25f) * r * 0.9f * k), 2, 2, ink);
-        }
-        vg_circle(cx, cy, r * 0.22f, 0x000000);
-        fa_ring(cx, cy, r * 0.22f, 2.0f, hot);
+        vg_circle(cx, cy, r * (0.1f - 0.07f * d), 0x000000);
         break;
     }
-    default: {                                    /* STROBE: the disc flashing at 1/32 */
-        float s = ph * 8.0f;
-        int on = s - (float)(int)s < 0.5f;
-        vg_circle(cx, cy, r * 0.85f, on ? 0xF4F4F4 : 0x000000);
-        fa_ring(cx, cy, r * 0.85f, 2.0f, red);
+    default: {                                    /* MAGNET: field lines pulled into the key's note, glowing as it sings */
+        float d = kx_pn_depth[PN_MAGNET];
+        int q;
+        for (q = 0; q < 10; q++) {
+            float a = (float)q / 10.0f + t * 0.02f, px = cx + vd_sin(a) * r * 0.85f, py = cy - vd_sin(a + 0.25f) * r * 0.85f;
+            float k = 1.0f - d * 0.8f;
+            vg_line(px, py, cx + vd_sin(a + 0.05f * k) * r * 0.25f, cy - vd_sin(a + 0.25f + 0.05f * k) * r * 0.25f, 1.5f,
+                    vg_mix(0x3A3A40, red, d));
+        }
+        vg_circle(cx, cy, r * (0.22f + 0.05f * vd_sin(t * 3.0f) * d), vg_mix(0x2A2A30, 0xFF6A40, d));
+        vg_text(SP_KEYN[kx_sp_root()], (int)cx, (int)(cy - 8.0f), VG_BOLD, 0x08080A, VG_CENTER);
         break;
     }
     } else switch (fx) {                          /* ---- the core's hold effects ---- */

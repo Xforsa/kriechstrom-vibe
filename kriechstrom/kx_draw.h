@@ -1246,6 +1246,61 @@ static void kx_draw_hub(int x, int y, int w, int h)
     vg_text("ENC 1 / DATA, ENTER OR A CLICK OPENS", x + w, y + h - 14, VG_SMALL, 0x8A8A94, VG_RIGHT);
 }
 
+/* SPINE: the circle of fifths (the key lit, the chord playing ringed), who follows, the progression's steps */
+static void kx_draw_spine(int x, int y, int w, int h)
+{
+    static const uint8_t FIFTHS[12] = {0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5};
+    float cx = (float)(x + 78), cy = (float)(y + 56), r = 44.0f;
+    int root = kx_sp_root(), step = kx_sp_step % clamp(kx_ic[IC_SP_LEN], 1, 8), chord, i, len = clamp(kx_ic[IC_SP_LEN], 1, 8);
+    char b[24];
+    static uint32_t tick;
+    if ((tick++ & 31u) == 0u)
+        kx_sp_detect();
+    chord = (root + kx_sp_semis(kx_ic[IC_SP_P0 + step]) + kx_sp_live + 24) % 12;
+    for (i = 0; i < 12; i++) {                    /* the circle of fifths */
+        float a = (float)i / 12.0f, px = cx + vd_sin(a) * r, py = cy - vd_sin(a + 0.25f) * r;
+        int k = FIFTHS[i], is_key = k == root, is_ch = k == chord && kx_ic[IC_SP_ON];
+        if (is_ch)
+            vg_circle(px, py, 13.0f, vg_mix(C_BG, C_RED, 0.6f + 0.4f * kx_big_now()));
+        vg_circle(px, py, 10.0f, is_key ? C_RED : 0x1E1E24);
+        vg_text(SP_KEYN[k], (int)px, (int)py - 7, VG_SMALL, is_key || is_ch ? C_WHITE : TE_MID, VG_CENTER);
+    }
+    if (kx_ic[IC_SP_ON]) {                        /* (a line from the key to the chord) */
+        int ki = 0, ci = 0;
+        for (i = 0; i < 12; i++)
+            ki = FIFTHS[i] == root ? i : ki, ci = FIFTHS[i] == chord ? i : ci;
+        vg_line(cx + vd_sin((float)ki / 12.0f) * (r - 12.0f), cy - vd_sin((float)ki / 12.0f + 0.25f) * (r - 12.0f),
+                cx + vd_sin((float)ci / 12.0f) * (r - 12.0f), cy - vd_sin((float)ci / 12.0f + 0.25f) * (r - 12.0f), 2.0f, C_RED);
+    }
+    str_cpy(b, SP_KEYN[root], sizeof b);
+    str_cpy(b + str_len(b), kx_sp_minor ? " MINOR" : " MAJOR", sizeof b - str_len(b));
+    vg_text(b, x + 200, y, VG_BOLD, C_WHITE, VG_LEFT);
+    vg_text(kx_ic[IC_SP_KEY] ? "AS SET" : "AS HEARD", x + 200 + vg_text_width(b, VG_BOLD) + 8, y, VG_SMALL, TE_MID, VG_LEFT);
+    for (i = 0; i < NTRK; i++) {                  /* who follows (pads 1-4) */
+        int on = (kx_ic[IC_SP_ROUTE] >> i) & 1, dr = drum_track(&trk[i]);
+        char t[3] = {'T', (char)('1' + i), 0};
+        vg_round(x + w - 4 - (4 - i) * 34, y - 2, 30, 16, 3, on && !dr ? TRK_RGB[i] : 0x1E1E24);
+        vg_text(t, x + w - 4 - (4 - i) * 34 + 15, y - 1, VG_SMALL, on && !dr ? C_BG : 0x6A6A72, VG_CENTER);
+    }
+    for (i = 0; i < 8; i++) {                     /* the steps */
+        int sx = x + 196 + (i % 4) * 68, sy = y + 16 + (i / 4) * 38, used = i < len, pl = kx_ic[IC_SP_ON] && i == step && used;
+        int deg = kx_ic[IC_SP_P0 + i];
+        vg_rect(sx, sy, 64, 34, pl ? vg_mix(C_BG, C_RED, 0.5f) : used ? 0x16161A : 0x0C0C0E);
+        if (used) {
+            vg_text(kx_sp_roman(deg), sx + 32, sy + 4, VG_BIG, pl ? C_WHITE : TE_INK, VG_CENTER);
+            vg_text(SP_KEYN[(root + kx_sp_semis(deg) + 24) % 12], sx + 4, sy + 2, VG_SMALL, TE_MID, VG_LEFT);
+        }
+        if (i == kx_sp_sel)
+            vg_frame(sx - 1, sy - 1, 66, 36, 1, C_RED);
+    }
+    if (!kx_ic[IC_SP_ON])
+        vg_text("OFF: ENC 1 TURNS IT ON", x + w, y + h - 12, VG_SMALL, C_RED, VG_RIGHT);
+    else if (kx_sp_live)
+        vg_text("THE KEYS MOVED IT: ANY KEY ON THE ROOT BRINGS IT BACK", x + w, y + h - 12, VG_SMALL, TE_MID, VG_RIGHT);
+    else
+        vg_text("THE KEYS MOVE THE FOLLOWERS LIVE", x + w, y + h - 12, VG_SMALL, TE_MID, VG_RIGHT);
+}
+
 /* PAD FX: pads 9-16 as they lie, and the same with SHIFT; each with the effect it holds, the chosen one red */
 static void kx_draw_padfx(int x, int y, int w, int h)
 {
@@ -1557,9 +1612,12 @@ static void kx_draw_help(void)
         ew = "open the tile's page", dw = "the tile";
     else if (pg == PG_PADFX)
         ew = "the next pad", dw = "the pad's effect";
+    else if (pg == PG_SPINE)
+        ew = "the next step", dw = "the step's chord";
     else if (pg >= 0 && pg < (int)NPAGES && PAGES[pg].graph == GR_EVENTS)
         ew = "the row's action", dw = "as ENC 1";
     if (kx_streq(f5, "OOPS")) f5w = "OOPS: random values";
+    else if (pg == PG_SPINE && kx_streq(f5, "DICE")) f5w = "DICE: a progression";
     else if (kx_streq(f5, "DICE") || kx_streq(f5, "MOOD")) f5w = "DICE: a new part";
     else if (kx_streq(f5, "REC") || kx_streq(f5, "STOP")) f5w = pg == PG_SAMPLER ? "record at next bar" : "the song";
     else if (kx_streq(f5, "PLAY")) f5w = "play the song";
@@ -1598,7 +1656,9 @@ static void kx_draw_help(void)
     while (n < 22)                                /* (the page's column, then the right one) */
         r[n++] = "", r[n++] = "";
     for (k = 0; k < (int)(sizeof G / sizeof G[0]) && n < 44; k++)
-        r[n++] = G[k] && kx_streq(G[k], "DICE (SHIFT: OOPS)") && pg == PG_MASTER ? "DMG WALL SPLC HAUNT" :
+        r[n++] = G[k] && kx_streq(G[k], "mute (SHIFT: solo)") && pg == PG_SPINE ? "who follows SPINE" :
+                 G[k] && kx_streq(G[k], "the selected track") && pg == PG_SPINE ? "move the followers" :
+                 G[k] && kx_streq(G[k], "DICE (SHIFT: OOPS)") && pg == PG_MASTER ? "DMG WALL SPLC HAUNT" :
                  G[k] && kx_streq(G[k], "DICE (SHIFT: OOPS)") && IS_PED_PAGE(pg) ? "pedal 1-3 off, 4 all" : G[k];
     vg_controls(kx_title(pg), r, n / 2);
 }
@@ -1833,7 +1893,7 @@ static void kx_ui_draw(void)
     kx_draw_header();
     kx_draw_tracks();
     kx_family_pages(kx_fam);
-    kx_draw_title(kx_title(pg), pg >= 0 && pg < (int)NPAGES ? page_what(PAGES[pg].title) : 0);
+    kx_draw_title(kx_title(pg), pg >= 0 && pg < (int)NPAGES ? page_what(PAGES[pg].title) : pg == PG_SPINE ? "THE TRACKS FOLLOW ITS CHORDS" : 0);
     if (pg == PG_GRID || (pg >= 0 && pg < (int)NPAGES && PAGES[pg].scope == SC_STEP)) {
         kx_draw_grid(8, 96, 466, 110);            /* (DETAIL too: the steps, the cursor's own values below) */
     } else if (pg == PG_BROWSE) {
@@ -1854,6 +1914,8 @@ static void kx_ui_draw(void)
         kx_draw_hub(4, 96, 472, 98);
     } else if (pg == PG_PADFX) {
         kx_draw_padfx(4, 96, 472, 110);
+    } else if (pg == PG_SPINE) {
+        kx_draw_spine(4, 98, 472, 108);
     } else if (pg == PG_PLIB) {
         kx_draw_plib(4, 96, 472, 110);
     } else if (pg == PG_PFILES) {

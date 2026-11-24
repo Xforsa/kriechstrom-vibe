@@ -70,3 +70,9 @@ b MENU
 tile 9
 s clock
 ss stage
+# SPINE on, a bar in (SEQ opens on SONG, the page it was last on: SPINE is the next)
+b K6
+b RIGHT
+e E1 1 1
+w 2.6
+s spine

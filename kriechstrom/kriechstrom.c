@@ -17,6 +17,7 @@
 #include "kx_audio.h"
 #include "kx_pedals.h"
 #include "kx_input.h"
+#include "kx_spine.h"
 #include "kx_midi.h"
 #include "kx_ctl.h"
 #include "kx_boot.h"

@@ -48,6 +48,7 @@ static uint32_t kx_hit_hold;
 
 static float kx_trk_pk[NTRK];                     /* each track's level now (0..1, falling): the display reads it */
 static void kx_midi_block(void);                  /* kx_midi.h */
+static void kx_spine_block(void);                 /* kx_spine.h */
 static void kx_rec_block(const int32_t *o);       /* kx_sampler.h */
 
 /* ---- the core at 44.1 kHz ------------------------------------------------------------------------------------- */
@@ -61,6 +62,7 @@ static void kx_core_block(void)
 {
     int32_t o[2 * CTL];
     uint32_t i;
+    kx_spine_block();                             /* (SPINE moves the tracks before they play: kx_spine.h) */
     mix_block(o, CTL);
     kx_punch_block(o, CTL);                       /* (the VIBE's own punch-in effects, after the master: kx_punch.h) */
     for (i = 0; i < NTRK; i++) {                  /* the tracks' peaks: the FM-1's display takes and clears them (ui_graph.c);

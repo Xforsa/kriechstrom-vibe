@@ -45,6 +45,9 @@ mark grows behind every page as the master wears the mix out.
   echoes, the reverb a room, a spring or a hall, the slicer its pattern, the clock its beats. MENU > DISPLAY sets how much the screen wears: OFF, LOW (the default), FULL.
   The pages slide, a value turned lights up, and the pages move with the sound: the spectrum, the envelope and the
   LFO where they are, the playhead's trail.
+- **SPINE (SEQ > SPINE):** names the key (by the notes, or as set) and walks a progression of up to eight chords; the
+  tracks that follow it move to each chord by their TRN, a step each 1, 2 or 4 bars; DICE writes a progression in the
+  MOOD, the keys move the followers live.
 - **The pads:** mute and DICE per track; pads 9-16 hold effects, at first eight of this firmware's own (PRESS, SHRED,
   BLACKOUT, SHORTWAVE, CORRODE, HAMMER, VOID, STROBE, each with its picture on the display and the stage), with SHIFT
   eight more, each of the sixteen chosen

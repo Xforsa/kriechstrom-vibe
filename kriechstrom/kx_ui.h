@@ -24,7 +24,7 @@ enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
 enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER, PG_DISPLAY,
-       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT, PG_SAMPLER, PG_OUTS, PG_PLIB, PG_PFILES, PG_HUB, PG_PADFX };
+       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT, PG_SAMPLER, PG_OUTS, PG_PLIB, PG_PFILES, PG_HUB, PG_PADFX, PG_SPINE };
 #define IS_PED_PAGE(pg) ((pg) == PG_PEDALS || (pg) == PG_PEDALS_IN || (pg) == PG_PEDALS_M)
 #define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : (pg) == PG_DISPLAY ? 3 : (pg) == PG_FOOT ? 4 : (pg) == PG_OUTS ? 6 : 5)
 #define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY || (pg) == PG_FOOT || (pg) == PG_SAMPLER || \
@@ -128,6 +128,7 @@ static void kx_family_pages(uint32_t fa)
         ADD(i);
         i = (uint32_t)kx_page_index("SONG");
         ADD(i);
+        ADD(PG_SPINE);
         break;
     default:
         ADD(PG_HUB);
@@ -217,6 +218,7 @@ static const char *kx_title(int pg)
     case PG_PLIB: return "PROJECTS";
     case PG_HUB: return "MENU";
     case PG_PADFX: return "PAD FX";
+    case PG_SPINE: return "SPINE";
     case PG_PFILES: return "PROJECT FILES";
     case PG_PEDALS: return "PEDALS";
     case PG_PEDALS_IN: return "INPUT PEDALS";
@@ -240,7 +242,7 @@ static int kx_knob_page(void)
     if (IS_PED_PAGE(kx_page))
         return kx_page;
     if (IS_IC_PAGE(kx_page) || kx_page == PG_USER || kx_page == PG_PLIB || kx_page == PG_PFILES || kx_page == PG_HUB ||
-        kx_page == PG_PADFX)
+        kx_page == PG_PADFX || kx_page == PG_SPINE)
         return kx_page;
     if (kx_page >= 0 && kx_page < (int)NPAGES)
         return kx_page;
@@ -333,6 +335,21 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
         param_format(dd, v[slot], c->val, &un);
         c->unit = un;
         c->pos = dd->max > dd->min ? (float)(v[slot] - dd->min) / (float)(dd->max - dd->min) : 0.0f;
+        return;
+    }
+    if (pg == PG_SPINE) {                         /* SPINE: on, the key, the bars a step, the steps */
+        static const char *const L[4] = {"SPINE", "KEY", "BARS", "STEPS"};
+        memset(c, 0, sizeof *c);
+        c->on = 1, c->label = L[slot & 3u], c->unit = "";
+        switch (slot & 3u) {
+        case 0: str_cpy(c->val, kx_ic[IC_SP_ON] ? "ON" : "OFF", sizeof c->val); c->pos = (float)kx_ic[IC_SP_ON]; break;
+        case 1:
+            str_cpy(c->val, kx_ic[IC_SP_KEY] ? SP_KEYN[kx_ic[IC_SP_KEY] - 1] : "AUTO", sizeof c->val);
+            c->pos = (float)kx_ic[IC_SP_KEY] / 12.0f;
+            break;
+        case 2: vg_itoa(1 << clamp(kx_ic[IC_SP_BARS], 0, 2), c->val); c->pos = (float)kx_ic[IC_SP_BARS] / 2.0f; break;
+        default: vg_itoa(clamp(kx_ic[IC_SP_LEN], 1, 8), c->val); c->pos = (float)(kx_ic[IC_SP_LEN] - 1) / 7.0f; break;
+        }
         return;
     }
     if (pg == PG_PADFX) {                         /* PAD FX: the pad, its effect */
@@ -594,7 +611,7 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 static int kx_data_on_cards(void)
 {
     int pg = kx_page;
-    if (pg == PG_BROWSE || pg == PG_MIXER || pg == PG_GRID || pg == PG_HUB || pg == PG_PLIB || pg == PG_PFILES || pg == PG_PADFX ||
+    if (pg == PG_BROWSE || pg == PG_MIXER || pg == PG_GRID || pg == PG_HUB || pg == PG_PLIB || pg == PG_PFILES || pg == PG_PADFX || pg == PG_SPINE ||
         pg == PG_PROJECT || pg == PG_USER || IS_PED_PAGE(pg) || kx_knob_page() < 0)
         return 0;
     if (pg >= 0 && pg < (int)NPAGES && (PAGES[pg].scope == SC_STEP || PAGES[pg].graph == GR_SONG ||
@@ -667,7 +684,9 @@ static void kx_pad(uint32_t id, int down, float vel)
     }
     switch (row) {
     case 0:                                       /* the tracks: mute; SHIFT: solo (again: all back) */
-        if (down && !kx_shift)
+        if (down && kx_page == PG_SPINE)          /* (SPINE: who follows it) */
+            kx_post(KXC_INCFG, IC_SP_ROUTE, 1, 0, kx_ic[IC_SP_ROUTE] ^ (1 << col));
+        else if (down && !kx_shift)
             kx_post(KXC_MUTE, col, 0, 0, 0);
         else if (down) {
             uint32_t k, alone = !trk[col].p[P_MUTE];
@@ -744,6 +763,8 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
     case FA_SEQ:
         if (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].graph == GR_SONG)
             kx_post(KXC_SONG, 0, 0, 0, 0);
+        else if (kx_page == PG_SPINE && !kx_shift)
+            kx_sp_dice();
         else
             kx_post(KXC_TOOL, song.sel, kx_shift ? TL_MOOD : TL_DICE, 0, 0);
         break;
@@ -827,6 +848,9 @@ static void kx_turn(uint32_t enc, float detents)
             uint32_t f = enc == VE_1 ? (kx_shift ? PD_MIX : PD_TYPE) : PD_A + (enc - VE_2);
             kx_post(KXC_PED, kx_ped_owner(kx_page), (uint32_t)kx_ped_focus[kx_ped_fi(kx_page)], f,
                     f == PD_TYPE ? (n > 0 ? 1 : -1) : n);
+        } else if (kx_page == PG_SPINE) {       /* ENC 1 on, 2 the key, 3 the bars a step, 4 the steps */
+            static const uint8_t F4[4] = {IC_SP_ON, IC_SP_KEY, IC_SP_BARS, IC_SP_LEN};
+            kx_post(KXC_INCFG, F4[enc & 3u], 0, 0, n > 0 ? 1 : -1);
         } else if (kx_page == PG_PADFX) {       /* ENC 1 the pad, ENC 2 its effect */
             if (enc == VE_1)
                 kx_pfx_sel = clamp(kx_pfx_sel + (n > 0 ? 1 : -1), 0, 15);
@@ -895,6 +919,8 @@ static void kx_turn(uint32_t enc, float detents)
             kx_view_t = vibe_frames();
         } else if (kx_page == PG_HUB) {
             kx_hub_sel = clamp(kx_hub_sel + (n > 0 ? 1 : -1), 0, KX_HUB_N - 1);
+        } else if (kx_page == PG_SPINE) {         /* SPINE: DATA the chosen step's chord */
+            kx_post(KXC_INCFG, IC_SP_P0 + (uint32_t)kx_sp_sel, 1, 0, (kx_ic[IC_SP_P0 + kx_sp_sel] + (n > 0 ? 1 : 6)) % 7);
         } else if (kx_page == PG_PADFX) {         /* PAD FX: DATA chooses the effect */
             kx_pfx_turn(n);
         } else if (kx_page >= 0 && kx_page < (int)NPAGES &&
@@ -1022,7 +1048,9 @@ static void kx_button(uint32_t b, int down)
         else if (kx_page == PG_HUB)
             kx_hub_open(kx_hub_sel);
         else if (kx_page == PG_PADFX)
-            kx_pfx_sel = (kx_pfx_sel + 1) & 15;   /* (ENTER: the next pad, DATA chooses again) */
+            kx_pfx_sel = (kx_pfx_sel + 1) & 15;
+        else if (kx_page == PG_SPINE)
+            kx_sp_sel = (kx_sp_sel + 1) % clamp(kx_ic[IC_SP_LEN], 1, 8);   /* (ENTER: the next pad, DATA chooses again) */
         else if (kx_page == PG_PLIB) {            /* LOAD (SHIFT: DELETE): pressed twice, within 3 s */
             static uint64_t armed;
             static int what = -1;
@@ -1177,6 +1205,10 @@ static void kx_touch(int x, int y)
         int k = (x - 4) / 118;
         if (k >= 0 && k < NTRK)
             kx_post(KXC_SEL, (uint32_t)k, 0, 0, 0);
+    } else if (kx_page == PG_SPINE && x >= 200 && y >= 112 && y < 188) {   /* a step of the progression */
+        int i = ((y - 112) / 38) * 4 + (x - 200) / 68;
+        if (i >= 0 && i < clamp(kx_ic[IC_SP_LEN], 1, 8))
+            kx_sp_sel = i;
     } else if (kx_page == PG_PADFX && y >= 112 && y < 188) {   /* a pad of the two maps (kx_draw_padfx) */
         int half = x >= 240, col = ((x - 4) % 236) / 58, row = (y - 112) / 38;
         if (col >= 0 && col < 4 && row >= 0 && row < 2)
@@ -1291,6 +1323,13 @@ static void kx_ui_event_body(const vibe_event *e)
         int midi = e->midi[1] == VIBE_NOTE_MIDI || e->midi[1] == VIBE_NOTE_HOST;
         if (e->down && !vel)
             vel = 1;
+        if (kx_page == PG_SPINE && !midi) {       /* (SPINE: the keys move the followers live, from the key) */
+            if (e->down) {
+                int s = ((int)e->id % 12 - kx_sp_root() + 24) % 12;
+                kx_sp_live = s > 6 ? s - 12 : s;
+            }
+            break;
+        }
         kx_post(KXC_NOTE, e->id, e->down ? (vel > 127u ? 127u : vel) : 0u, midi ? 1u : 0u, e->midi[0]);
         break;
     }

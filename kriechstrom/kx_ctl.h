@@ -381,3 +381,18 @@ static void kx_fx_post(int fx, int down)          /* an effect held or let go, f
     kx_fx_on[fx] = down ? (uint8_t)(kx_fx_on[fx] < 255 ? kx_fx_on[fx] + 1 : 255) : (uint8_t)(kx_fx_on[fx] ? kx_fx_on[fx] - 1 : 0);
     kx_post(KXC_PERF, (uint32_t)fx, down ? 1u : 0u, 0, 0);
 }
+
+/* a progression in the MOOD: the industrial ones dark and close, the open ones wider */
+static void kx_sp_dice(void)
+{
+    static const uint8_t PR[8][8] = {
+        {0, 0, 5, 6, 0, 0, 3, 4}, {0, 5, 2, 6, 0, 5, 3, 4}, {0, 3, 0, 4, 0, 3, 5, 4}, {0, 6, 5, 6, 0, 1, 5, 4},
+        {0, 2, 5, 3, 0, 2, 6, 4}, {0, 5, 0, 5, 3, 5, 3, 4}, {0, 6, 5, 4, 3, 2, 1, 0}, {0, 0, 0, 5, 0, 0, 0, 6}};
+    uint32_t m = dice_mood % 8u, i;
+    for (i = 0; i < 8u; i++) {
+        int d = PR[m][i];
+        if (i && (pn_rand() < 0.25f))             /* (a chord or two changed, as DICE does) */
+            d = (int)(pn_rand() * 7.0f) % 7;
+        kx_post(KXC_INCFG, IC_SP_P0 + i, 1, 0, d);
+    }
+}

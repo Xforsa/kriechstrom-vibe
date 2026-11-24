@@ -5,6 +5,15 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.17] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Added
+- SEQ > SPINE, the song's backbone: the key as heard in the notes (or as set) on a circle of fifths, a progression of up
+  to eight chords a step each 1, 2 or 4 bars; the tracks that follow it (pads 1-4 on its page, never the drums) moved to
+  each chord by their TRN; DICE writes a progression in the MOOD; on its page the keys move the followers live
+
 ## [0.5.16] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

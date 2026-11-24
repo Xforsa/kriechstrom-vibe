@@ -170,7 +170,7 @@ static void kx_big_pt_at(float x, float y, float t, float rr, float *ox, float *
 static void kx_big_draw_at(float heat, float hit, float ox, float oy, float sc)   /* (the stage: elsewhere, bigger) */
 {
     int j, pass, n = kx_big_n;
-    float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.22f), reach, t = (float)vibe_frames() / kx_sr;
+    float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.22f), reach, t = song.playing ? (float)vibe_frames() / kx_sr : 0.0f;   /* (stopped: still) */
     float rr = vd_sqrt(kx_big_r2), kick = (float)(vibe_frames() - kx_big_pt) / kx_sr, wave_k = kick * 420.0f;
     float wave = (t * 0.55f - (float)(int)(t * 0.55f)) * rr * 1.3f;  /* (the current's slow wave, out and out again) */
     g = g > 1.0f ? 1.0f : g;
@@ -196,6 +196,8 @@ static void kx_big_draw_at(float heat, float hit, float ox, float oy, float sc) 
                 run = vd_minf(1.0f, run * 0.5f + kk * kx_big_pulse * (1.0f - kick / 0.6f) * 1.4f);
             } else
                 run *= 0.5f;
+            if (!song.playing)
+                run = 0.0f;
             /* (red, its thick strands hot as the site's core, the thinnest dark; the growing tip brighter) */
             float tt = (w > 1.6f ? 0.55f + 0.35f * hit : w > 0.9f ? 0.15f + 0.3f * hit : 0.0f) + 0.5f * run;
             uint32_t c = pass ? vg_mix(w > 0.6f ? 0xE02414 : 0x7A160C, 0xFFE8DC, vd_minf(tt + 0.1f * heat, 1.0f))

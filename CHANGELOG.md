@@ -5,6 +5,14 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.15] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- the stage, stopped: the hub's card as a poster in the middle (the figure burnt white at its core, the name across it),
+  opening as an iris with a hot edge; PLAY closes it on the rings. While stopped the figure stays still
+
 ## [0.5.14] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

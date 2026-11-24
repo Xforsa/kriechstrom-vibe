@@ -288,6 +288,64 @@ static void st_weather(float t, float hit)       /* rain falling, ash rising, sm
     }
 }
 
+/* stopped: the hub's card as a poster in the middle, drawn here: a dense figure burnt white at its core, the name
+ * across it on a black band, VIBE FM under it. The rings come back with PLAY */
+static lt_seg st_post[LT_BIG];
+static int st_post_n;
+static void st_poster(float hit, float e)       /* e: how far it is in, 0 .. 1 (the iris' opening) */
+{
+    int j, pass;
+    float ir = e * 336.0f;
+    if (!st_post_n) {                             /* (grown once, the same each time) */
+        int a;
+        uint32_t keep = lt_rng;
+        lt_out = st_post, lt_out_n = &st_post_n, lt_out_cap = LT_BIG;
+        lt_rng = 0x2617u;
+        for (a = 0; a < 10; a++)                  /* (dense as the card's: ten arms, deep) */
+            lt_tree(240.0f, 160.0f, (float)a / 10.0f + (lt_u() - 0.5f) * 0.08f, 44.0f + 18.0f * lt_u(), 5.0f, 9, 0.42f / 6.2832f * 1.5f);
+        lt_rng = keep;
+    }
+    {   /* a red haze behind it, as the card's */
+        int q;
+        for (q = 12; q > 0; q--)
+            vg_circle((float)SR_CX, (float)SR_CY, e * (60.0f + (float)q * 20.0f), vg_mix(0x070708, 0x3A0806, (0.12f + 0.1f * hit) * (float)(13 - q) / 12.0f));
+    }
+    for (pass = 0; pass < 3; pass++)              /* glow, red, the white core */
+        for (j = 0; j < st_post_n; j++) {
+            const lt_seg *g = &st_post[j];
+            float w = (float)g->w * 0.25f, x0 = (float)SR_CX + ((float)g->x0 - 240.0f) * 1.55f, y0 = (float)SR_CY + ((float)g->y0 - 160.0f) * 1.55f;
+            float x1 = (float)SR_CX + ((float)g->x1 - 240.0f) * 1.55f, y1 = (float)SR_CY + ((float)g->y1 - 160.0f) * 1.55f;
+            {
+                float dx = x1 - (float)SR_CX, dy = y1 - (float)SR_CY;
+                if (dx * dx + dy * dy > ir * ir)  /* (only inside the iris) */
+                    continue;
+            }
+            if (pass == 0)
+                vg_line(x0, y0, x1, y1, w * 4.0f + 3.0f, vg_mix(0x08080A, 0x6A0E06, 0.45f + 0.3f * hit));
+            else if (pass == 1)
+                vg_line(x0, y0, x1, y1, w * 1.6f + 0.6f, w > 0.6f ? 0xE02414 : 0x8A1A0C);
+            else if (w > 0.8f)
+                vg_line(x0, y0, x1, y1, w * 0.7f, vg_mix(0xFF7A60, 0xFFF4EE, vd_minf((w - 0.8f) / 1.6f, 1.0f)));
+        }
+    if (e > 0.35f) {                              /* the name's band opens from the middle, the name burns in, shaking */
+        float b = vd_minf((e - 0.35f) / 0.4f, 1.0f), u = vd_minf((e - 0.6f) / 0.4f, 1.0f);
+        int half = (int)((float)(SB_RX - SB_LW - 4) * 0.5f * b), nw, x, tw, jx;
+        vg_rect(SR_CX - half, SR_CY - 36, half * 2, 66, 0x000000);
+        vg_rect(SR_CX - half, SR_CY - 37, half * 2, 1, vg_mix(0x000000, C_RED, b));
+        vg_rect(SR_CX - half, SR_CY + 30, half * 2, 1, vg_mix(0x000000, C_RED, b));
+        if (u > 0.0f) {
+            jx = u < 1.0f ? (int)((float)((int)(vibe_frames() >> 9) % 13 - 6) * (1.0f - u)) : 0;
+            nw = vg_text_width("KRIECH", VG_BIG | VG_X2) + vg_text_width("STROM", VG_BIG | VG_X2);
+            x = SR_CX - nw / 2 + jx;
+            x += vg_text("KRIECH", x, SR_CY - 30, VG_BIG | VG_X2, vg_mix(0x000000, C_WHITE, u), VG_LEFT);
+            vg_text("STROM", x, SR_CY - 30, VG_BIG | VG_X2, vg_mix(0x000000, C_RED, u), VG_LEFT);
+            tw = vg_text_width("VIBE FM", VG_BOLD) + 20;
+            vg_rect(SR_CX - tw / 2 - jx, SR_CY + 44, tw, 24, vg_mix(0x000000, C_RED, u));
+            vg_text("VIBE FM", SR_CX - jx, SR_CY + 47, VG_BOLD, 0x000000, VG_CENTER);
+        }
+    }
+}
+
 void vibe_on_stage(uint16_t *fb, int w, int h)
 {
     uint32_t k;
@@ -322,7 +380,7 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
     }
     {
         static uint32_t bar = 0xFFFFFFFFu;
-        uint32_t bb = song.playing ? trk[song.sel].seq_idx / 16u : (uint32_t)(vibe_frames() / (uint64_t)(kx_sr * 2.0f));
+        uint32_t bb = song.playing ? trk[song.sel].seq_idx / 16u : bar;   /* (stopped: the figure stays as it is) */
         if (bb != bar || !kx_big_n)
             bar = bb, kx_big_grow();
         kx_big_draw_at(heat > 1.0f ? 1.0f : heat, 0.35f + 0.65f * (kx_fx_hit > 1.0f ? 1.0f : kx_fx_hit), (float)SR_CX,
@@ -346,6 +404,24 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
     }
     for (k = 0; k < NTRK; k++)
         st_ring(k);
+    {   /* stopped: the iris opens on the poster; PLAY closes it on the rings (0.8 s either way) */
+        static float pa = -1.0f;
+        static uint64_t last;
+        uint64_t now = vibe_frames();
+        float dt = last && now > last ? (float)(now - last) / kx_sr : 0.0f, e;
+        if (pa < 0.0f)
+            pa = song.playing ? 0.0f : 1.0f;
+        last = now;
+        pa += (song.playing ? -1.0f : 1.0f) * dt / 0.8f;
+        pa = pa < 0.0f ? 0.0f : pa > 1.0f ? 1.0f : pa;
+        e = pa * pa * (3.0f - 2.0f * pa);
+        if (e > 0.001f) {
+            float ir = e * 336.0f;
+            vg_circle((float)SR_CX, (float)SR_CY, ir, 0x070708);
+            st_arc(0.0f, 1.0f, ir, 3.0f + 4.0f * (1.0f - e), vg_mix(0xFF6A40, 0x5A0E08, e));   /* (its edge, hot while it moves) */
+            st_poster(hit, e);
+        }
+    }
     /* the bands: opaque, the words only here */
     vg_rect_a(0, 0, SB_LW, ST_H, 0x050506, 0.86f);   /* (dark plates over the soot: the ground shows through, faint) */
     vg_rect_a(SB_RX, 0, ST_W - SB_RX, ST_H, 0x050506, 0.86f);
@@ -522,8 +598,12 @@ static void kx_stage_event(const vibe_event *e)
         }
         return;
     }
-    {   /* a ring: its step */
+    {   /* a ring: its step; the middle: PLAY */
         float dx = (float)(x - SR_CX), dy = (float)(y - SR_CY), r = vd_sqrt(dx * dx + dy * dy);
+        if (r < (float)SR_R0 - 14.0f) {
+            kx_post(KXC_PLAY, 3, 0, 0, 0);
+            return;
+        }
         int k = (int)((r - (float)SR_R0) / (float)SR_STEP);
         float in = r - (float)SR_R0 - (float)k * (float)SR_STEP;
         if (k >= 0 && k < NTRK && in >= 0.0f && in < (float)SR_TH) {

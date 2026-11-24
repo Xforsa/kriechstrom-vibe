@@ -295,7 +295,7 @@ static int st_post_n;
 static void st_poster(float hit, float e)       /* e: how far it is in, 0 .. 1 (the iris' opening) */
 {
     int j, pass;
-    float ir = e * 336.0f;
+    float ir = e * 104.0f, sc = 0.6f;            /* (inside the sound's ring: the rings stay) */
     if (!st_post_n) {                             /* (grown once, the same each time) */
         int a;
         uint32_t keep = lt_rng;
@@ -308,40 +308,40 @@ static void st_poster(float hit, float e)       /* e: how far it is in, 0 .. 1 (
     {   /* a red haze behind it, as the card's */
         int q;
         for (q = 12; q > 0; q--)
-            vg_circle((float)SR_CX, (float)SR_CY, e * (60.0f + (float)q * 20.0f), vg_mix(0x070708, 0x3A0806, (0.12f + 0.1f * hit) * (float)(13 - q) / 12.0f));
+            vg_circle((float)SR_CX, (float)SR_CY, e * (20.0f + (float)q * 7.0f), vg_mix(0x070708, 0x3A0806, (0.12f + 0.1f * hit) * (float)(13 - q) / 12.0f));
     }
     for (pass = 0; pass < 3; pass++)              /* glow, red, the white core */
         for (j = 0; j < st_post_n; j++) {
             const lt_seg *g = &st_post[j];
-            float w = (float)g->w * 0.25f, x0 = (float)SR_CX + ((float)g->x0 - 240.0f) * 1.55f, y0 = (float)SR_CY + ((float)g->y0 - 160.0f) * 1.55f;
-            float x1 = (float)SR_CX + ((float)g->x1 - 240.0f) * 1.55f, y1 = (float)SR_CY + ((float)g->y1 - 160.0f) * 1.55f;
+            float w = (float)g->w * 0.25f, x0 = (float)SR_CX + ((float)g->x0 - 240.0f) * sc, y0 = (float)SR_CY + ((float)g->y0 - 160.0f) * sc;
+            float x1 = (float)SR_CX + ((float)g->x1 - 240.0f) * sc, y1 = (float)SR_CY + ((float)g->y1 - 160.0f) * sc;
             {
                 float dx = x1 - (float)SR_CX, dy = y1 - (float)SR_CY;
                 if (dx * dx + dy * dy > ir * ir)  /* (only inside the iris) */
                     continue;
             }
             if (pass == 0)
-                vg_line(x0, y0, x1, y1, w * 4.0f + 3.0f, vg_mix(0x08080A, 0x6A0E06, 0.45f + 0.3f * hit));
+                vg_line(x0, y0, x1, y1, w * 2.2f + 1.5f, vg_mix(0x08080A, 0x6A0E06, 0.45f + 0.3f * hit));
             else if (pass == 1)
-                vg_line(x0, y0, x1, y1, w * 1.6f + 0.6f, w > 0.6f ? 0xE02414 : 0x8A1A0C);
+                vg_line(x0, y0, x1, y1, w * 0.9f + 0.4f, w > 0.6f ? 0xE02414 : 0x8A1A0C);
             else if (w > 0.8f)
-                vg_line(x0, y0, x1, y1, w * 0.7f, vg_mix(0xFF7A60, 0xFFF4EE, vd_minf((w - 0.8f) / 1.6f, 1.0f)));
+                vg_line(x0, y0, x1, y1, w * 0.45f, vg_mix(0xFF7A60, 0xFFF4EE, vd_minf((w - 0.8f) / 1.6f, 1.0f)));
         }
     if (e > 0.35f) {                              /* the name's band opens from the middle, the name burns in, shaking */
-        float b = vd_minf((e - 0.35f) / 0.4f, 1.0f), u = vd_minf((e - 0.6f) / 0.4f, 1.0f);
-        int half = (int)((float)(SB_RX - SB_LW - 4) * 0.5f * b), nw, x, tw, jx;
-        vg_rect(SR_CX - half, SR_CY - 36, half * 2, 66, 0x000000);
-        vg_rect(SR_CX - half, SR_CY - 37, half * 2, 1, vg_mix(0x000000, C_RED, b));
-        vg_rect(SR_CX - half, SR_CY + 30, half * 2, 1, vg_mix(0x000000, C_RED, b));
+        float bb = vd_minf((e - 0.35f) / 0.4f, 1.0f), u = vd_minf((e - 0.6f) / 0.4f, 1.0f);
+        int half = (int)(98.0f * bb), nw, x, tw, jx;
+        vg_rect(SR_CX - half, SR_CY - 14, half * 2, 26, 0x000000);
+        vg_rect(SR_CX - half, SR_CY - 15, half * 2, 1, vg_mix(0x000000, C_RED, bb));
+        vg_rect(SR_CX - half, SR_CY + 12, half * 2, 1, vg_mix(0x000000, C_RED, bb));
         if (u > 0.0f) {
-            jx = u < 1.0f ? (int)((float)((int)(vibe_frames() >> 9) % 13 - 6) * (1.0f - u)) : 0;
-            nw = vg_text_width("KRIECH", VG_BIG | VG_X2) + vg_text_width("STROM", VG_BIG | VG_X2);
+            jx = u < 1.0f ? (int)((float)((int)(vibe_frames() >> 9) % 9 - 4) * (1.0f - u)) : 0;
+            nw = vg_text_width("KRIECH", VG_BIG) + vg_text_width("STROM", VG_BIG);
             x = SR_CX - nw / 2 + jx;
-            x += vg_text("KRIECH", x, SR_CY - 30, VG_BIG | VG_X2, vg_mix(0x000000, C_WHITE, u), VG_LEFT);
-            vg_text("STROM", x, SR_CY - 30, VG_BIG | VG_X2, vg_mix(0x000000, C_RED, u), VG_LEFT);
-            tw = vg_text_width("VIBE FM", VG_BOLD) + 20;
-            vg_rect(SR_CX - tw / 2 - jx, SR_CY + 44, tw, 24, vg_mix(0x000000, C_RED, u));
-            vg_text("VIBE FM", SR_CX - jx, SR_CY + 47, VG_BOLD, 0x000000, VG_CENTER);
+            x += vg_text("KRIECH", x, SR_CY - 12, VG_BIG, vg_mix(0x000000, C_WHITE, u), VG_LEFT);
+            vg_text("STROM", x, SR_CY - 12, VG_BIG, vg_mix(0x000000, C_RED, u), VG_LEFT);
+            tw = vg_text_width("VIBE FM", VG_SMALL) + 12;
+            vg_rect(SR_CX - tw / 2 - jx, SR_CY + 20, tw, 16, vg_mix(0x000000, C_RED, u));
+            vg_text("VIBE FM", SR_CX - jx, SR_CY + 21, VG_SMALL, 0x000000, VG_CENTER);
         }
     }
 }
@@ -416,7 +416,7 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
         pa = pa < 0.0f ? 0.0f : pa > 1.0f ? 1.0f : pa;
         e = pa * pa * (3.0f - 2.0f * pa);
         if (e > 0.001f) {
-            float ir = e * 336.0f;
+            float ir = e * 104.0f;
             vg_circle((float)SR_CX, (float)SR_CY, ir, 0x070708);
             st_arc(0.0f, 1.0f, ir, 3.0f + 4.0f * (1.0f - e), vg_mix(0xFF6A40, 0x5A0E08, e));   /* (its edge, hot while it moves) */
             st_poster(hit, e);

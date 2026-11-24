@@ -1323,7 +1323,8 @@ static void kx_ui_event_body(const vibe_event *e)
         int midi = e->midi[1] == VIBE_NOTE_MIDI || e->midi[1] == VIBE_NOTE_HOST;
         if (e->down && !vel)
             vel = 1;
-        if (kx_page == PG_SPINE && !midi) {       /* (SPINE: the keys move the followers live, from the key) */
+        if (kx_page == PG_SPINE) {                /* (SPINE: any keys, the device's, the computer's, MIDI: they move
+                                                   * the followers live, from the key) */
             if (e->down) {
                 int s = ((int)e->id % 12 - kx_sp_root() + 24) % 12;
                 kx_sp_live = s > 6 ? s - 12 : s;

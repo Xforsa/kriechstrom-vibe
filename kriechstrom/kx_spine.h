@@ -58,16 +58,20 @@ static void kx_sp_detect(void)
 }
 
 /* ---- the audio flow: each bar, the next chord; the tracks moved there ----------------------------------------- */
-static int16_t sp_base[NTRK];
+static int16_t sp_base[NTRK], sp_qnt[NTRK], sp_scl[NTRK];      /* the tracks' TRN and QNT before SPINE took them */
 static int sp_on, sp_bar, sp_lastbeat = -1, sp_was_step = -1, sp_was_live, sp_was_route;
 static void sp_apply(void)
 {
     uint32_t k;
     int off = kx_sp_semis(kx_ic[IC_SP_P0 + kx_sp_step]) + kx_sp_live;
     off = off > 12 ? off - 12 : off < -12 ? off + 12 : off;
-    for (k = 0; k < NTRK; k++)
-        trk[k].p[P_TRANS] = (int16_t)(((kx_ic[IC_SP_ROUTE] >> k) & 1) && !drum_track(&trk[k]) ? clamp(sp_base[k] + off, -24, 24)
-                                                                                                : sp_base[k]);
+    for (k = 0; k < NTRK; k++) {                  /* (a follower's QNT SEQ+T: TRN moves its steps too, in its scale) */
+        int fol = ((kx_ic[IC_SP_ROUTE] >> k) & 1) && !drum_track(&trk[k]);
+        trk[k].p[P_TRANS] = (int16_t)(fol ? clamp(sp_base[k] + off, -24, 24) : sp_base[k]);
+        trk[k].p[P_QUANT] = (int16_t)(fol ? QN_SEQT : sp_qnt[k]);
+        trk[k].p[P_SCALE] = (int16_t)(fol && sp_qnt[k] < QN_SEQ ? 0 : sp_scl[k]);   /* (its riff moved note for note: CHR,
+                                                                                  * unless its steps were already kept in a scale) */
+    }
     sp_was_step = kx_sp_step, sp_was_live = kx_sp_live, sp_was_route = kx_ic[IC_SP_ROUTE];
 }
 static void kx_spine_block(void)
@@ -77,14 +81,14 @@ static void kx_spine_block(void)
     if (!kx_ic[IC_SP_ON]) {
         if (sp_on) {                              /* off: the tracks as they were */
             for (k = 0; k < NTRK; k++)
-                trk[k].p[P_TRANS] = sp_base[k];
+                trk[k].p[P_TRANS] = sp_base[k], trk[k].p[P_QUANT] = sp_qnt[k], trk[k].p[P_SCALE] = sp_scl[k];
             sp_on = 0;
         }
         return;
     }
     if (!sp_on) {
         for (k = 0; k < NTRK; k++)
-            sp_base[k] = trk[k].p[P_TRANS];
+            sp_base[k] = trk[k].p[P_TRANS], sp_qnt[k] = trk[k].p[P_QUANT], sp_scl[k] = trk[k].p[P_SCALE];
         sp_on = 1, kx_sp_step = 0, sp_bar = 0;
         sp_apply();
     }

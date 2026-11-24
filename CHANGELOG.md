@@ -5,6 +5,15 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.18] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Fixed
+- SPINE moved only the keys, not the steps (the core's TRN moves the steps with QNT SEQ+T alone): its followers now play
+  their steps moved, note for note (their QNT and SCL as they were when it is off); measured on their own outputs
+- SPINE's page takes the keys from anywhere (the device, the computer's keyboard, MIDI) to move the followers
+
 ## [0.5.17] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

@@ -158,7 +158,7 @@ static void kx_big_grow(void)
     }
     kx_big_t0 = vibe_frames() ? vibe_frames() : 1;
 }
-static void kx_big_draw(float heat, float hit)
+static void kx_big_draw_at(float heat, float hit, float ox, float oy, float sc)   /* (the stage: elsewhere, bigger) */
 {
     int j, pass, n = kx_big_n;
     float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.22f), reach;
@@ -183,12 +183,14 @@ static void kx_big_draw(float heat, float hit)
             c = vg_mix(C_BG, c, pass ? 0.5f + 0.5f * hit : 0.3f + 0.7f * hit);   /* (it breathes with the hits) */
             if (!pass && w < 0.9f)
                 continue;
-            vg_line((float)s2->x0, (float)s2->y0, (float)s2->x1, (float)s2->y1, pass ? w : w * 3.0f + 1.0f, c);
+            vg_line(ox + ((float)s2->x0 - 240.0f) * sc, oy + ((float)s2->y0 - 160.0f) * sc, ox + ((float)s2->x1 - 240.0f) * sc,
+                    oy + ((float)s2->y1 - 160.0f) * sc, (pass ? w : w * 3.0f + 1.0f) * (sc > 1.0f ? sc * 0.7f : 1.0f), c);
         }
     }
 }
+static void kx_big_draw(float heat, float hit) { kx_big_draw_at(heat, hit, 240.0f, 160.0f, 1.0f); }
 
-static void kx_lt_draw(void)                      /* the background, under the page */
+static void kx_lt_draw_at(float ox, float oy, float sc)   /* the background, under the page (the stage: scaled) */
 {
     int i, pass;
     if (!kx_ic[IC_SCREEN] || !kx_ic[IC_LIGHT])
@@ -211,11 +213,13 @@ static void kx_lt_draw(void)                      /* the background, under the p
             for (j = 0; j < kx_lt[i].n; j++) {
                 const lt_seg *g = &kx_lt[i].s[j];
                 float w = (float)g->w * 0.25f;
-                vg_line((float)g->x0, (float)g->y0, (float)g->x1, (float)g->y1, pass ? w : w * 2.6f + 1.0f, c);
+                vg_line(ox + (float)g->x0 * sc, oy + (float)g->y0 * sc, ox + (float)g->x1 * sc, oy + (float)g->y1 * sc,
+                        (pass ? w : w * 2.6f + 1.0f) * (sc > 1.0f ? sc * 0.6f : 1.0f), c);
             }
         }
     }
 }
+static void kx_lt_draw(void) { kx_lt_draw_at(0.0f, 0.0f, 1.0f); }
 
 /* the background: the creep, then pulsing with the level (its trunk brightest) */
 static void kx_bg_paint(uint16_t *fb)

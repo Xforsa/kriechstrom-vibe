@@ -57,9 +57,10 @@ mark grows behind every page as the master wears the mix out.
 - **MIDI OUT:** every track's notes on its own channel (the sequencer, the arpeggiator, DICE's parts, the keys),
   24 PPQ clock, START and STOP.
 - **CV and GATE:** one track's notes on CV OUT (1 V per octave) and GATE OUT.
-- **The stage (960 x 540):** the four patterns at once with their playheads, the creep over the master's scope, the
-  master's chain as knobs. Steps, tracks, mutes and knobs can be clicked, dragged or turned with the wheel; each also
-  has its control on the device.
+- **The stage (1280 x 720):** the four tracks as four rings of steps round the centre, a hand sweeping each; in the
+  middle the figure the drums grow inside the master's sound as a ring. The tracks on the left, the master's chain on
+  the right, the pads' effects below. Steps, tracks, mutes and knobs can be clicked, dragged or turned with the wheel,
+  the effects held with the mouse or several fingers; each also has its control on the device.
 - **The DAW:** each track's mixer (the SDK's `mix_<n>_*`), its sound, envelope and sends, the master's effects as
   parameters; its transport and tempo; projects and settings stored with the DAW project. Under VIBE FM Link the
   controller shows the page's name and its four values.

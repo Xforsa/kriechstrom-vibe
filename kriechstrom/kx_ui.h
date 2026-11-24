@@ -166,6 +166,7 @@ static const char *const PF_WHAT[PF_NFX] = {
     "holds the sound as it is", "an octave up", "an octave down", "a flanger", "a phaser",
     "throws into the reverb", "throws into the echo", "a half beat rolled", "chops it into 1/32",
     "bits crushed, sweeping", "a new effect every 1/16"};
+static const char *kx_fx_what(int fx) { return fx < PF_NFX ? PF_WHAT[fx] : PN_WHAT[(fx - PF_NFX) % PN_N]; }
 static void kx_open(uint32_t fa, int next);
 static void kx_menu(void)                         /* MENU: always its tiles (the page it was on is one RETURN away) */
 {
@@ -335,7 +336,7 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
         return;
     }
     if (pg == PG_PADFX) {                         /* PAD FX: the pad, its effect */
-        int fx = clamp(kx_ic[IC_PF0 + kx_pfx_sel], 0, PF_NFX - 1);
+        int fx = clamp(kx_ic[IC_PF0 + kx_pfx_sel], 0, KX_NFX - 1);
         memset(c, 0, sizeof *c);
         c->unit = "";
         if (slot == 0u) {
@@ -344,8 +345,8 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
             c->pos = (float)kx_pfx_sel / 15.0f;
         } else if (slot == 1u) {
             c->on = 1, c->label = "EFFECT";
-            str_cpy(c->val, PF_CELL[fx], sizeof c->val);
-            c->pos = (float)fx / (float)(PF_NFX - 1);
+            str_cpy(c->val, kx_fx_cell(fx), sizeof c->val);
+            c->pos = (float)fx / (float)(KX_NFX - 1);
         }
         return;
     }
@@ -705,7 +706,7 @@ static void kx_pad(uint32_t id, int down, float vel)
     default: {                                    /* pads 9-16: the effects MENU > PAD FX gives them, while held (SHIFT: eight more) */
         uint32_t slot = (row - 2u) * 4u + col + (kx_shift ? 8u : 0u), k = id - 8u;
         if (down) {
-            kx_pad_fx[k] = (uint8_t)clamp(kx_ic[IC_PF0 + slot], 0, PF_NFX - 1);
+            kx_pad_fx[k] = (uint8_t)clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1);
             kx_pfx_hit[slot] = vibe_frames() ? vibe_frames() : 1;
             if (kx_page == PG_PADFX)
                 kx_pfx_sel = (int)slot;           /* (on PAD FX: the pad pressed is the one to choose for) */
@@ -806,7 +807,7 @@ static const char *kx_f5_name(void)
 
 static void kx_pfx_turn(int n)                    /* PAD FX: the chosen pad's effect, round the 18 */
 {
-    int fx = (kx_ic[IC_PF0 + kx_pfx_sel] + (n > 0 ? 1 : -1) + PF_NFX) % PF_NFX;
+    int fx = (kx_ic[IC_PF0 + kx_pfx_sel] + (n > 0 ? 1 : -1) + KX_NFX) % KX_NFX;
     kx_post(KXC_INCFG, IC_PF0 + (uint32_t)kx_pfx_sel, 1, 0, fx);
 }
 static void kx_turn(uint32_t enc, float detents)

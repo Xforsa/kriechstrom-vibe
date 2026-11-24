@@ -206,11 +206,11 @@ static void st_pads(void)                         /* the bottom band: the pads' 
 {
     int i;
     for (i = 0; i < 8; i++) {
-        int slot = i + (st_shift ? 8 : 0), x = SB_LW + 22 + i * 74, fx = clamp(kx_ic[IC_PF0 + slot], 0, PF_NFX - 1);
+        int slot = i + (st_shift ? 8 : 0), x = SB_LW + 22 + i * 74, fx = clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1);
         int held = st_fx_down[slot];
         vg_round(x, SB_BY + 6, 68, 48, 6, held ? C_RED : 0x1A1A1E);
         vg_rect(x + 6, SB_BY + 6, 56, 2, st_shift ? 0xA0A0FF : i < 4 ? C_RED : 0xFF8030);
-        vg_text(PF_CELL[fx], x + 34, SB_BY + 22, VG_BOLD, held ? C_WHITE : TE_INK, VG_CENTER);
+        vg_text(kx_fx_cell(fx), x + 34, SB_BY + 22, VG_BOLD, held ? C_WHITE : TE_INK, VG_CENTER);
     }
     vg_round(SB_LW - 64, SB_BY + 6, 64, 48, 6, st_shift ? 0x4A4A8A : 0x1A1A1E);
     vg_text("SHIFT", SB_LW - 32, SB_BY + 22, VG_BOLD, st_shift ? C_WHITE : TE_MID, VG_CENTER);
@@ -467,11 +467,15 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
         st_track_card(k);
     for (k = 0; k < SK_N; k++)
         st_knob((int)k);
-    {
-        int wx = SB_RX + 8;
-        vg_text("WEAR", wx, 562, VG_BOLD, TE_MID, VG_LEFT);
-        vg_itoa((int)(cr_wear() * 100.0f + 0.5f), b);
-        vg_text(b, wx, 582, VG_BIG | VG_X2, C_WHITE, VG_LEFT);
+    {   /* how much the screen wears with the sound (MENU > DISPLAY): three buttons */
+        static const char *const W3[3] = {"OFF", "LOW", "FULL"};
+        int q, cur = clamp(kx_ic[IC_SCREEN], 0, 2);
+        vg_text("SCREEN WEAR", SB_RX + 8, 556, VG_BOLD, TE_MID, VG_LEFT);
+        for (q = 0; q < 3; q++) {
+            int bx = SB_RX + 8 + q * 100;
+            vg_round(bx, 580, 92, 44, 6, q == cur ? C_RED : 0x1A1A1E);
+            vg_text(W3[q], bx + 46, 592, VG_BOLD, q == cur ? C_WHITE : TE_MID, VG_CENTER);
+        }
     }
     st_pads();
     kx_wear_fx(fb, w, h);
@@ -509,7 +513,7 @@ static void kx_stage_event(const vibe_event *e)
         if (st_ptr[p] >= 200) {
             int slot = st_ptr[p] - 200;
             st_fx_down[slot] = 0;
-            kx_post(KXC_PERF, (uint32_t)clamp(kx_ic[IC_PF0 + slot], 0, PF_NFX - 1), 0, 0, 0);
+            kx_post(KXC_PERF, (uint32_t)clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1), 0, 0, 0);
         }
         st_ptr[p] = -1;
         return;
@@ -551,6 +555,12 @@ static void kx_stage_event(const vibe_event *e)
     }
     if (e->id != VIBE_STAGE_DOWN)
         return;
+    if (x >= SB_RX + 8 && y >= 580 && y < 624) {  /* SCREEN WEAR: OFF LOW FULL */
+        int q = (x - SB_RX - 8) / 100;
+        if (q >= 0 && q < 3)
+            kx_post(KXC_INCFG, IC_SCREEN, 1, 0, q);
+        return;
+    }
     if (y >= SB_BY && x >= SB_LW - 64 && x < SB_RX) {   /* the effects, held; SHIFT */
         if (x < SB_LW) {
             st_shift = !st_shift;
@@ -564,7 +574,7 @@ static void kx_stage_event(const vibe_event *e)
             st_fx_down[slot] = 1;
             st_ptr[p] = 200 + slot;
             kx_pfx_hit[slot] = vibe_frames() ? vibe_frames() : 1;
-            kx_post(KXC_PERF, (uint32_t)clamp(kx_ic[IC_PF0 + slot], 0, PF_NFX - 1), 1, 0, 0);
+            kx_post(KXC_PERF, (uint32_t)clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1), 1, 0, 0);
         }
         return;
     }

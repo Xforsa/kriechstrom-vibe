@@ -13,6 +13,7 @@
 
 /* ---- the VIBE side -------------------------------------------------------------------------------------------- */
 #include "kx_outs.h"
+#include "kx_punch.h"
 #include "kx_audio.h"
 #include "kx_pedals.h"
 #include "kx_input.h"

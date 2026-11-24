@@ -24,22 +24,22 @@ static const struct { const char *label; int16_t min, max, def; } IC_DESC[IC_N] 
     {"MULTI OUT", 0, 1, 1},                           /* (more outputs: kx_outs.h) */
     {"LIGHTNING", 0, 1, 1},                           /* (the live lightning behind the pages: kx_wear.h) */
     /* the effects pads 9-16 hold (0-7) and with SHIFT (8-15): MENU > PAD FX */
-    {"PAD FX", 0, PF_NFX - 1, PF_R16},
-    {"PAD FX", 0, PF_NFX - 1, PF_TAPE},
-    {"PAD FX", 0, PF_NFX - 1, PF_FRZ},
-    {"PAD FX", 0, PF_NFX - 1, PF_GATE},
-    {"PAD FX", 0, PF_NFX - 1, PF_CRSW},
-    {"PAD FX", 0, PF_NFX - 1, PF_ODN},
-    {"PAD FX", 0, PF_NFX - 1, PF_FLG},
-    {"PAD FX", 0, PF_NFX - 1, PF_RAND},
-    {"PAD FX", 0, PF_NFX - 1, PF_ROLL},
-    {"PAD FX", 0, PF_NFX - 1, PF_RTHR},
-    {"PAD FX", 0, PF_NFX - 1, PF_ETHR},
-    {"PAD FX", 0, PF_NFX - 1, PF_LPF},
-    {"PAD FX", 0, PF_NFX - 1, PF_HPF},
-    {"PAD FX", 0, PF_NFX - 1, PF_OUP},
-    {"PAD FX", 0, PF_NFX - 1, PF_PHS},
-    {"PAD FX", 0, PF_NFX - 1, PF_R32},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_PRESS},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_SHRED},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_BLACKOUT},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_SHORTWAVE},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_CORRODE},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_HAMMER},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_VOID},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_STROBE},
+    {"PAD FX", 0, KX_NFX - 1, PF_R16},
+    {"PAD FX", 0, KX_NFX - 1, PF_TAPE},
+    {"PAD FX", 0, KX_NFX - 1, PF_FRZ},
+    {"PAD FX", 0, KX_NFX - 1, PF_GATE},
+    {"PAD FX", 0, KX_NFX - 1, PF_CRSW},
+    {"PAD FX", 0, KX_NFX - 1, PF_ODN},
+    {"PAD FX", 0, KX_NFX - 1, PF_FLG},
+    {"PAD FX", 0, KX_NFX - 1, PF_RAND},
 };
 static int16_t kx_ic[IC_N];                       /* the audio flow writes them (KXC_INCFG); the display reads */
 static const char *const IC_TRK[NTRK + 1] = {"OFF", "T1", "T2", "T3", "T4"};

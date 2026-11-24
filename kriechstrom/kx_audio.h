@@ -62,6 +62,7 @@ static void kx_core_block(void)
     int32_t o[2 * CTL];
     uint32_t i;
     mix_block(o, CTL);
+    kx_punch_block(o, CTL);                       /* (the VIBE's own punch-in effects, after the master: kx_punch.h) */
     for (i = 0; i < NTRK; i++) {                  /* the tracks' peaks: the FM-1's display takes and clears them (ui_graph.c);
                                                    * here the audio flow does, into a level that falls (~0.2 s to half) */
         float a = (float)clamp(trk[i].peak, 0, 32767) / 32768.0f;

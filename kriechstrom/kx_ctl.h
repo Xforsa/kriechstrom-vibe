@@ -201,7 +201,9 @@ static void kx_apply(const kx_cmd *k)
         break;
     }
     case KXC_PERF:
-        if (k->a < PF_NFX)
+        if (k->a >= PF_NFX)                       /* (the VIBE's own: kx_punch.h) */
+            kx_pn_set(k->a - PF_NFX, (int)k->b);
+        else if (k->a < PF_NFX)
             perf_press(k->a, k->b);
         break;
     case KXC_STEP: {
@@ -369,3 +371,13 @@ static void kx_midi_out(int frame)
     (void)frame;
 }
 
+
+static void kx_fx_post(int fx, int down)          /* an effect held or let go, from anywhere: the pads, the stage, the foot */
+{
+    if (fx < 0 || fx >= KX_NFX)
+        return;
+    if (down && !kx_fx_on[fx])
+        kx_fx_t0[fx] = vibe_frames() ? vibe_frames() : 1;
+    kx_fx_on[fx] = down ? (uint8_t)(kx_fx_on[fx] < 255 ? kx_fx_on[fx] + 1 : 255) : (uint8_t)(kx_fx_on[fx] ? kx_fx_on[fx] - 1 : 0);
+    kx_post(KXC_PERF, (uint32_t)fx, down ? 1u : 0u, 0, 0);
+}

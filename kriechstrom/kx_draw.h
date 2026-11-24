@@ -1256,7 +1256,7 @@ static void kx_draw_padfx(int x, int y, int w, int h)
         vg_text(half ? "SHIFT + PADS 9-16" : "PADS 9-16", hx, y, VG_SMALL, half ? 0xA0A0FF : TE_MID, VG_LEFT);
         for (k = 0; k < 8; k++) {
             int slot = half * 8 + k, cx = hx + (k & 3) * 58, cy = y + 16 + (k >> 2) * 38, on = slot == sel;
-            int fx = clamp(kx_ic[IC_PF0 + slot], 0, PF_NFX - 1);
+            int fx = clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1);
             float age = (float)(vibe_frames() - kx_pfx_hit[slot]) / (kx_sr * 0.4f);
             char b[4];
             vg_rect(cx, cy, 56, 36, on ? vg_mix(C_BG, C_RED, 0.45f) : 0x16161A);
@@ -1265,15 +1265,15 @@ static void kx_draw_padfx(int x, int y, int w, int h)
                 vg_rect_a(cx, cy, 56, 36, C_WHITE, 0.5f * (1.0f - age));
             vg_itoa(9 + k, b);
             vg_text(b, cx + 3, cy + 4, VG_SMALL, on ? C_WHITE : 0x7A7A84, VG_LEFT);
-            vg_text(PF_CELL[fx], cx + 28, cy + 17, VG_BOLD, on ? C_WHITE : TE_INK, VG_CENTER);
+            vg_text(kx_fx_cell(fx), cx + 28, cy + 17, VG_BOLD, on ? C_WHITE : TE_INK, VG_CENTER);
             if (on)
                 vg_frame(cx - 1, cy - 1, 58, 38, 1, C_RED);
         }
     }
     {
-        int fx = clamp(kx_ic[IC_PF0 + sel], 0, PF_NFX - 1), tw;
-        tw = vg_text(PF_NAME[fx], x, y + 92, VG_BOLD, C_RED, VG_LEFT);
-        vg_text(PF_WHAT[fx], x + tw + 10, y + 92, VG_SMALL, TE_INK, VG_LEFT);
+        int fx = clamp(kx_ic[IC_PF0 + sel], 0, KX_NFX - 1), tw;
+        tw = vg_text(kx_fx_name(fx), x, y + 92, VG_BOLD, C_RED, VG_LEFT);
+        vg_text(kx_fx_what(fx), x + tw + 10, y + 92, VG_SMALL, TE_INK, VG_LEFT);
         vg_text("HOLD THE PAD TO HEAR", x + w, y + 92, VG_SMALL, TE_MID, VG_RIGHT);
     }
 }
@@ -1621,7 +1621,7 @@ static void kx_draw_shift(void)
             const char *t = L[r * 4u + k];
             vg_round(px, py, cw - 4, ch - 3, 3, vg_mix(C_BG, col, 0.35f));
             if (r >= 2u)                          /* (the effects MENU > PAD FX gives them, SHIFT's eight) */
-                t = PF_CELL[clamp(kx_ic[IC_PF0 + 8 + (r - 2u) * 4u + k], 0, PF_NFX - 1)];
+                t = kx_fx_cell(clamp(kx_ic[IC_PF0 + 8 + (r - 2u) * 4u + k], 0, KX_NFX - 1));
             if (r == 1u && kx_page == PG_MASTER) {
                 static const char *const M[4] = {"DAMAGE", "WALL", "SPLICE", "HAUNT"};
                 t = M[k];

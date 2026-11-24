@@ -263,3 +263,13 @@ h2.sec { margin: 0 0 8px; font-size: 2em; }
 p.intro { margin: 0 0 22px; font-size: 1.12em; color: #c8c8cc; max-width: 760px; }
 .shots { grid-template-columns: repeat(4, 1fr); gap: 18px 14px; }   /* (eight screens: four and four) */
 @media (max-width: 900px) { .shots { grid-template-columns: repeat(2, 1fr); } }
+/* between the blocks: a full-width strip of current, the block's number and name on it, TE's way */
+.cut { position: relative; width: 100vw; margin: 90px 0 44px calc(50% - 50vw); height: 130px;
+  background: #000 url(media/band.jpg) center / cover no-repeat; border-top: 2px solid var(--red); border-bottom: 2px solid var(--red);
+  box-shadow: 0 0 40px rgba(230, 36, 20, .35); display: flex; align-items: center; justify-content: center; gap: 18px; }
+.cut::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.15) 50%, rgba(0,0,0,.55)); }
+.cut span { position: relative; font-family: "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; }
+.cut-n { background: #fff; color: #000; font-weight: 800; font-size: 26px; padding: 4px 10px; }
+.cut-t { color: #fff; font-weight: 800; font-size: 26px; text-shadow: 0 0 18px rgba(230,36,20,.9); }
+@media (max-width: 600px) { .cut { height: 90px; margin-top: 60px; } .cut-n, .cut-t { font-size: 18px; } }
+html, body { overflow-x: hidden; }   /* (the strips are as wide as the window) */

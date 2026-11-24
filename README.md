@@ -60,7 +60,8 @@ mark grows behind every page as the master wears the mix out.
 - **The stage (1280 x 720):** the four tracks as four rings of steps round the centre, a hand sweeping each; in the
   middle the figure the drums grow inside the master's sound as a ring. The tracks on the left, the master's chain on
   the right, the pads' effects below. Steps, tracks, mutes and knobs can be clicked, dragged or turned with the wheel,
-  the effects held with the mouse or several fingers; each also has its control on the device.
+  the effects held with the mouse or several fingers; each track has DICE, mute and its level as a fader, the tempo
+  drags, the MOOD clicks on; each also has its control on the device.
 - **The DAW:** each track's mixer (the SDK's `mix_<n>_*`), its sound, envelope and sends, the master's effects as
   parameters; its transport and tempo; projects and settings stored with the DAW project. Under VIBE FM Link the
   controller shows the page's name and its four values.

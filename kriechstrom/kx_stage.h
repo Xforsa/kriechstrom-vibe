@@ -168,9 +168,17 @@ static void st_track_card(uint32_t k)            /* the left band: a track */
     vg_text(ENGINES[eng_idx(t->eng_req)]->name, 84, y + 14, VG_BOLD, mute ? 0x6A6A72 : TE_INK, VG_LEFT);
     sound_name(t, nm);
     vg_text(nm, 84, y + 36, VG_BIG, mute ? 0x6A6A72 : C_WHITE, VG_LEFT);
-    lv = (int)(vd_minf(kx_trk_pk[k] * 1.4f, 1.0f) * 180.0f);   /* (its level now) */
-    vg_rect(84, y + 82, 180, 8, 0x22222A);
-    vg_rect(84, y + 82, lv, 8, mute ? 0x5A5A60 : col);
+    {   /* its LEVEL, a fader to drag; the sound in it now */
+        const param_desc_t *d = &TP[P_LEVEL];
+        int fx = 84 + (int)((float)(t->p[P_LEVEL] - d->min) / (float)(d->max - d->min) * 166.0f);
+        lv = (int)(vd_minf(kx_trk_pk[k] * 1.4f, 1.0f) * (float)(fx - 84));
+        vg_rect(84, y + 82, 166, 8, 0x22222A);
+        vg_rect(84, y + 82, fx - 84, 8, vg_mix(0x22222A, col, 0.35f));
+        vg_rect(84, y + 82, lv, 8, mute ? 0x5A5A60 : col);
+        vg_rect(fx - 2, y + 76, 4, 20, C_WHITE);
+    }
+    vg_round(SB_LW - 62, y + 8, 40, 26, 4, 0x2A2A30);      /* DICE: a new part */
+    vg_text("DICE", SB_LW - 42, y + 13, VG_SMALL, TE_INK, VG_CENTER);
     vg_round(SB_LW - 62, y + 70, 40, 30, 4, mute ? C_RED : 0x2A2A30);
     vg_text("M", SB_LW - 42, y + 76, VG_BOLD, mute ? C_WHITE : TE_MID, VG_CENTER);
 }
@@ -382,6 +390,17 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
     kx_wear_fx(fb, w, h);
 }
 
+static void st_level(uint32_t k, int x)          /* a track's LEVEL from where the pointer is on its fader */
+{
+    const param_desc_t *d = &TP[P_LEVEL];
+    int v = d->min + (int)((float)clamp(x - 84, 0, 166) / 166.0f * (float)(d->max - d->min) + 0.5f);
+    kx_post(KXC_PARAM, k, P_LEVEL, 0, v);
+}
+static void st_bpm(int d)
+{
+    kx_post(KXC_PARAM, NTRK, G_BPM, 0, clamp(song.g[G_BPM] + d, GP[G_BPM].min, GP[G_BPM].max));
+}
+
 /* the stage's input: clicks, drags, the wheel and fingers (pointers 0-9), in stage pixels */
 static int st_ptr[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};   /* what each pointer holds: 100 + knob, 200 + slot */
 static int st_ptr_y[10];
@@ -429,6 +448,20 @@ static void kx_stage_event(const vibe_event *e)
             sk_turn(st_ptr[p] - 100, d), st_ptr_y[p] = y;
         return;
     }
+    if (e->id == VIBE_STAGE_MOVE && st_ptr[p] >= 300 && st_ptr[p] < 304) {   /* a level dragged */
+        st_level((uint32_t)(st_ptr[p] - 300), x);
+        return;
+    }
+    if (st_ptr[p] == 400 && e->id == VIBE_STAGE_MOVE) {   /* the tempo dragged */
+        int d = (st_ptr_y[p] - y) / 4;
+        if (d)
+            st_bpm(d), st_ptr_y[p] = y;
+        return;
+    }
+    if (e->id == VIBE_STAGE_WHEEL && x < 160 && y >= 70 && y < 130) {
+        st_bpm(e->value > 0 ? 1 : -1);
+        return;
+    }
     if (e->id != VIBE_STAGE_DOWN)
         return;
     if (y >= SB_BY && x >= SB_LW - 64 && x < SB_RX) {   /* the effects, held; SHIFT */
@@ -448,9 +481,17 @@ static void kx_stage_event(const vibe_event *e)
         }
         return;
     }
-    if (x < SB_LW) {                              /* the left band: play, a track, its M */
+    if (x < SB_LW) {                              /* the left band: play, the tempo, the MOOD, a track, its M */
         if (y >= 70 && y < 130 && x >= SB_LW - 70) {
             kx_post(KXC_PLAY, 3, 0, 0, 0);
+            return;
+        }
+        if (y >= 70 && y < 130 && x < 160) {      /* the tempo: drag it, or the wheel */
+            st_ptr[p] = 400, st_ptr_y[p] = y;
+            return;
+        }
+        if (y >= 70 && y < 130) {                 /* the MOOD for DICE: the next */
+            kx_post(KXC_TOOL, song.sel, TL_MOOD, 0, 0);
             return;
         }
         if (y >= 150 && y < 150 + 4 * 120) {
@@ -460,7 +501,12 @@ static void kx_stage_event(const vibe_event *e)
                 return;
             if (x >= SB_LW - 62 && x < SB_LW - 22 && ly >= 70 && ly < 100)
                 kx_post(KXC_MUTE, k, 0, 0, 0);
-            else
+            else if (x >= SB_LW - 62 && x < SB_LW - 22 && ly >= 8 && ly < 34)
+                kx_post(KXC_TOOL, k, TL_DICE, 0, 0);
+            else if (x >= 76 && x < 258 && ly >= 70 && ly < 104) {   /* the level: where clicked, then dragged */
+                st_ptr[p] = 300 + (int)k;
+                st_level(k, x);
+            } else
                 kx_post(KXC_SEL, k, 0, 0, 0);
         }
         return;

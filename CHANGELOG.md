@@ -5,10 +5,19 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.13] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
 ### Changed
 - the stage, drawn anew at 1280 x 720: the four tracks as rings of steps round the centre with a hand sweeping each,
   the figure and the master's sound in the middle, words only in their own bands (the tracks, the master's chain, the
-  pads' effects, held with the mouse or several fingers)
+  pads' effects, held with the mouse or several fingers), in its gloom: soot and old scars underfoot, rain, ash and
+  smoke, a shock ring from every kick, the selected track's sweep leaving a trail
+- on the stage each track has DICE, mute and its level as a fader; the tempo drags or turns with the wheel, the MOOD
+  clicks on to the next
+- the hub's card: the figure with the name across its middle
+- the site: each block under its own strip, the screens four and four
 
 ## [0.5.12] - 2026-11-24
 

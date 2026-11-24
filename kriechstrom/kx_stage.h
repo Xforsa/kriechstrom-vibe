@@ -113,7 +113,15 @@ static void st_ring(uint32_t k)                   /* a track's steps round its r
     for (i = 0; i < len; i++) {                   /* the ground first, all of it: the beats as on a drum machine */
         float a0 = (float)i / (float)len + gap, a1 = (float)(i + 1u) / (float)len - gap;
         int on = song.playing && i == play;
-        st_band(a0, a1, r0, r0 + (float)SR_TH, on ? vg_mix(0x101014, col, 0.35f) : (i / 4u) % 2u ? 0x18181E : 0x111115);
+        if (on)                                   /* (the ground is open: the rain and the scars show through; the step
+                                                   * playing lit, each step's edge a tick, each beat's a longer one) */
+            st_band(a0, a1, r0, r0 + (float)SR_TH, vg_mix(0x08080A, col, 0.3f));
+        st_arc(a0, a1, r0, 1.0f, (i / 4u) % 2u ? 0x2A2A32 : 0x1E1E24);
+        st_arc(a0, a1, r0 + (float)SR_TH, 1.0f, (i / 4u) % 2u ? 0x2A2A32 : 0x1E1E24);
+        {
+            float b = (float)i / (float)len, e = i % 4u ? 6.0f : (float)SR_TH;
+            vg_line(st_pt_x(b, r0), st_pt_y(b, r0), st_pt_x(b, r0 + e), st_pt_y(b, r0 + e), 1.0f, i % 4u ? 0x2A2A32 : 0x3A3A44);
+        }
     }
     for (i = 0; i < len; i++) {
         const step_t *st = &t->step[i];
@@ -133,6 +141,13 @@ static void st_ring(uint32_t k)                   /* a track's steps round its r
             }
         } else if (st->time == ST_TIE)
             st_band(a0 - gap * 2.0f, a1, rm - 1.5f, rm + 1.5f, vg_mix(C_BG, c, 0.5f));
+    }
+    if (song.playing && sel) {                    /* the selected track's hand leaves a trail, fading, as a radar's */
+        float a = ((float)play + 1.0f) / (float)len;
+        int q;
+        for (q = 0; q < 10; q++)
+            st_band(a - (float)(q + 1) * 0.012f, a - (float)q * 0.012f, (float)SR_R0 - 8.0f, (float)(SR_R0 + 4 * SR_STEP),
+                    vg_mix(0x08080A, col, 0.16f * (1.0f - (float)q / 10.0f)));
     }
     if (song.playing) {                           /* the hand: across the ring where it plays */
         float a = ((float)play + 0.5f) / (float)len;
@@ -193,15 +208,110 @@ static void st_pads(void)                         /* the bottom band: the pads' 
     vg_text("SHIFT", SB_LW - 32, SB_BY + 22, VG_BOLD, st_shift ? C_WHITE : TE_MID, VG_CENTER);
 }
 
+/* ---- the gloom: a ground made once (soot, rust, old scars of current, the corners dark), then each frame rain, ash
+ * rising, smoke drifting, a shock ring from every kick, a sweep's fading trail ------------------------------------- */
+static uint16_t st_bg[ST_W * ST_H];
+static int st_bg_ok;
+static lt_seg st_scar[1400];
+static int st_scar_n;
+static uint32_t st_h;
+static uint32_t st_rnd(void) { st_h = st_h * 1664525u + 1013904223u; return st_h >> 8; }
+static int st_rn(int n) { return (int)(st_rnd() % (uint32_t)n); }
+static void st_bg_make(uint16_t *fb)
+{
+    int i, j;
+    vg_begin_size(st_bg, ST_W, ST_H);
+    vg_clear(0x08080A);
+    st_h = 0x5EED2611u;
+    for (i = 0; i < 46; i++)                      /* rust and soot, in blots */
+        vg_circle((float)st_rn(ST_W), (float)st_rn(ST_H), 12.0f + (float)st_rn(70), (st_rnd() & 1u) ? 0x0E0A09 : 0x0B0B0D);
+    for (i = 0; i < 9000; i++) {                  /* grain */
+        uint32_t g = 0x0C0C0E + 0x010101u * (uint32_t)st_rn(10);
+        vg_rect(st_rn(ST_W), st_rn(ST_H), 1, 1, g);
+    }
+    {   /* old scars of current, burnt into the ground, dark */
+        int saved_n = st_scar_n = 0;
+        lt_out = st_scar, lt_out_n = &st_scar_n, lt_out_cap = 1400;
+        lt_rng = 0x2611u;
+        lt_tree(-4.0f, 120.0f, 0.02f, 60.0f, 3.0f, 7, 0.07f);
+        lt_tree(484.0f, 300.0f, 0.47f, 54.0f, 2.6f, 7, 0.07f);
+        lt_tree(240.0f, 324.0f, -0.25f, 46.0f, 2.2f, 6, 0.07f);
+        lt_tree(140.0f, -4.0f, 0.27f, 40.0f, 2.0f, 6, 0.07f);
+        lt_tree(400.0f, -4.0f, 0.22f, 44.0f, 2.2f, 6, 0.07f);
+        (void)saved_n;
+        for (j = 0; j < st_scar_n; j++) {
+            const lt_seg *g = &st_scar[j];
+            float wd = (float)g->w * 0.25f * 2.2f;
+            vg_line((float)g->x0 * 2.6667f, (float)g->y0 * 2.6667f - 66.0f, (float)g->x1 * 2.6667f, (float)g->y1 * 2.6667f - 66.0f,
+                    wd * 3.5f + 3.0f, 0x160806);
+            vg_line((float)g->x0 * 2.6667f, (float)g->y0 * 2.6667f - 66.0f, (float)g->x1 * 2.6667f, (float)g->y1 * 2.6667f - 66.0f,
+                    wd, 0x48140C);
+        }
+    }
+    for (i = 0; i < 90; i++) {                    /* the corners and edges fall into the dark */
+        float a = (float)(90 - i) / 90.0f;
+        vg_rect_a(0, i * 4, ST_W, 4, 0x000000, 0.0f + a * a * 0.6f);
+        vg_rect_a(0, ST_H - (i + 1) * 4, ST_W, 4, 0x000000, a * a * 0.6f);
+    }
+    vg_begin_size(fb, ST_W, ST_H);
+    st_bg_ok = 1;
+}
+static void st_weather(float t, float hit)       /* rain falling, ash rising, smoke drifting */
+{
+    int i;
+    for (i = 0; i < 3; i++) {                     /* smoke: wide soft bands, drifting */
+        float y = 120.0f + (float)i * 210.0f + vd_sin(t * 0.03f + (float)i * 0.3f) * 60.0f;
+        vg_rect_a(0, (int)y, ST_W, 100, 0x3A3A44, 0.06f);
+        vg_rect_a(0, (int)y + 22, ST_W, 56, 0x3A3A44, 0.07f);
+        vg_rect_a(0, (int)y + 40, ST_W, 20, 0x3A3A44, 0.07f);
+    }
+    for (i = 0; i < 170; i++) {                   /* rain, slanting, grey */
+        uint32_t q = (uint32_t)i * 2654435761u;
+        float sp = 380.0f + (float)(q >> 24) * 1.6f, x = (float)((q >> 8) % ST_W) + t * 40.0f, y = te_wrap((float)(q & 1023u) / 1024.0f + t * sp / (float)ST_H) * (float)(ST_H + 40) - 20.0f;
+        x = (float)((int)(x + y * 0.18f) % ST_W);
+        vg_line(x, y, x - 5.0f, y + 26.0f, 1.0f, (q >> 4) & 1u ? 0x3E3E4A : 0x2A2A34);
+    }
+    for (i = 0; i < 60; i++) {                    /* ash and embers, rising slow; the kicks stir them */
+        uint32_t q = (uint32_t)(i + 77) * 2246822519u;
+        float u = te_wrap((float)(q & 4095u) / 4096.0f + t * (0.02f + (float)((q >> 12) & 15u) * 0.003f));
+        float x = (float)((q >> 16) % ST_W) + vd_sin(t * 0.2f + (float)i) * 18.0f, y = (float)ST_H * (1.0f - u);
+        uint32_t c = (q >> 3) % 4u == 0u ? vg_mix(0x5A1A0A, 0xFF6A2A, 0.3f + 0.7f * hit) : 0x4A4440;
+        vg_rect((int)x, (int)y, (q >> 3) % 4u == 0u ? 3 : 2, (q >> 3) % 4u == 0u ? 3 : 2, c);
+    }
+}
+
 void vibe_on_stage(uint16_t *fb, int w, int h)
 {
     uint32_t k;
     char b[16];
     float heat = kx_peak[0] > kx_peak[1] ? kx_peak[0] : kx_peak[1];
+    float t = te_t(), hit = kx_big_now();
     kx_stage_on = 1;
-    vg_clear(C_BG);
+    if (!st_bg_ok)
+        st_bg_make(fb);
+    memcpy(fb, st_bg, sizeof st_bg);
+    st_weather(t, hit);
     /* the picture: the discharges behind everything, the rings, the figure and the sound in the middle */
     kx_lt_draw_at(0.0f, -66.0f, 2.6667f);
+    {   /* the radar: faint rings to the edges, a shock ring out from every kick */
+        int r;
+        for (r = SR_R0 + 4 * SR_STEP + 30; r < 760; r += 70)
+            st_arc(0.0f, 1.0f, (float)r, 1.0f, 0x16161A);
+        {
+            float age = (float)(vibe_frames() - kx_big_pt) / (kx_sr * 0.9f);
+            if (kx_big_pt && age < 1.0f)
+                st_arc(0.0f, 1.0f, 110.0f + age * 560.0f, 2.0f + 3.0f * (1.0f - age), vg_mix(0x08080A, 0xB02010, (1.0f - age) * (1.0f - age) * kx_big_pulse));
+        }
+        for (r = 0; r < 96; r++) {                /* the dial's ticks round the outside */
+            float a = (float)r / 96.0f, r0 = (float)(SR_R0 + 4 * SR_STEP) + 2.0f, r1 = r0 + ((r % 8) ? 6.0f : 14.0f);
+            vg_line(st_pt_x(a, r0), st_pt_y(a, r0), st_pt_x(a, r1), st_pt_y(a, r1), 1.0f, (r % 8) ? 0x26262C : 0x4A4A52);
+        }
+    }
+    {   /* a red glow in the middle, breathing with the kicks */
+        int q;
+        for (q = 10; q > 0; q--)
+            vg_circle((float)SR_CX, (float)SR_CY, 40.0f + (float)q * 9.0f, vg_mix(0x08080A, 0x5A0E08, (0.08f + 0.22f * hit) * (float)(11 - q) / 10.0f));
+    }
     {
         static uint32_t bar = 0xFFFFFFFFu;
         uint32_t bb = song.playing ? trk[song.sel].seq_idx / 16u : (uint32_t)(vibe_frames() / (uint64_t)(kx_sr * 2.0f));
@@ -229,10 +339,21 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
     for (k = 0; k < NTRK; k++)
         st_ring(k);
     /* the bands: opaque, the words only here */
-    vg_rect(0, 0, SB_LW, ST_H, 0x0B0B0D);
-    vg_rect(SB_RX, 0, ST_W - SB_RX, ST_H, 0x0B0B0D);
-    vg_rect(SB_LW, SB_BY, SB_RX - SB_LW, ST_H - SB_BY, 0x0B0B0D);
-    vg_rect(SB_LW, 0, 1, ST_H, 0x22222A), vg_rect(SB_RX - 1, 0, 1, ST_H, 0x22222A), vg_rect(SB_LW, SB_BY, SB_RX - SB_LW, 1, 0x22222A);
+    vg_rect_a(0, 0, SB_LW, ST_H, 0x050506, 0.86f);   /* (dark plates over the soot: the ground shows through, faint) */
+    vg_rect_a(SB_RX, 0, ST_W - SB_RX, ST_H, 0x050506, 0.86f);
+    vg_rect_a(SB_LW, SB_BY, SB_RX - SB_LW, ST_H - SB_BY, 0x050506, 0.86f);
+    vg_rect(SB_LW, 0, 2, ST_H, 0x2A2A30), vg_rect(SB_RX - 2, 0, 2, ST_H, 0x2A2A30), vg_rect(SB_LW, SB_BY, SB_RX - SB_LW, 2, 0x2A2A30);
+    {   /* bolts at the plates' corners, a strip of dirty hazard tape over each */
+        static const int BX[6] = {8, SB_LW - 10, SB_RX + 8, ST_W - 10, 8, ST_W - 10}, BY[6] = {ST_H - 10, ST_H - 10, ST_H - 10, ST_H - 10, 6, 6};
+        int i, sx;
+        for (i = 0; i < 6; i++) {
+            vg_circle((float)BX[i], (float)BY[i], 4.0f, 0x2A2420);
+            vg_line((float)BX[i] - 2.5f, (float)BY[i] + 1.5f, (float)BX[i] + 2.5f, (float)BY[i] - 1.5f, 1.2f, 0x0A0A0A);
+        }
+        for (sx = SB_RX + 30; sx < ST_W - 30; sx += 12)
+            vg_tri((float)sx, (float)(ST_H - 22), (float)(sx + 6), (float)(ST_H - 22), (float)(sx + 11), (float)(ST_H - 30), 0x6A5A1C);
+        vg_rect(SB_RX + 30, ST_H - 32, ST_W - SB_RX - 60, 2, 0x6A5A1C);
+    }
     {
         int x = 20, wd = vg_text("KRIECH", x, 14, VG_BIG | VG_X2, C_WHITE, VG_LEFT);
         vg_text("STROM", x + wd, 14, VG_BIG | VG_X2, C_RED, VG_LEFT);

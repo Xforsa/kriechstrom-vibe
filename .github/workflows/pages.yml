@@ -23,5 +23,6 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: build/site
+      - run: sleep 20                            # (a push's artifact is not found by deploy-pages at once)
       - id: deployment
         uses: actions/deploy-pages@v4

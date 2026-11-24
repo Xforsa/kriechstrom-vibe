@@ -59,8 +59,8 @@ the page you are on.</p>
 <h2 id="first">First five minutes</h2>
 <img class="screen shot-m" src="../shots/start.png" alt="The start screen" width="480" height="320" loading="lazy">
 <ol>
-  <li>At the start pick <b>F2 THE DEMO SONG</b> (F1 goes on where you left it, F3 is an empty project, F4 one of your
-    projects).</li>
+  <li>At the start pick <b>THE DEMO SONG</b>: the key under DEMO (F2), a click on it, or DATA and ENTER. LAST goes on
+    where you left it, EMPTY is an empty project, MINE one of your projects.</li>
   <li><b>PLAY</b>: four tracks play. The pads' top row mutes them.</li>
   <li>Turn <b>B</b>: DAMAGE wears the whole mix out (SHIFT + B: WALL). The display wears with it.</li>
   <li>Press a pad of the second row: <b>DICE</b> writes that track a new part.</li>
@@ -72,9 +72,13 @@ the page you are on.</p>
 <h2 id="sounds">Sounds</h2>
 <ul>
   <li><b>SOUND</b> shows the selected track's sound big and its neighbours in a list. <b>DATA</b> steps through the
-    sounds (a click on one in the list loads it), <b>SHIFT + DATA</b> through the engines.</li>
+    sounds (a click on one in the list loads it), <b>SHIFT + DATA</b> through the engines, on any SOUND page: change the engine
+    while you are on its values.</li>
   <li>SOUND again: the engine's own values (EDIT 1, EDIT 2; FILTER on ANALOG, the lanes on DRUM, the slices on SLICE,
     the operators on FM6), then VOICE 1-3, SAMPLER and MY SOUNDS.</li>
+  <li><b>Reading FM6's picture:</b> the boxes in the bottom row are heard (the carriers, in the track's colour); each
+    grey box above one shapes the one under it (a modulator), the arrow shows where it goes in; a red loop is feedback.
+    While a note sounds, dots run down the wires. ALG on the OPS page changes the picture.</li>
   <li><b>F5 OOPS</b> changes two or three values at random; F6 takes it back.</li>
   <li><b>MY SOUNDS</b>: 32 slots of your own. ENC 1 or DATA picks, F5 saves the track's sound there (SHIFT: erase),
     ENTER loads.</li>
@@ -95,7 +99,8 @@ the page you are on.</p>
 </ul>
 
 <h2 id="dice">DICE and MOOD</h2>
-<p>DICE writes a track a new part in the current MOOD: pads 5-8 (one per track), or F5 on SEQ. <b>SHIFT + F5</b> on
+<p>DICE writes a track a new part in the current MOOD: pads 5-8 (one per track), or F5 on SEQ. Every press gives a part
+different from the one there (a few moods choose from only a few rhythms, so it throws again till it differs). <b>SHIFT + F5</b> on
 SEQ steps through the eight moods (MACHINE to HUSH); the name shows at the bottom. The mood is one for all tracks.</p>
 
 <h2 id="pads">The pads</h2>
@@ -103,10 +108,16 @@ SEQ steps through the eight moods (MACHINE to HUSH); the name shows at the botto
 <tr><th>Pads</th><th>As they are</th><th>With SHIFT</th></tr>
 <tr><td>1-4</td><td>mute T1-T4</td><td>solo (again: all back)</td></tr>
 <tr><td>5-8</td><td>DICE on T1-T4</td><td>OOPS on T1-T4</td></tr>
-<tr><td>9-12</td><td>hold: 1/16 repeat, tape stop, freeze, gate</td><td>hold: roll, reverb throw, echo throw, filter</td></tr>
-<tr><td>13-16</td><td>KICK SNARE CLAP HAT, with velocity</td><td>the kit's other four lanes</td></tr>
+<tr><td>9-12</td><td>hold: 1/16 repeat, tape stop, freeze, gate</td><td>hold: roll, reverb throw, echo throw, low-pass</td></tr>
+<tr><td>13-16</td><td>hold: crush sweep, octave down, flanger, random</td><td>hold: high-pass, octave up, phaser, 1/32 repeat</td></tr>
 </table></div>
-<p>While SHIFT is on, the display names every pad. On <b>SEQ</b> the pads are the steps. On <b>MASTER</b> pads 5-8
+<img class="screen shot-m" src="../shots/padfx.png" alt="PAD FX" width="480" height="320" loading="lazy">
+<p>Each of these sixteen is yours to choose: <b>MENU &gt; PAD FX</b> shows pads 9-16 as they lie, and the same with
+SHIFT. Press a pad (or ENC 1, or click it) to pick it, turn DATA (or ENC 2) through the eighteen effects, hold the pad
+to hear it; ENTER goes to the next pad, F5 gives it back its own. The choice is kept. The drums are played on the keys
+of the drum track.</p>
+<p>Hold SHIFT still for a moment and the display names every pad; SHIFT tapped, or used with a control, shows nothing
+over the page. On <b>SEQ</b> the pads are the steps. On <b>MASTER</b> pads 5-8
 switch DAMAGE, WALL, SPLICE and HAUNT on and off (lit while on); on a <b>pedalboard</b> pads 5-7 bypass pedals 1-3
 and pad 8 all of them.</p>
 
@@ -133,6 +144,11 @@ and pad 8 all of them.</p>
   <li>The pedal the knobs turn is framed red: pick it with DATA, F5 or a click. ENC 1 its type (one of thirteen:
     SOFT HARD FOLD FUZZ CRUSH PHASR FLANG CHOR MUFF BASS SMASH DAMG INFCT), SHIFT + ENC 1 its mix, ENC 2-4 its knobs.</li>
   <li>The window of each pedal shows what it does to a wave; the LED and the signal on the cables show how hard.</li>
+  <li>Each of the thirteen is its own box, so you know it at a glance: SOFT white with coloured knobs, HARD a rusted
+    slab with chicken-head knobs, FOLD aluminium with faders, FUZZ a bare board with its creature, CRUSH in hazard
+    stripes with an LED bar, PHASR orange with a porthole, FLANG blue enamel, CHOR mint with sliders, MUFF one big knob
+    on felt, BASS black and brass with a needle, SMASH dented steel with a red stomp, DAMG a burnt board, INFCT a tube
+    of something green. Each one's screen is its own kind too.</li>
 </ul>
 
 <h2 id="sampler">The sampler</h2>

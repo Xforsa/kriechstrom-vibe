@@ -45,8 +45,8 @@ mark grows behind every page as the master wears the mix out.
   echoes, the reverb a room, a spring or a hall, the slicer its pattern, the clock its beats. MENU > DISPLAY sets how much the screen wears: OFF, LOW (the default), FULL.
   The pages slide, a value turned lights up, and the pages move with the sound: the spectrum, the envelope and the
   LFO where they are, the playhead's trail.
-- **The pads:** mute and DICE per track, hold effects (repeat 1/16, tape stop, freeze, gate), four drum lanes with
-  velocity; on the SEQ page the pads are the 16 steps shown, lit as they play. A controller with an 8 x 8 grid (a
+- **The pads:** mute and DICE per track; pads 9-16 hold effects, with SHIFT eight more, each of the sixteen chosen
+  from eighteen on MENU > PAD FX; on the SEQ page the pads are the 16 steps shown, lit as they play. A controller with an 8 x 8 grid (a
   Launchpad) has all 64 steps. The steps can be clicked on the display.
 - **A foot pedal (MENU > FOOT PEDAL):** the expression pedal turns DAMAGE, WALL or the track's level (the page shows
   the pedal and a gauge of what it turns); the footswitch plays, DICEs, stops the tape or freezes. Without a pedal both
@@ -86,26 +86,24 @@ mark grows behind every page as the master wears the mix out.
 | keys | play the selected track (its chord keys and arpeggiator) |
 | pads 1-4 | mute a track (SHIFT: solo it; again: all back) |
 | pads 5-8 | DICE: a new part for that track in the MOOD (SHIFT: OOPS on it); on MASTER: DAMAGE, WALL, SPLICE, HAUNT on and off; on a pedalboard: pedal 1-3 bypassed, 4 all |
-| pads 9-12 | held: repeat 1/16, tape STOP, FREEZE, GATE (SHIFT: ROLL, REV THROW, ECHO THROW, FILTER) |
-| pads 13-16 | KICK, SNARE, CLAP, HAT on the drum track, with velocity (SHIFT: the other four lanes) |
+| pads 9-16 | held: an effect each, chosen on MENU > PAD FX (at first 1/16, TAPE STOP, FREEZE, GATE, CRUSH SWEEP, OCT DOWN, FLANGER, RANDOM; SHIFT: ROLL, REV THROW, ECHO THROW, LPF, HPF, OCT UP, PHASER, 1/32) |
 | SOUND ENV LFO ARP FX SEQ | the pages; the same key again: the next page of that family |
 | ◀ ▶ | the family's pages |
 | encoders 1-4 | the four values on the page |
-| DATA | the page's own knob: on SOUND the sounds (SHIFT: the engine); on a list the list; on SEQ the step; on PEDALS the pedal; on MIXER the selected track's level; elsewhere the card marked DATA (ENTER moves to the next) |
+| DATA | the page's own knob: on SOUND the sounds (SHIFT + DATA on any SOUND page: the engine); on a list the list; on SEQ the step; on PEDALS the pedal; on MIXER the selected track's level; elsewhere the card marked DATA (ENTER moves to the next) |
 | A | the selected track's level |
 | B | DAMAGE (SHIFT + B: WALL) |
 | F1-F4 | select track 1-4 |
 | F5 | the page's action: OOPS on SOUND, DICE on SEQ (SHIFT: MOOD), REC on SAMPLER, the next pedal on PEDALS, SAVE on PROJECTS (SHIFT: export) and PARTS A-D, the input's type on INPUT |
 | F6 | UNDO |
-| MENU | its pages as tiles: projects, project files, parts A-D, mixer, outputs, MIDI OUT and CV, foot pedal, display, clock (SHIFT + MENU: straight to PROJECTS) |
-| SHIFT | held or tapped (then it holds for the next control); the pads' second functions are shown |
+| MENU | always its tiles: projects, project files, parts A-D, mixer, outputs, MIDI OUT and CV, foot pedal, display, pad FX, clock (SHIFT + MENU: straight to PROJECTS) |
+| SHIFT | held or tapped (then it holds for the next control, a knob's whole turn); held still, the pads' second functions are shown |
 | PLAY, STOP, REC | the transport; REC arms the selected track for live recording |
 | ENTER | on SEQ: the cursor's step on or off; on PROJECTS: load (twice); the Playground's and the plugin's panels have no ENTER key: a click on the DATA knob is ENTER |
 | HOME | what every control does on this page, and how its effect goes on and off (SHIFT + HOME: MENU, for the plugin's Rack view, which has no MENU key); RETURN (↵) goes back to the page before, step by step |
 | the mouse (plugin, browser) | a click on what is shown: a tab, a track, a page's dot, a step, a pedal, a sound of the list, a master effect's tile, a slot, a project; a drag up or down in one of the four columns turns that column's knob (the host's layout) |
 
-Every control on the display can also be reached with DATA and ENTER (hold ENTER for 0.6 s: FOCUS). The full cheat
-sheet, page by page, is on the [site](https://xforsa.github.io/kriechstrom-vibe/#cheat).
+The full cheat sheet, page by page, is on the [site](https://xforsa.github.io/kriechstrom-vibe/#cheat).
 
 ## Play it
 

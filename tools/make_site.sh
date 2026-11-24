@@ -7,7 +7,7 @@ V=$(python3 -c "import json; print(json.load(open('kriechstrom/firmware.json'))[
 rm -rf build/site && mkdir -p build/site/shots build/site/media
 cp site/style.css site/vibe.js build/site/
 cp site/media/* build/site/media/
-python3 tools/make_shots.py >/dev/null           # (the screens from the firmware as it is now: never behind it)
+[ -f build/kriechstrom.wasm ] && python3 tools/make_shots.py >/dev/null   # (the screens anew from the firmware; CI: the committed ones, which tests/run.sh keeps current)
 for f in docs/*.png; do [ "$f" = docs/card.png ] || cp "$f" build/site/shots/; done
 mkdir -p build/site/manual
 for p in index.html ru.html manual/en.html manual/ru.html; do sed "s/@VERSION@/$V/g" "site/$p" > "build/site/$p"; done

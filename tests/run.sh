@@ -62,4 +62,6 @@ def rms(f):
 r = [rms(f) for f in ('out3-4.wav', 'out5-6.wav', 'out7-8.wav', 'out9-10.wav', 'out11-12.wav')]
 sys.exit(0 if all(x > 50 for x in r) and rms('out13-14.wav') < 1 else 1)
 PY
+# the screens for the site, README and manual, made anew (a change you can see shows in git as changed docs/*.png)
+python3 tools/make_shots.py >/dev/null && ok "screens: docs/*.png from this build" ok || ok "screens" FAIL
 [ $fail = 0 ] && echo "ALL PASSED" || { echo "FAILED"; exit 1; }

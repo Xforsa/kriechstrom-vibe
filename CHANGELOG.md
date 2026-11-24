@@ -5,6 +5,33 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.12] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Added
+- MENU > PAD FX: pads 9-16 all hold effects now, and with SHIFT eight more; each of the sixteen is chosen from the
+  core's eighteen (press the pad, turn DATA), shown as the pads lie, kept between sessions
+- each of the thirteen pedals is its own box: its body, its kind of knobs (chicken heads, faders, dials, one big
+  knob), its screen (an LCD, a phosphor scope, amber dots, LED columns, a porthole ..) and one mark only it has
+- FM6's algorithm explained on the page: what is heard, what shapes what, feedback; dots run down the wires while a
+  note sounds
+
+### Changed
+- MENU always opens on its tiles (the page before is one RETURN away)
+- a tapped SHIFT holds for a knob's whole turn; SHIFT + DATA changes the engine on every SOUND page
+- DICE gives a different part on every press (it throws again when a mood's few rhythms come up the same)
+- the pads' map shows only while SHIFT is held still, never over a page being worked
+- the idle screen's figure grows from its centre all round at once and flares with the drums
+- the start screen's keys are named as on the panel (LAST, DEMO, EMPTY, MINE)
+- the site: Play on the Firmware Hub, the version on the downloads, the VIBE FM plugin's link, fewer screens that open
+  big; every screen is made anew from the firmware (tools/make_shots.py)
+
+### Fixed
+- the SDK's FOCUS (DATA or ENTER held) took over DATA and ENTER: gone, DATA and ENTER are each page's own
+- text over pictures: DATA's mark sits in its card, OUTPUTS' note in its own place, HOME's rows fit, the sounds' list
+  and MENU's tiles whole
+
 ## [0.5.11] - 2026-11-20
 
 On KRIECHSTROM 0.5.2 for the FM-1.

@@ -5,6 +5,17 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.20] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- each own effect at its own pace: PRESS and SHORTWAVE come in at once, the builds over two bars
+- PRESS anew: the quarter's pump, as EBM's sidechain, at the mix's level
+- BUILD in place of MAGNET: the low end cut away higher and higher, and the mix dropping back the moment it is let go
+- SHORTWAVE without its whistle and its wobbling tuning: a narrow band, softly off, at the mix's level
+- RANDOM's and GATE's pictures calm: a dark die turning each beat, the gate's ring by the eighth, dimmed
+
 ## [0.5.19] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

@@ -131,17 +131,17 @@ static void kx_fx_art(int fx, float cx, float cy, float r, float u, float lv)
         vg_circle(cx, cy, r * (0.1f - 0.07f * d), 0x000000);
         break;
     }
-    default: {                                    /* MAGNET: field lines pulled into the key's note, glowing as it sings */
-        float d = kx_pn_depth[PN_MAGNET];
-        int q;
-        for (q = 0; q < 10; q++) {
-            float a = (float)q / 10.0f + t * 0.02f, px = cx + vd_sin(a) * r * 0.85f, py = cy - vd_sin(a + 0.25f) * r * 0.85f;
-            float k = 1.0f - d * 0.8f;
-            vg_line(px, py, cx + vd_sin(a + 0.05f * k) * r * 0.25f, cy - vd_sin(a + 0.25f + 0.05f * k) * r * 0.25f, 1.5f,
-                    vg_mix(0x3A3A40, red, d));
+    default: {                                    /* BUILD: the spectrum's floor rising, the bars under it gone */
+        float d = kx_pn_depth[PN_BUILD] * kx_pn_lv[PN_BUILD], floor_y = cy + r * 0.55f - d * r * 1.0f;
+        for (i = 0; i < 12; i++) {
+            float x = cx - r * 0.66f + (float)i * r * 0.11f;
+            float h = r * (0.25f + 0.55f * (0.5f + 0.5f * vd_sin(t * 1.3f + (float)i * 0.37f)) * (0.4f + 0.6f * (float)i / 11.0f));
+            float top = cy + r * 0.55f - h;
+            uint32_t c = top > floor_y ? 0x2A2A30 : vg_mix(0x5A5A60, red, (float)i / 11.0f);
+            vg_rect((int)x, (int)top, (int)(r * 0.08f), (int)h, c);
         }
-        vg_circle(cx, cy, r * (0.22f + 0.05f * vd_sin(t * 3.0f) * d), vg_mix(0x2A2A30, 0xFF6A40, d));
-        vg_text(SP_KEYN[kx_sp_root()], (int)cx, (int)(cy - 8.0f), VG_BOLD, 0x08080A, VG_CENTER);
+        vg_rect((int)(cx - r * 0.7f), (int)floor_y, (int)(r * 1.4f), 2, hot);   /* (the cut, rising) */
+        vg_tri(cx, cy - r * 0.78f, cx - r * 0.12f, cy - r * 0.6f, cx + r * 0.12f, cy - r * 0.6f, d > 0.9f ? hot : ink);
         break;
     }
     } else switch (fx) {                          /* ---- the core's hold effects ---- */
@@ -217,9 +217,9 @@ static void kx_fx_art(int fx, float cx, float cy, float r, float u, float lv)
     case PF_GATE:                                 /* the ring chopped, its pieces blinking */
         for (i = 0; i < 16; i++) {
             float a = (float)i / 16.0f;
-            int on = ((int)(ph * 16.0f) + i) % 2;
+            int on = ((int)(ph * 2.0f) + i) % 2;   /* (by the eighth: calm) */
             vg_line(cx + vd_sin(a) * r * 0.6f, cy - vd_sin(a + 0.25f) * r * 0.6f, cx + vd_sin(a + 0.04f) * r * 0.6f,
-                    cy - vd_sin(a + 0.29f) * r * 0.6f, 8.0f, on ? red : 0x2A2A30);
+                    cy - vd_sin(a + 0.29f) * r * 0.6f, 8.0f, on ? 0x8A1A10 : 0x2A2A30);
         }
         break;
     case PF_CRSW: {                               /* a grid getting coarser */
@@ -234,12 +234,14 @@ static void kx_fx_art(int fx, float cx, float cy, float r, float u, float lv)
     }
     default: {                                    /* RANDOM: a die, a new face each 1/16 */
         static const uint16_t FACE[6] = {0x010, 0x101, 0x111, 0x145, 0x155, 0x16D};   /* (pips on a 3 x 3) */
-        uint32_t n16 = (uint32_t)(t * 8.0f);
-        int f = (int)((n16 * 2654435761u) >> 29) % 6;
-        vg_round((int)(cx - r * 0.45f), (int)(cy - r * 0.45f), (int)(r * 0.9f), (int)(r * 0.9f), (int)(r * 0.12f), ink);
+        uint32_t nb = (uint32_t)beat_n + (uint32_t)(t * 0.0f);   /* (a new face each beat: calm, in time) */
+        int f = (int)(((nb + 1u) * 2654435761u) >> 29) % 6;
+        float tilt = (1.0f - vd_minf(ph * 6.0f, 1.0f)) * 0.03f;   /* (a small roll as it lands) */
+        vg_round((int)(cx - r * 0.45f + tilt * r * 4.0f), (int)(cy - r * 0.45f), (int)(r * 0.9f), (int)(r * 0.9f), (int)(r * 0.12f), 0x2E2E34);
+        vg_frame((int)(cx - r * 0.45f + tilt * r * 4.0f), (int)(cy - r * 0.45f), (int)(r * 0.9f), (int)(r * 0.9f), 1, 0x4A4A52);
         for (i = 0; i < 9; i++)
             if ((FACE[f] >> i) & 1u)
-                vg_circle(cx + ((float)(i % 3) - 1.0f) * r * 0.25f, cy + ((float)(i / 3) - 1.0f) * r * 0.25f, r * 0.07f, 0x08080A);
+                vg_circle(cx + tilt * r * 4.0f + ((float)(i % 3) - 1.0f) * r * 0.25f, cy + ((float)(i / 3) - 1.0f) * r * 0.25f, r * 0.07f, red);
         break;
     }
     }

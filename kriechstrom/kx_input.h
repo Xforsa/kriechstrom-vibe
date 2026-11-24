@@ -27,7 +27,7 @@ static const struct { const char *label; int16_t min, max, def; } IC_DESC[IC_N] 
     /* the effects pads 9-16 hold (0-7) and with SHIFT (8-15): MENU > PAD FX */
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_PRESS},
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_PISTON},
-    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_MAGNET},
+    {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_BUILD},
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_TUNNEL},
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_SHREDDER},
     {"PAD FX", 0, KX_NFX - 1, PF_NFX + PN_BLACKOUT},

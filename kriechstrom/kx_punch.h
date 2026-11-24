@@ -3,29 +3,26 @@
  * KRIECHSTROM for VIBE FM: its own punch-in effects, held on the pads (MENU > PAD FX gives them a pad, pads 9-16 at
  * first), worked on the whole mix after the core's master, in the audio flow. The FM-1's core is not touched: with none
  * held (and their tails gone) the mix passes as it was, bit for bit.
- * Each grows while it is held: from a hint to all of it over two bars (in the tempo), and lets go softly (a sixteenth),
- * as the core's own do: nothing hits at once.
- *   PRESS      a hydraulic press: the mix pumped on the beat, harder and flatter the longer it is held
+ * Each comes in at its own pace (PN_GROW, in beats: the press and the radio at once, the builds over two bars) and lets
+ * go in a sixteenth (BUILD at once: the drop).
+ *   PRESS      a hydraulic press: the mix pumped on every quarter, as EBM pumps it; it comes in at once
  *   PISTON     a machine speeding up: the mix chopped by a piston, 1/4 then 1/8, 1/16, 1/32
- *   MAGNET     everything pulled to the key: three metal strings tuned to SPINE's root, its fifth and octave, singing
- *              louder out of the mix the longer it is held
+ *   BUILD      the build before a drop: the low end cut away higher and higher; let go, it all drops back at once
  *   TUNNEL     the mix driven away: darker, into an echo and a long dark room; let go, it comes back
  *   SHREDDER   the bar cut on its 1/16s: first the slice repeated, then the last bar's slices shuffled, then some backwards
  *   BLACKOUT   the power fails: the tape slows, the treble goes, a hum, then nothing; let go, it comes back
- *   SHORTWAVE  a shortwave radio: the band narrowing, its tuning drifting further, static rising
+ *   SHORTWAVE  a shortwave radio: a narrow band, its tuning slowly off, soft static; it comes in quickly
  *   CORRODE    eaten away the longer it is held: the rate and the bits fall, crackle grows
  * kx_pn_lv says how far each is in, kx_pn_depth how far it has grown (the display reads both). */
 
-static int kx_sp_root(void);                     /* (kx_spine.h: the key MAGNET sings in) */
-
 #define PN_N 8
-enum { PN_PRESS, PN_PISTON, PN_MAGNET, PN_TUNNEL, PN_SHREDDER, PN_BLACKOUT, PN_SHORTWAVE, PN_CORRODE };
-static const char *const PN_NAME[PN_N] = {"PRESS", "PISTON", "MAGNET", "TUNNEL", "SHREDDER", "BLACKOUT", "SHORTWAVE", "CORRODE"};
-static const char *const PN_CELL[PN_N] = {"PRESS", "PISTN", "MAGNT", "TUNNL", "SHRED", "BLACK", "RADIO", "RUST"};
+enum { PN_PRESS, PN_PISTON, PN_BUILD, PN_TUNNEL, PN_SHREDDER, PN_BLACKOUT, PN_SHORTWAVE, PN_CORRODE };
+static const char *const PN_NAME[PN_N] = {"PRESS", "PISTON", "BUILD", "TUNNEL", "SHREDDER", "BLACKOUT", "SHORTWAVE", "CORRODE"};
+static const char *const PN_CELL[PN_N] = {"PRESS", "PISTN", "BUILD", "TUNNL", "SHRED", "BLACK", "RADIO", "RUST"};
 static const char *const PN_WHAT[PN_N] = {
-    "pumped on the beat, harder as held", "chopped by a piston, speeding up", "metal strings sing the key out of it",
+    "pumped on every quarter, EBM style", "chopped by a piston, speeding up", "the build before the drop: let go",
     "driven away into the dark", "the bar's 1/16s repeated, shuffled", "the power fails, it sinks into hum",
-    "a radio, its band narrowing", "eaten away, the longer the worse"};
+    "a shortwave radio, softly tuned off", "eaten away, the longer the worse"};
 
 #define KX_NFX (PF_NFX + PN_N)                    /* the pads' effects: the core's 18, then these 8 */
 static const char *kx_fx_cell(int fx) { return fx < PF_NFX ? PF_CELL[fx] : PN_CELL[(fx - PF_NFX) % PN_N]; }
@@ -55,10 +52,8 @@ static float pn_rand(void) { pn_rng ^= pn_rng << 13; pn_rng ^= pn_rng >> 17; pn_
 
 /* PISTON: its gate's level */
 static float pn_pi_g = 1.0f;
-/* MAGNET: three combs (root, fifth, octave), their damping */
-#define PN_MC 3
-static float pn_mc[PN_MC][2048], pn_mc_lp[PN_MC];
-static uint32_t pn_mc_i[PN_MC];
+/* BUILD: its high-pass (two one-poles taken away) */
+static float pn_bd_s1[2], pn_bd_s2[2];
 /* TUNNEL: a low-pass, an echo, the dark room (four combs, two all-passes), the room's energy */
 static float pn_tn_lp[2], pn_tn_e[2][32768], pn_v_energy;
 static uint32_t pn_tn_ei;
@@ -73,7 +68,7 @@ static int pn_sh_rev;
 /* BLACKOUT: the power (1 on, 0 off), the tape's reader */
 static float pn_pow = 1.0f, pn_bread, pn_blp[2];
 /* SHORTWAVE: a band-pass, the tuning's phase, the whistle */
-static float pn_sw_lo[2], pn_sw_hi[2], pn_sw_ph, pn_sw_wh;
+static float pn_sw_lo[2], pn_sw_hi[2], pn_sw_ph;
 /* CORRODE: the held sample, its counter, a low-pass */
 static float pn_cr_hold[2], pn_cr_cnt, pn_cr_lp[2];
 
@@ -110,6 +105,7 @@ static float pn_room(float x)                     /* the dark room: one sample i
     }
     return y;
 }
+static const float PN_GROW[PN_N] = {0.15f, 8.0f, 8.0f, 4.0f, 8.0f, 8.0f, 0.5f, 8.0f};   /* (beats to all of it) */
 static float pn_ease(float x) { x = x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; return x * x * (3.0f - 2.0f * x); }
 
 static void kx_punch_block(int32_t *o, uint32_t n)
@@ -119,10 +115,11 @@ static void kx_punch_block(int32_t *o, uint32_t n)
     float up = (float)n / (0.02f * (float)FS), down = (float)n / (beat * 0.25f);   /* (in: 20 ms; out: a sixteenth) */
     for (k = 0; k < PN_N; k++) {
         int held = (kx_pn_held >> k) & 1u;
-        kx_pn_lv[k] += held ? vd_minf(up, 1.0f - kx_pn_lv[k]) : -vd_minf(down, kx_pn_lv[k]);
+        float gs = PN_GROW[k] * beat / (float)FS;   /* (that one's time to all of it, in s) */
+        kx_pn_lv[k] += held ? vd_minf(up, 1.0f - kx_pn_lv[k]) : -vd_minf(k == PN_BUILD ? 1.0f : down, kx_pn_lv[k]);
         if (held)
             kx_pn_held_s[k] += dt;
-        kx_pn_depth[k] = pn_ease(0.12f + 0.88f * kx_pn_held_s[k] / (grow > 0.1f ? grow : 0.1f));
+        kx_pn_depth[k] = pn_ease((PN_GROW[k] < 1.0f ? 0.0f : 0.12f) + (PN_GROW[k] < 1.0f ? 1.0f : 0.88f) * kx_pn_held_s[k] / (gs > 0.01f ? gs : 0.01f));
         if (kx_pn_lv[k] > 0.0f)
             active |= 1u << k;
     }
@@ -168,12 +165,10 @@ static void kx_punch_block(int32_t *o, uint32_t n)
                 }
                 l += (sl_l - l) * a, r += (sl_r - r) * a;
             }
-            if ((a = kx_pn_lv[PN_PRESS]) > 0.0f) {                /* PRESS: pumped, flatter as it grows */
-                float drive = 1.0f + 3.5f * (d = kx_pn_depth[PN_PRESS]);
-                float duck = 1.0f - 0.85f * d * (1.0f - vd_minf(ph * 2.2f, 1.0f));
-                float norm = 0.95f / vd_tanh(drive), pl = vd_tanh(l * drive) * norm * 0.4f * duck, pr = vd_tanh(r * drive) * norm * 0.4f * duck;
-                pl = pl * (1.0f - 0.35f * (1.0f - d)) + l * 0.35f * (1.0f - d);
-                pr = pr * (1.0f - 0.35f * (1.0f - d)) + r * 0.35f * (1.0f - d);
+            if ((a = kx_pn_lv[PN_PRESS]) > 0.0f) {                /* PRESS: the quarter's pump (a kick's sidechain) */
+                float dd = kx_pn_depth[PN_PRESS], rel = vd_minf(ph / 0.62f, 1.0f), duck, pl, pr;
+                duck = 1.0f - 0.78f * dd * (1.0f - rel * rel * (3.0f - 2.0f * rel));   /* (down on the beat, up through it) */
+                pl = vd_tanh(l * 1.6f) * 0.78f * duck * 1.3f, pr = vd_tanh(r * 1.6f) * 0.78f * duck * 1.3f;
                 l += (pl - l) * a, r += (pr - r) * a;
             }
             if ((a = kx_pn_lv[PN_PISTON]) > 0.0f) {               /* PISTON: chopped, speeding up */
@@ -189,22 +184,19 @@ static void kx_punch_block(int32_t *o, uint32_t n)
                     l *= 1.0f - a + a * g, r *= 1.0f - a + a * g;
                 }
             }
-            if ((a = kx_pn_lv[PN_MAGNET]) > 0.0f) {               /* MAGNET: strings in the key, singing louder */
-                static const float RAT[PN_MC] = {1.0f, 1.4983f, 2.0f};
-                float m = (l + r) * 0.5f, s = 0.0f, f0 = vd_mtof((float)(40 + kx_sp_root()));
-                d = kx_pn_depth[PN_MAGNET];
-                for (k = 0; k < PN_MC; k++) {
-                    uint32_t len = (uint32_t)((float)FS / (f0 * RAT[k]));
-                    float *b = pn_mc[k], y;
-                    len = len < 16u ? 16u : len > 2047u ? 2047u : len;
-                    y = b[(pn_mc_i[k] + 2048u - len) & 2047u];
-                    pn_mc_lp[k] += (y - pn_mc_lp[k]) * 0.5f;
-                    b[pn_mc_i[k]] = m * 0.15f + pn_mc_lp[k] * (0.6f + 0.385f * d);
-                    pn_mc_i[k] = (pn_mc_i[k] + 1u) & 2047u;
-                    s += y;
+            if ((a = kx_pn_lv[PN_BUILD]) > 0.0f) {                /* BUILD: the low end cut away, higher and higher */
+                float fc, c, hl, hr;
+                d = kx_pn_depth[PN_BUILD];
+                fc = 30.0f * vd_exp2(d * 6.6f);           /* (30 Hz to about 3 kHz over its two bars) */
+                c = 6.2831853f * fc / (float)FS;
+                c = c > 0.9f ? 0.9f : c;
+                for (k = 0; k < 2u; k++) {                /* (two poles: 12 dB an octave, a little ring at the corner) */
+                    float x = k ? r : l;
+                    pn_bd_s1[k] += (x - pn_bd_s1[k]) * c;
+                    pn_bd_s2[k] += (pn_bd_s1[k] - pn_bd_s2[k]) * c;
                 }
-                s = vd_tanh(s * 1.6f) * 0.75f;
-                l += (l * (1.0f - 0.35f * d) + s * d - l) * a, r += (r * (1.0f - 0.35f * d) + s * d - r) * a;
+                hl = (l - pn_bd_s2[0]) * (1.0f + 0.6f * d), hr = (r - pn_bd_s2[1]) * (1.0f + 0.6f * d);
+                l += (hl - l) * a, r += (hr - r) * a;
             }
             if ((a = kx_pn_lv[PN_TUNNEL]) > 0.0f || pn_v_energy > 1e-6f) {   /* TUNNEL: away into the dark */
                 float c, e0, e1, y, send;
@@ -249,17 +241,15 @@ static void kx_punch_block(int32_t *o, uint32_t n)
             if ((a = kx_pn_lv[PN_SHORTWAVE]) > 0.0f) {            /* SHORTWAVE: the band narrowing, drifting */
                 float c, m = (l + r) * 0.5f, y, hi, lo, st;
                 d = kx_pn_depth[PN_SHORTWAVE];
-                pn_sw_ph += (0.15f + 0.5f * d) / (float)FS;
-                c = 0.25f - 0.17f * d + (0.03f + 0.06f * d) * vd_sin(pn_sw_ph);
+                pn_sw_ph += 0.04f / (float)FS;           /* (the tuning drifts slowly: no wobble) */
+                c = 0.22f - 0.12f * d + 0.015f * vd_sin(pn_sw_ph);
                 pn_sw_hi[0] += (m - pn_sw_hi[0]) * (0.005f + 0.03f * d);
                 hi = m - pn_sw_hi[0];
                 pn_sw_lo[0] += (hi - pn_sw_lo[0]) * c;
                 pn_sw_lo[1] += (pn_sw_lo[0] - pn_sw_lo[1]) * c;
                 lo = pn_sw_lo[1];
-                st = (pn_rand() - 0.5f) * 0.06f * d * (0.6f + 0.4f * vd_sin(pn_sw_ph * 7.0f));
-                pn_sw_wh += (2400.0f + 600.0f * vd_sin(pn_sw_ph * 3.0f)) / (float)FS;
-                pn_sw_wh -= (float)(int)pn_sw_wh;
-                y = vd_tanh(lo * (1.5f + 2.0f * d)) * 0.38f + st + vd_sin(pn_sw_wh) * 0.008f * d;
+                st = (pn_rand() - 0.5f) * 0.02f * d;     /* (soft static, steady) */
+                y = vd_tanh(lo * (1.5f + 2.0f * d)) * 0.95f + st;   /* (no whistle) */
                 a *= 0.25f + 0.75f * d;            /* (the radio comes in as it grows) */
                 l += (y - l) * a, r += (y - r) * a;
             }

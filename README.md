@@ -49,7 +49,7 @@ mark grows behind every page as the master wears the mix out.
   tracks that follow it move to each chord by their TRN, a step each 1, 2 or 4 bars; DICE writes a progression in the
   MOOD, the keys move the followers live.
 - **The pads:** mute and DICE per track; pads 9-16 hold effects, at first eight of this firmware's own (PRESS, PISTON,
-  MAGNET, TUNNEL, SHREDDER, BLACKOUT, SHORTWAVE, CORRODE, each growing while held and with its picture on the display and
+  BUILD, TUNNEL, SHREDDER, BLACKOUT, SHORTWAVE, CORRODE, each at its own pace and with its picture on the display and
   the stage), with SHIFT
   eight more, each of the sixteen chosen
   from eighteen on MENU > PAD FX; on the SEQ page the pads are the 16 steps shown, lit as they play. A controller with an 8 x 8 grid (a
@@ -94,7 +94,7 @@ mark grows behind every page as the master wears the mix out.
 | keys | play the selected track (its chord keys and arpeggiator) |
 | pads 1-4 | mute a track (SHIFT: solo it; again: all back) |
 | pads 5-8 | DICE: a new part for that track in the MOOD (SHIFT: OOPS on it); on MASTER: DAMAGE, WALL, SPLICE, HAUNT on and off; on a pedalboard: pedal 1-3 bypassed, 4 all |
-| pads 9-16 | held: an effect each, chosen on MENU > PAD FX from 26 (at first PRESS, PISTON, MAGNET, TUNNEL, SHREDDER, BLACKOUT, SHORTWAVE, CORRODE (SHIFT: 1/16, TAPE STOP, FREEZE, GATE, CRUSH SWEEP, OCT DOWN, FLANGER, RANDOM)) |
+| pads 9-16 | held: an effect each, chosen on MENU > PAD FX from 26 (at first PRESS, PISTON, BUILD, TUNNEL, SHREDDER, BLACKOUT, SHORTWAVE, CORRODE (SHIFT: 1/16, TAPE STOP, FREEZE, GATE, CRUSH SWEEP, OCT DOWN, FLANGER, RANDOM)) |
 | SOUND ENV LFO ARP FX SEQ | the pages; the same key again: the next page of that family |
 | ◀ ▶ | the family's pages |
 | encoders 1-4 | the four values on the page |

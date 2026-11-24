@@ -82,7 +82,7 @@ PY
 mkdir -p build/t-fx build/t-fxd
 "$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/fx_held.json build/t-fx >/dev/null
 "$NODE" tools/kx-test.mjs build/kriechstrom.wasm tests/fx_dry.json build/t-fxd >/dev/null
-python3 - <<'PY' && ok "own effects: soft in, growing, level kept (8)" ok || ok "own effects" FAIL
+python3 - <<'PY' && ok "own effects: soft in, each at its pace, level kept, BUILD drops" ok || ok "own effects" FAIL
 import wave, struct, math, sys
 def load(p):
     w = wave.open(p); d = w.readframes(w.getnframes()); return struct.unpack('<%dh' % (len(d) // 2), d)[0::2], w.getframerate()
@@ -96,7 +96,9 @@ for k in range(8):
     t = 4.4 + k * 7.2
     if not 0.6 < rms(a, t, t + 0.05) / (rms(b, t, t + 0.05) + 1) < 1.5: bad.append((k, 'in'))
     if rms(a, t + 3.6, t + 4.8) > 1.5 * rms(b, t + 3.6, t + 4.8): bad.append((k, 'loud'))
-    if k in (0, 1, 2, 3, 6, 7) and not dif(t + 3.6, t + 4.8) > dif(t, t + 1.2) + 0.1: bad.append((k, 'grow'))
+    if k in (1, 2, 3, 7) and not dif(t + 3.6, t + 4.8) > dif(t, t + 1.2) + 0.1: bad.append((k, 'grow'))
+    if k in (0, 6) and not dif(t, t + 0.3) > 0.2: bad.append((k, 'fast'))     # (PRESS, the radio: in at once)
+    if k == 2 and not dif(t + 4.82, t + 4.9) < 0.02: bad.append((k, 'drop'))  # (BUILD: let go, the mix drops back)
 print(bad) if bad else None
 sys.exit(1 if bad else 0)
 PY

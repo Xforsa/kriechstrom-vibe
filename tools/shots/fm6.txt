@@ -1,0 +1,10 @@
+# an empty project: T2 is FM6; its algorithm while a key is held
+w 1.5
+b F3
+w 2.0
+b F2
+b K1
+kd 48
+w 0.3
+s fm6
+ku 48

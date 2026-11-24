@@ -1,0 +1,72 @@
+# the demo song, playing
+w 1.5
+s start
+b F2
+b PLAY
+w 2.0
+s sound
+b HOME
+s home
+b HOME
+b K2
+s env
+b K6
+s seq
+b F4
+s seq-drum
+b F1
+b RIGHT
+b RIGHT
+b RIGHT
+s song
+b K5
+w 0.5
+s master
+b K5
+# three pedals on T1: MUFF, PHASR, DAMG
+e E1 -1 20
+e E1 1 9
+e DATA 1
+e E1 -1 20
+e E1 1 6
+e DATA 1
+e E1 -1 20
+e E1 1 12
+e DATA -1 2
+w 0.6
+s pedals
+b RIGHT
+b RIGHT
+b RIGHT
+s delay
+b RIGHT
+s reverb
+b RIGHT
+b RIGHT
+s damage
+b K1
+b LEFT
+b LEFT
+s sampler
+b MENU
+s menu
+tile 0
+s projects
+b MENU
+tile 3
+w 0.4
+s mixer
+b MENU
+tile 4
+s outputs
+b MENU
+tile 6
+s foot
+b MENU
+tile 8
+p 9
+s padfx
+b MENU
+tile 9
+s clock
+ss stage

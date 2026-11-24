@@ -8,3 +8,22 @@
   }, { threshold: 0.15 }) : null;
   for (const el of document.querySelectorAll('.reveal')) io ? io.observe(el) : el.classList.add('in');
 })();
+// a screen clicked: shown big (pixels kept sharp), its caption under it; a click or Esc closes it
+(() => {
+  const open = (img) => {
+    const lb = document.createElement('div'), big = new Image(), cap = img.closest('figure')?.querySelector('figcaption');
+    lb.className = 'lb';
+    big.src = img.currentSrc || img.src;
+    big.alt = img.alt;
+    if (img.naturalWidth) lb.style.setProperty('--ar', img.naturalWidth / img.naturalHeight);
+    lb.append(big);
+    if (cap || img.alt) { const p = document.createElement('p'); p.textContent = cap ? cap.textContent : img.alt; lb.append(p); }
+    const close = () => { lb.remove(); removeEventListener('keydown', key); };
+    const key = (e) => { if (e.key === 'Escape') close(); };
+    lb.addEventListener('click', close);
+    addEventListener('keydown', key);
+    document.body.append(lb);
+  };
+  for (const img of document.querySelectorAll('.shots img, img.wide, img.shot-m, .split img.screen'))
+    img.addEventListener('click', () => open(img));
+})();

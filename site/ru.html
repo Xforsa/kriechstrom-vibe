@@ -13,24 +13,26 @@
 <body>
 <header class="top">
   <a class="logo" href="ru.html">KRIECH<b>STROM</b></a>
-  <nav><a href="https://play.thefirmwarehub.com/">Играть</a><a href="manual/ru.html">Мануал</a><a href="#cheat">Шпаргалка</a><a href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest">Скачать</a><a href="https://xforsa.github.io/kriechstrom/ru.html">Для FM-1</a><a href="https://github.com/Xforsa/kriechstrom-vibe">GitHub</a><a href="index.html">English</a></nav>
+  <nav><a href="https://play.thefirmwarehub.com/?fw=kriechstrom-vibe">Играть</a><a href="manual/ru.html">Мануал</a><a href="#cheat">Шпаргалка</a><a href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest">Скачать</a><a href="https://xforsa.github.io/kriechstrom/ru.html">Для FM-1</a><a href="https://github.com/Xforsa/kriechstrom-vibe">GitHub</a><a href="index.html">English</a></nav>
 </header>
 <div class="hero"><img class="bolt" src="media/hero.jpg" alt="" width="1920" height="900"><img class="bolt flash" src="media/hero-flash.jpg" alt="" width="1920" height="900" aria-hidden="true">
   <div class="hero-in"><h1>KRIECH<span class="red">STROM</span></h1><p class="sub">FOR VIBE FM</p>
   <p class="lead">Грувбокс под мрачный индастриал и EBM с M-VAVE FM-1 как родной Vibe: тот же звуковой движок на большом
   экране, с педалбордами, сэмплером, пэдами, аудиовходом, MIDI-выходом, CV и сценой.</p>
   <p class="btns">
-    <a class="btn" href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest/download/kriechstrom.wasm">kriechstrom.wasm</a>
-    <a class="btn ghost" href="https://github.com/Xforsa/kriechstrom-vibe/releases/latest/download/kriechstrom.zip">kriechstrom.zip для VST</a>
-    <a class="btn ghost" href="https://play.thefirmwarehub.com/">Playground</a>
+    <a class="btn play" href="https://play.thefirmwarehub.com/?fw=kriechstrom-vibe">&#9654; Играть в браузере</a>
+    <a class="btn ghost" href="https://github.com/Xforsa/kriechstrom-vibe/releases/download/v@VERSION@/kriechstrom.wasm">kriechstrom.wasm <small>v@VERSION@</small></a>
+    <a class="btn ghost" href="https://github.com/Xforsa/kriechstrom-vibe/releases/download/v@VERSION@/kriechstrom.zip">kriechstrom.zip для плагина <small>v@VERSION@</small></a>
+    <a class="btn ghost" href="https://thefirmwarehub.com/convert/#plugdl">Плагин VIBE FM (VST3, AU, CLAP)</a>
     <a class="btn ghost" href="manual/ru.html">Мануал</a>
     <a class="btn ghost" href="#cheat">Шпаргалка</a>
-  </p></div>
+  </p>
+  <p class="ver">Версия @VERSION@ &middot; <a href="https://github.com/Xforsa/kriechstrom-vibe/releases">все релизы</a> &middot; <a href="https://github.com/Xforsa/kriechstrom-vibe/blob/main/CHANGELOG.md">что изменилось</a></p></div>
 </div>
 <main>
-<p class="note">В браузере: открыть Playground, выбрать <b>Load your own .wasm…</b> (или перетащить
-<code>kriechstrom.wasm</code> на устройство), нажать PLAY. В DAW: перетащить <code>kriechstrom.zip</code> на окно VIBE FM
-VST. При запуске прошивка спрашивает: продолжить, где остановились, демо-песня или пустой проект.</p>
+<p class="note">В браузере: <a href="https://play.thefirmwarehub.com/?fw=kriechstrom-vibe">играть на Firmware Hub</a>, ничего не устанавливая, или перетащить
+<code>kriechstrom.wasm</code> на устройство в Playground. В DAW: поставить <a href="https://thefirmwarehub.com/convert/#plugdl">плагин VIBE FM</a> и перетащить
+<code>kriechstrom.zip</code> на его окно. При запуске прошивка спрашивает: продолжить, где остановились, демо-песня или пустой проект.</p>
 
 <div class="split wear">
   <img class="screen" src="media/wear.webp" alt="Экран VIBE, пока поднимаются DAMAGE, CHAR, HISS и WALL" width="480" height="320" loading="lazy">
@@ -46,29 +48,17 @@ VST. При запуске прошивка спрашивает: продолж
 
 <div class="shots reveal">
   <figure><img src="shots/sound.png" alt="SOUND" loading="lazy"><figcaption>Звуки по именам</figcaption></figure>
-  <figure><img src="shots/pedals.png" alt="PEDALS" loading="lazy"><figcaption>Три педали на дорожку</figcaption></figure>
+  <figure><img src="shots/pedals.png" alt="PEDALS" loading="lazy"><figcaption>Три педали на дорожку, у каждой свой корпус</figcaption></figure>
   <figure><img src="shots/master.png" alt="MASTER" loading="lazy"><figcaption>Мастер: у каждого эффекта своя машинка</figcaption></figure>
-  <figure><img src="shots/seq.png" alt="SEQ" loading="lazy"><figcaption>Шаги как пиано-ролл</figcaption></figure>
-  <figure><img src="shots/seq-drum.png" alt="SEQ барабаны" loading="lazy"><figcaption>Восемь линий барабанов</figcaption></figure>
-  <figure><img src="shots/sampler.png" alt="SAMPLER" loading="lazy"><figcaption>Сэмплер, нарезка по ударам</figcaption></figure>
-  <figure><img src="shots/mixer.png" alt="MIXER" loading="lazy"><figcaption>Микшер</figcaption></figure>
-  <figure><img src="shots/damage.png" alt="DAMAGE" loading="lazy"><figcaption>DAMAGE: плёнка, кирпичи, зерно</figcaption></figure>
-  <figure><img src="shots/delay.png" alt="DLY" loading="lazy"><figcaption>Дилей: его повторы</figcaption></figure>
-  <figure><img src="shots/reverb.png" alt="REVERB" loading="lazy"><figcaption>Ревер: комната, пружина, зал</figcaption></figure>
-  <figure><img src="shots/foot.png" alt="FOOT PEDAL" loading="lazy"><figcaption>Ножная педаль и что она крутит</figcaption></figure>
-  <figure><img src="shots/clock.png" alt="CLOCK" loading="lazy"><figcaption>Клок</figcaption></figure>
-  <figure><img src="shots/env.png" alt="ENV" loading="lazy"><figcaption>Огибающая вживую</figcaption></figure>
-  <figure><img src="shots/fm6.png" alt="FM6" loading="lazy"><figcaption>Алгоритм FM6</figcaption></figure>
-  <figure><img src="shots/song.png" alt="SONG" loading="lazy"><figcaption>Песня</figcaption></figure>
-  <figure><img src="shots/home.png" alt="HOME" loading="lazy"><figcaption>HOME: контролы этой страницы</figcaption></figure>
-  <figure><img src="shots/menu.png" alt="MENU" loading="lazy"><figcaption>MENU: все страницы плитками</figcaption></figure>
-  <figure><img src="shots/projects.png" alt="PROJECTS" loading="lazy"><figcaption>Проекты</figcaption></figure>
-  <figure><img src="shots/outputs.png" alt="OUTPUTS" loading="lazy"><figcaption>Каждая дорожка на свой выход</figcaption></figure>
+  <figure><img src="shots/seq-drum.png" alt="SEQ барабаны" loading="lazy"><figcaption>Восемь линий барабанов, пэды это шаги</figcaption></figure>
+  <figure><img src="shots/padfx.png" alt="PAD FX" loading="lazy"><figcaption>PAD FX: что держат пэды 9-16</figcaption></figure>
+  <figure><img src="shots/fm6.png" alt="FM6" loading="lazy"><figcaption>FM6: что делает каждый оператор</figcaption></figure>
 </div>
+<p class="cap">Клик по экрану покажет его крупно. Все страницы есть в <a href="manual/ru.html">мануале</a>.</p>
 
 <img class="wide reveal" src="shots/stage.png" alt="Сцена: четыре паттерна, разряд, цепочка мастера" width="960" height="540" loading="lazy">
 <p class="cap">Сцена, вторая картинка 960 x 540: все четыре паттерна с курсорами, разряд поверх осциллографа мастера,
-цепочка мастера ручками. Шаги и ручки работают мышью.</p>
+цепочка мастера ручками. Шаги и ручки работают мышью. В плеере хаба: View &gt; Stage.</p>
 
 <div class="split fig reveal"><img src="media/figure.jpg" alt="Фигура Лихтенберга" width="900" height="900" loading="lazy">
 <p class="lead">Kriechstrom по-немецки ток утечки: он ползёт по стареющей изоляции и оставляет ветвистый след, как этот,
@@ -88,8 +78,8 @@ VST. При запуске прошивка спрашивает: продолж
   <li><b>Аудиовход.</b> Гитара, голос или драм-машина в микс и через весь мастер, с DRIVE, посылами и своими педалями;
     GATE, который открывают ноты дорожки (барабаны рубят гитару); вход вместо дорожки как источник для INFECT: голос
     говорит через пэд вокодером VOX.</li>
-  <li><b>Пэды и контроллеры.</b> Мьют и DICE для каждой дорожки, эффекты на удержание (повтор 1/16, остановка плёнки,
-    заморозка, гейт), четыре линии барабанов с силой удара. На SEQ пэды становятся 16 шагами; 64 пэда Launchpad это все
+  <li><b>Пэды и контроллеры.</b> Мьют и DICE для каждой дорожки, пэды 9-16 держат эффекты (повтор 1/16, остановка
+    плёнки, заморозка, крош-свип, флэнжер ..), с SHIFT ещё восемь; каждый из шестнадцати выбирается из восемнадцати в MENU &gt; PAD FX. На SEQ пэды становятся 16 шагами; 64 пэда Launchpad это все
     64 шага. Ножная педаль: экспрессия это рука на DAMAGE, WALL или уровне, свитч запускает, кидает DICE, тормозит плёнку
     или замораживает; на её странице и то и другое можно тянуть и нажимать мышью.</li>
   <li><b>Проекты и выходы.</b> PROJECTS хранит 32 проекта целиком (музыка, четыре слота, педали, сэмплы) и
@@ -108,15 +98,13 @@ F1-F4; <kbd>&lt;</kbd> <kbd>&gt;</kbd> листают страницы груп�
 <tr><td>клавиши</td><td>играют выбранную дорожку</td></tr>
 <tr><td>пэды 1-4</td><td>мьют T1-T4 (SHIFT: соло; ещё раз: всё обратно)</td></tr>
 <tr><td>пэды 5-8</td><td>DICE: новая партия этой дорожке (SHIFT: OOPS ей); на MASTER: DAMAGE, WALL, SPLICE, HAUNT вкл/выкл; на педалборде: педаль 1-3 в обход, 4 все</td></tr>
-<tr><td>пэды 9-12</td><td>держать: повтор 1/16, остановка плёнки, заморозка, гейт (SHIFT: ролл, бросок в ревер, бросок в эхо, фильтр)</td></tr>
-<tr><td>пэды 13-16</td><td>KICK SNARE CLAP HAT с силой удара (SHIFT: остальные четыре линии)</td></tr>
+<tr><td>пэды 9-16</td><td>держать эффект: 1/16, TAPE STOP, FREEZE, GATE, CRUSH SWEEP, OCT DOWN, FLANGER, RANDOM (SHIFT: ROLL, REV THROW, ECHO THROW, LPF, HPF, OCT UP, PHASER, 1/32); какой на каком, выбирается в MENU &gt; PAD FX</td></tr>
 <tr><td>A / B</td><td>уровень дорожки / DAMAGE (SHIFT + B: WALL)</td></tr>
-<tr><td>DATA</td><td>своя ручка каждой страницы: на SOUND звуки (SHIFT: движок); на списке (PROJECTS, FILES, PARTS, MY SOUNDS, SONG, AUTOMATION, MOD, MENU) список; на SEQ шаг; на педалборде педаль; на MIXER уровень выбранной дорожки; на всех остальных карточка с меткой DATA (та, что крутили последней; клик по DATA, то есть ENTER, переводит на следующую)</td></tr>
+<tr><td>DATA</td><td>своя ручка каждой страницы: на SOUND звуки; SHIFT + DATA на любой странице SOUND: движок; на списке (PROJECTS, FILES, PARTS, MY SOUNDS, SONG, AUTOMATION, MOD, MENU) список; на SEQ шаг; на педалборде педаль; на MIXER уровень выбранной дорожки; на всех остальных карточка с меткой DATA (та, что крутили последней; клик по DATA, то есть ENTER, переводит на следующую)</td></tr>
 <tr><td>F1-F4 / F5 / F6</td><td>выбор дорожки / действие страницы / UNDO</td></tr>
-<tr><td>SHIFT</td><td>держать, или тапнуть: включится для следующего контрола; на экране второй слой пэдов, каждый подписан</td></tr>
-<tr><td>ENTER держать</td><td>FOCUS: DATA ходит по экрану, ENTER нажимает</td></tr>
+<tr><td>SHIFT</td><td>держать, или тапнуть: включится для следующего контрола (на весь поворот ручки); если держать и ничего не трогать, покажет второй слой пэдов</td></tr>
 <tr><td>PLAY STOP REC</td><td>транспорт; REC записывает ноты выбранной дорожки</td></tr>
-<tr><td>HOME / MENU</td><td>контролы этой страницы и как включить и выключить её эффект / все страницы MENU плитками</td></tr>
+<tr><td>HOME / MENU</td><td>контролы этой страницы и как включить и выключить её эффект / плитки MENU, всегда</td></tr>
 <tr><td>RETURN (кнопка ↵)</td><td>назад на предыдущую страницу, шаг за шагом</td></tr>
 <tr><td>Playground и плагин</td><td>на их панелях нет ENTER: клик по ручке DATA (без поворота) это ENTER. В виде Rack у плагина нет и MENU: SHIFT + HOME открывает его, или клик по MENU вверху экрана</td></tr>
 <tr><td>мышь (плагин, браузер)</td><td>клик по тому, что видишь: вкладка группы, дорожка, точка страницы, шаг, педаль, звук в списке, плитка эффекта мастера (его страница), слот, проект, вид износа; логотип это HOME. Перетаскивание вверх-вниз в любой из четырёх колонок крутит ручку этой колонки (так размечает экран хост), как подписано на карточке под ней</td></tr>
@@ -126,7 +114,7 @@ F1-F4; <kbd>&lt;</kbd> <kbd>&gt;</kbd> листают страницы груп�
 <tr><td>SOUND</td><td>звук по имени, его спектр; DATA листает звуки</td></tr>
 <tr><td>EDIT 1, 2</td><td>восемь значений движка</td></tr>
 <tr><td>FILTER / LANES / SLICES</td><td>фильтр ANALOG / уровни линий DRUM / слайсы SLICE</td></tr>
-<tr><td>OPERATOR, OP ENV</td><td>FM6: алгоритм, каждый оператор</td></tr>
+<tr><td>OPS, OPERATOR, OP ENV</td><td>FM6: алгоритм (нижний ряд звучит, каждый квадрат выше модулирует того, кто под ним, красная петля это обратная связь), каждый оператор</td></tr>
 <tr><td>VOICE 1-3</td><td>голоса, глайд, расстройка, панорама, ширина, aftertouch</td></tr>
 <tr><td>SAMPLER</td><td>SOURCE (INPUT, MIX), LENGTH, SLOT; F5 REC с начала следующего такта</td></tr>
 <tr><td>MY SOUNDS</td><td>F5 сохранить (SHIFT: стереть), ENTER загрузить</td></tr>
@@ -144,7 +132,7 @@ F1-F4; <kbd>&lt;</kbd> <kbd>&gt;</kbd> листают страницы груп�
 
 <section><h3>FX</h3><table>
 <tr><td>MASTER</td><td>DMG CHAR WALL HISS: износ всего микса</td></tr>
-<tr><td>PEDALS</td><td>три педали дорожки: ENC 1 тип (SHIFT: MIX), 2-4 её ручки; педаль выбирают DATA, F5 или тап по ней</td></tr>
+<tr><td>PEDALS</td><td>три педали дорожки, тринадцать видов, у каждой свой корпус: ENC 1 тип (SHIFT: MIX), 2-4 её ручки; педаль выбирают DATA, F5 или тап по ней</td></tr>
 <tr><td>FX, SLICER</td><td>посылы дорожки DST CHO DLY REV; слайсер</td></tr>
 <tr><td>DLY REVERB CHORUS</td><td>общие эффекты</td></tr>
 <tr><td>DAMAGE RESONATE SPLICE HAUNT</td><td>эффекты мастера, по странице на каждый</td></tr>
@@ -157,7 +145,7 @@ F1-F4; <kbd>&lt;</kbd> <kbd>&gt;</kbd> листают страницы груп�
 <tr><td>DETAIL</td><td>CHANCE RATCH NUDGE VEL шага; DATA выбирает шаг</td></tr>
 <tr><td>AUTOMATION</td><td>локи и события; ENTER действие строки</td></tr>
 <tr><td>SONG</td><td>SECTION TRACK PAT REPS; F5 играет песню</td></tr>
-<tr><td>F5</td><td>DICE (SHIFT: следующее MOOD для DICE)</td></tr>
+<tr><td>F5</td><td>DICE, каждый раз новая партия (SHIFT: следующее MOOD для DICE)</td></tr>
 </table></section>
 
 <section><h3>MENU</h3><table>
@@ -170,6 +158,7 @@ F1-F4; <kbd>&lt;</kbd> <kbd>&gt;</kbd> листают страницы груп�
 <tr><td>OUTPUTS</td><td>MULTI OUT: если в DAW у плагина больше выходов, T1-T4 идут на OUT 3-10, эффекты на 11/12, вход на 13/14. Они идут до износа мастера (DAMAGE, WALL, HISS работают на сумме): пиши OUT 1/2 как готовый звук, а дорожки как добавки к нему; для чистого мультитрека сначала выключи эффекты мастера</td></tr>
 <tr><td>FOOT PEDAL</td><td>что крутит экспрессия (DAMAGE, WALL, LEVEL) и что делает свитч (PLAY, DICE, STOP, FREEZE); педаль тянется мышью, свитч нажимается</td></tr>
 <tr><td>DISPLAY</td><td>SCREEN WEAR: OFF, LOW, FULL, все три показаны рядом; LIGHTNING: живые молнии за страницей вкл/выкл</td></tr>
+<tr><td>PAD FX</td><td>что держат пэды 9-16 и они же с SHIFT: ENC 1 или пэд выбирают пэд, ENC 2 или DATA его эффект, ENTER следующий пэд, F5 вернуть свой</td></tr>
 <tr><td>CLOCK</td><td>BPM, свинг, источник клока</td></tr>
 </table></section>
 </div>

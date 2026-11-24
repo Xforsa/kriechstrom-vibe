@@ -256,3 +256,10 @@ h2[id], [id] { scroll-margin-top: 70px; }
 .lb-nav:hover { background: var(--red); }
 .lb-prev { left: 10px; } .lb-next { right: 10px; }
 @media (max-width: 600px) { .lb-nav { width: 40px; height: 64px; font-size: 40px; } }
+/* between the blocks: a strip of current, then the block's heading and a line on it */
+hr.rule { border: 0; height: 3px; margin: 64px 0 36px; background: linear-gradient(90deg, transparent, var(--red) 20%, #ffb090 50%, var(--red) 80%, transparent);
+  box-shadow: 0 0 14px rgba(230, 36, 20, .55); }
+h2.sec { margin: 0 0 8px; font-size: 2em; }
+p.intro { margin: 0 0 22px; font-size: 1.12em; color: #c8c8cc; max-width: 760px; }
+.shots { grid-template-columns: repeat(4, 1fr); gap: 18px 14px; }   /* (eight screens: four and four) */
+@media (max-width: 900px) { .shots { grid-template-columns: repeat(2, 1fr); } }

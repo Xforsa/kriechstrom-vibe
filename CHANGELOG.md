@@ -5,6 +5,15 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.14] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- the figure lives: every branch trembles as an arc does (the tips more than the trunk, never coming apart) and current
+  runs out along it, a hot wave on every kick; on the stage and on the idle screen
+- the stage's transport is a button that says PLAY or STOP, DICE's MOOD a button of its own with NEXT on it
+
 ## [0.5.13] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

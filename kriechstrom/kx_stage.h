@@ -159,7 +159,7 @@ static void st_ring(uint32_t k)                   /* a track's steps round its r
 static void st_track_card(uint32_t k)            /* the left band: a track */
 {
     const track_t *t = &trk[k];
-    int y = 150 + (int)k * 120, mute = t->p[P_MUTE] != 0, lv;
+    int y = 168 + (int)k * 120, mute = t->p[P_MUTE] != 0, lv;
     uint32_t col = TRK_RGB[k];
     char nm[17], n[2] = {(char)('1' + k), 0};
     vg_round(16, y, SB_LW - 28, 110, 6, k == song.sel ? vg_mix(0x141416, col, 0.16f) : 0x141416);
@@ -371,11 +371,22 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
         int bw = vg_text(b, 20, 72, VG_BIG | VG_X2, C_WHITE, VG_LEFT);
         vg_text("BPM", 26 + bw, 92, VG_BOLD, TE_MID, VG_LEFT);
     }
-    if (song.playing)
-        vg_tri(SB_LW - 60, 76, SB_LW - 60, 116, SB_LW - 26, 96, C_RED);
-    else
-        vg_rect(SB_LW - 60, 78, 36, 36, 0x5A5A60);
-    vg_text(MOOD_NAME[dice_mood % MOOD_N], SB_LW - 74, 92, VG_BOLD, TE_MID, VG_RIGHT);
+    {   /* the transport: a button that says what it does */
+        int bx = SB_LW - 124, by = 74;
+        vg_round(bx, by, 106, 42, 6, song.playing ? 0x2A2A30 : C_RED);
+        if (song.playing)
+            vg_rect(bx + 14, by + 13, 16, 16, C_WHITE), vg_text("STOP", bx + 40, by + 12, VG_BOLD, C_WHITE, VG_LEFT);
+        else
+            vg_tri((float)(bx + 14), (float)(by + 11), (float)(bx + 14), (float)(by + 31), (float)(bx + 31), (float)(by + 21), C_WHITE),
+            vg_text("PLAY", bx + 40, by + 12, VG_BOLD, C_WHITE, VG_LEFT);
+    }
+    {   /* DICE's MOOD: a button, the next one on a click */
+        int by = 126;
+        vg_round(16, by, SB_LW - 34, 32, 5, 0x1A1A1E);
+        vg_text("DICE MOOD", 28, by + 8, VG_SMALL, TE_MID, VG_LEFT);
+        vg_text(MOOD_NAME[dice_mood % MOOD_N], 120, by + 7, VG_BOLD, C_WHITE, VG_LEFT);
+        vg_text("NEXT >", SB_LW - 30, by + 8, VG_SMALL, C_RED, VG_RIGHT);
+    }
     for (k = 0; k < NTRK; k++)
         st_track_card(k);
     for (k = 0; k < SK_N; k++)
@@ -458,7 +469,7 @@ static void kx_stage_event(const vibe_event *e)
             st_bpm(d), st_ptr_y[p] = y;
         return;
     }
-    if (e->id == VIBE_STAGE_WHEEL && x < 160 && y >= 70 && y < 130) {
+    if (e->id == VIBE_STAGE_WHEEL && x < 180 && y >= 70 && y < 120) {
         st_bpm(e->value > 0 ? 1 : -1);
         return;
     }
@@ -482,21 +493,21 @@ static void kx_stage_event(const vibe_event *e)
         return;
     }
     if (x < SB_LW) {                              /* the left band: play, the tempo, the MOOD, a track, its M */
-        if (y >= 70 && y < 130 && x >= SB_LW - 70) {
+        if (y >= 70 && y < 120 && x >= SB_LW - 126) {
             kx_post(KXC_PLAY, 3, 0, 0, 0);
             return;
         }
-        if (y >= 70 && y < 130 && x < 160) {      /* the tempo: drag it, or the wheel */
+        if (y >= 70 && y < 120 && x < 180) {      /* the tempo: drag it, or the wheel */
             st_ptr[p] = 400, st_ptr_y[p] = y;
             return;
         }
-        if (y >= 70 && y < 130) {                 /* the MOOD for DICE: the next */
+        if (y >= 124 && y < 160) {                /* the MOOD for DICE: the next */
             kx_post(KXC_TOOL, song.sel, TL_MOOD, 0, 0);
             return;
         }
-        if (y >= 150 && y < 150 + 4 * 120) {
-            uint32_t k = (uint32_t)(y - 150) / 120;
-            int ly = y - 150 - (int)k * 120;
+        if (y >= 168 && y < 168 + 4 * 120) {
+            uint32_t k = (uint32_t)(y - 168) / 120;
+            int ly = y - 168 - (int)k * 120;
             if (ly >= 110)
                 return;
             if (x >= SB_LW - 62 && x < SB_LW - 22 && ly >= 70 && ly < 100)

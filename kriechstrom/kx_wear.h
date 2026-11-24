@@ -158,10 +158,21 @@ static void kx_big_grow(void)
     }
     kx_big_t0 = vibe_frames() ? vibe_frames() : 1;
 }
+/* the figure alive: every point of it trembles as an arc does (a smooth noise of where it is and of the time, the
+ * tips more than the trunk; a point two branches share moves as one, so nothing comes apart), and current runs out
+ * along it from the centre, a wave on every kick */
+static void kx_big_pt_at(float x, float y, float t, float rr, float *ox, float *oy)
+{
+    float dx = x - 240.0f, dy = y - 160.0f, d = vd_sqrt(dx * dx + dy * dy), k = d / (rr > 1.0f ? rr : 1.0f) * 3.2f;
+    *ox = x + vd_sin(t * 0.9f + x * 0.031f + y * 0.017f) * k + vd_sin(t * 2.3f + y * 0.05f) * k * 0.4f;
+    *oy = y + vd_sin(t * 0.7f + y * 0.029f - x * 0.021f + 0.3f) * k + vd_sin(t * 2.1f + x * 0.05f + 0.6f) * k * 0.4f;
+}
 static void kx_big_draw_at(float heat, float hit, float ox, float oy, float sc)   /* (the stage: elsewhere, bigger) */
 {
     int j, pass, n = kx_big_n;
-    float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.22f), reach;
+    float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.22f), reach, t = (float)vibe_frames() / kx_sr;
+    float rr = vd_sqrt(kx_big_r2), kick = (float)(vibe_frames() - kx_big_pt) / kx_sr, wave_k = kick * 420.0f;
+    float wave = (t * 0.55f - (float)(int)(t * 0.55f)) * rr * 1.3f;  /* (the current's slow wave, out and out again) */
     g = g > 1.0f ? 1.0f : g;
     reach = g * (2.0f - g);                       /* (out from the centre, every arm at once, fast then slowing) */
     reach = reach * reach * kx_big_r2;
@@ -170,21 +181,32 @@ static void kx_big_draw_at(float heat, float hit, float ox, float oy, float sc) 
     for (pass = 0; pass < 2; pass++) {
         for (j = 0; j < n; j++) {
             const lt_seg *s2 = &kx_big[j];
-            float ddx = (float)s2->x1 - 240.0f, ddy = (float)s2->y1 - 160.0f, d2 = ddx * ddx + ddy * ddy;
+            float ddx = (float)s2->x1 - 240.0f, ddy = (float)s2->y1 - 160.0f, d2 = ddx * ddx + ddy * ddy, d, run, x0, y0, x1, y1;
             if (g < 1.0f && d2 > reach)
                 continue;
             float w = (float)s2->w * 0.25f;
+            if (!pass && w < 0.9f)
+                continue;
+            d = vd_sqrt(d2);
+            if (sc > 1.0f && d * sc > 100.0f)     /* (the stage: inside the sound's ring only) */
+                continue;
+            run = 1.0f - vd_minf((d - wave < 0.0f ? wave - d : d - wave) / 26.0f, 1.0f);   /* (the slow current here) */
+            if (kx_big_pt && kick < 0.6f) {       /* (a kick's wave, faster, hotter) */
+                float kk = 1.0f - vd_minf((d - wave_k < 0.0f ? wave_k - d : d - wave_k) / 18.0f, 1.0f);
+                run = vd_minf(1.0f, run * 0.5f + kk * kx_big_pulse * (1.0f - kick / 0.6f) * 1.4f);
+            } else
+                run *= 0.5f;
             /* (red, its thick strands hot as the site's core, the thinnest dark; the growing tip brighter) */
-            float t = w > 1.6f ? 0.55f + 0.35f * hit : w > 0.9f ? 0.15f + 0.3f * hit : 0.0f;
-            uint32_t c = pass ? vg_mix(w > 0.6f ? 0xE02414 : 0x7A160C, 0xFFE8DC, t + 0.1f * heat)
+            float tt = (w > 1.6f ? 0.55f + 0.35f * hit : w > 0.9f ? 0.15f + 0.3f * hit : 0.0f) + 0.5f * run;
+            uint32_t c = pass ? vg_mix(w > 0.6f ? 0xE02414 : 0x7A160C, 0xFFE8DC, vd_minf(tt + 0.1f * heat, 1.0f))
                               : vg_mix(C_BG, 0x5A140C, 0.5f + 0.5f * hit);
             if (pass && g < 1.0f && d2 > reach * 0.8f)   /* (the growing tips, white hot) */
                 c = vg_mix(c, 0xFFF0E8, 0.6f);
-            c = vg_mix(C_BG, c, pass ? 0.5f + 0.5f * hit : 0.3f + 0.7f * hit);   /* (it breathes with the hits) */
-            if (!pass && w < 0.9f)
-                continue;
-            vg_line(ox + ((float)s2->x0 - 240.0f) * sc, oy + ((float)s2->y0 - 160.0f) * sc, ox + ((float)s2->x1 - 240.0f) * sc,
-                    oy + ((float)s2->y1 - 160.0f) * sc, (pass ? w : w * 3.0f + 1.0f) * (sc > 1.0f ? sc * 0.7f : 1.0f), c);
+            c = vg_mix(C_BG, c, pass ? vd_minf(0.5f + 0.5f * hit + 0.4f * run, 1.0f) : 0.3f + 0.7f * hit);   /* (it breathes) */
+            kx_big_pt_at((float)s2->x0, (float)s2->y0, t, rr, &x0, &y0);
+            kx_big_pt_at((float)s2->x1, (float)s2->y1, t, rr, &x1, &y1);
+            vg_line(ox + (x0 - 240.0f) * sc, oy + (y0 - 160.0f) * sc, ox + (x1 - 240.0f) * sc, oy + (y1 - 160.0f) * sc,
+                    (pass ? w * (1.0f + 0.6f * run) : w * 3.0f + 1.0f) * (sc > 1.0f ? sc * 0.7f : 1.0f), c);
         }
     }
 }

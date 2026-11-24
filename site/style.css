@@ -251,3 +251,8 @@ h2[id], [id] { scroll-margin-top: 70px; }
 .lb img { width: min(96vw, 1440px, calc(86vh * var(--ar, 1.5))); height: auto; image-rendering: pixelated;
   box-shadow: 0 0 0 2px var(--red); }
 .lb p { color: #ddd; margin: 12px 0 0; font-size: 1.05em; text-align: center; }
+.lb-nav { position: fixed; top: 50%; transform: translateY(-50%); width: 56px; height: 88px; border: 0; border-radius: 6px;
+  background: rgba(30,30,34,.85); color: #fff; font-size: 54px; line-height: 1; cursor: pointer; }
+.lb-nav:hover { background: var(--red); }
+.lb-prev { left: 10px; } .lb-next { right: 10px; }
+@media (max-width: 600px) { .lb-nav { width: 40px; height: 64px; font-size: 40px; } }

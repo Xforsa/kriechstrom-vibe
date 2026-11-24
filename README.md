@@ -47,7 +47,7 @@ mark grows behind every page as the master wears the mix out.
   LFO where they are, the playhead's trail.
 - **SPINE (SEQ > SPINE):** names the key (by the notes, or as set) and walks a progression of up to eight chords; the
   tracks that follow it move to each chord by their TRN, a step each 1, 2 or 4 bars; DICE writes a progression in the
-  MOOD, the keys move the followers live.
+  MOOD, ENTER or pads 9-16 choose a step and DATA its chord, the keys move the followers live.
 - **The pads:** mute and DICE per track; pads 9-16 hold effects, at first eight of this firmware's own (PRESS, PISTON,
   BUILD, TUNNEL, SHREDDER, BLACKOUT, SHORTWAVE, CORRODE, each at its own pace and with its picture on the display and
   the stage), with SHIFT

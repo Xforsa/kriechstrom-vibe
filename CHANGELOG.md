@@ -5,6 +5,15 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.21] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Changed
+- SPINE's page plainer: the chord playing now big in the circle's middle, the keys' move shown there in red (+5),
+  the steps' notes as they play, the step playing filled and the one DATA changes framed white, a line of what does what
+- SPINE: pads 9-16 choose its steps 1-8 on its page
+
 ## [0.5.20] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

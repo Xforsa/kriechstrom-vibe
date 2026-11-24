@@ -1282,23 +1282,40 @@ static void kx_draw_spine(int x, int y, int w, int h)
         vg_round(x + w - 4 - (4 - i) * 34, y - 2, 30, 16, 3, on && !dr ? TRK_RGB[i] : 0x1E1E24);
         vg_text(t, x + w - 4 - (4 - i) * 34 + 15, y - 1, VG_SMALL, on && !dr ? C_BG : 0x6A6A72, VG_CENTER);
     }
-    for (i = 0; i < 8; i++) {                     /* the steps */
+    {                                             /* the circle's middle: the chord playing now, big; the keys' move */
+        int on = kx_ic[IC_SP_ON];
+        vg_text(on ? SP_KEYN[chord] : "--", (int)cx, (int)cy - 16, VG_BIG, on ? C_WHITE : 0x6A6A72, VG_CENTER);
+        if (on && kx_sp_live) {
+            char m[12] = "";
+            int n = kx_sp_live, l;
+            if (n > 0)
+                str_cpy(m, "+", sizeof m);
+            l = str_len(m);
+            vg_itoa(n, m + l);
+            vg_text(m, (int)cx, (int)cy + 10, VG_SMALL, C_RED, VG_CENTER);
+        } else
+            vg_text("NOW", (int)cx, (int)cy + 10, VG_SMALL, TE_MID, VG_CENTER);
+    }
+    for (i = 0; i < 8; i++) {                     /* the steps: the one playing filled, the one DATA changes framed */
         int sx = x + 196 + (i % 4) * 68, sy = y + 16 + (i / 4) * 38, used = i < len, pl = kx_ic[IC_SP_ON] && i == step && used;
-        int deg = kx_ic[IC_SP_P0 + i];
-        vg_rect(sx, sy, 64, 34, pl ? vg_mix(C_BG, C_RED, 0.5f) : used ? 0x16161A : 0x0C0C0E);
-        if (used) {
-            vg_text(kx_sp_roman(deg), sx + 32, sy + 4, VG_BIG, pl ? C_WHITE : TE_INK, VG_CENTER);
-            vg_text(SP_KEYN[(root + kx_sp_semis(deg) + 24) % 12], sx + 4, sy + 2, VG_SMALL, TE_MID, VG_LEFT);
+        int deg = kx_ic[IC_SP_P0 + i], at = (root + kx_sp_semis(deg) + (kx_ic[IC_SP_ON] ? kx_sp_live : 0) + 24) % 12;
+        vg_rect(sx, sy, 64, 34, pl ? vg_mix(C_BG, C_RED, 0.55f) : used ? 0x16161A : 0x0C0C0E);
+        if (used) {                               /* (the roman degree; the note it plays, red when the keys moved it) */
+            vg_text(kx_sp_roman(deg), sx + 36, sy + 6, VG_BIG, pl ? C_WHITE : TE_INK, VG_CENTER);
+            vg_text(SP_KEYN[at], sx + 4, sy + 2, VG_SMALL, pl ? C_WHITE : kx_sp_live && kx_ic[IC_SP_ON] ? C_RED : TE_MID, VG_LEFT);
         }
-        if (i == kx_sp_sel)
-            vg_frame(sx - 1, sy - 1, 66, 36, 1, C_RED);
+        if (i == kx_sp_sel && used)
+            vg_frame(sx - 2, sy - 2, 68, 38, 2, C_WHITE);
     }
     if (!kx_ic[IC_SP_ON])
         vg_text("OFF: ENC 1 TURNS IT ON", x + w, y + h - 12, VG_SMALL, C_RED, VG_RIGHT);
-    else if (kx_sp_live)
-        vg_text("THE KEYS MOVED IT: ANY KEY ON THE ROOT BRINGS IT BACK", x + w, y + h - 12, VG_SMALL, TE_MID, VG_RIGHT);
-    else
-        vg_text("THE KEYS MOVE THE FOLLOWERS LIVE", x + w, y + h - 12, VG_SMALL, TE_MID, VG_RIGHT);
+    else if (kx_sp_live) {
+        char m[48] = "THE KEYS MOVED IT: ";
+        str_cpy(m + str_len(m), SP_KEYN[root], sizeof m - str_len(m));
+        str_cpy(m + str_len(m), " BRINGS IT BACK", sizeof m - str_len(m));
+        vg_text(m, x + w, y + h - 12, VG_SMALL, C_RED, VG_RIGHT);
+    } else
+        vg_text("DATA CHORD  ENTER NEXT  PADS 9-16 STEPS  F5 DICE", x + w, y + h - 12, VG_SMALL, TE_MID, VG_RIGHT);
 }
 
 /* PAD FX: pads 9-16 as they lie, and the same with SHIFT; each with the effect it holds, the chosen one red */

@@ -724,6 +724,17 @@ static void kx_pad(uint32_t id, int down, float vel)
         break;
     default: {                                    /* pads 9-16: the effects MENU > PAD FX gives them, while held (SHIFT: eight more) */
         uint32_t slot = (row - 2u) * 4u + col + (kx_shift ? 8u : 0u), k = id - 8u;
+        static uint8_t sp_held[8];                /* (SPINE: pads 9-16 choose its steps 1-8, as they lie) */
+        if (down && kx_page == PG_SPINE) {
+            sp_held[k] = 1;
+            if ((int)k < clamp(kx_ic[IC_SP_LEN], 1, 8))
+                kx_sp_sel = (int)k;
+            break;
+        }
+        if (!down && sp_held[k]) {
+            sp_held[k] = 0;
+            break;
+        }
         if (down) {
             kx_pad_fx[k] = (uint8_t)clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1);
             kx_pfx_hit[slot] = vibe_frames() ? vibe_frames() : 1;

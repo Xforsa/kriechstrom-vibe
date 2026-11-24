@@ -1,0 +1,6 @@
+# the demo left alone: after a minute and a half the idle screen, caught as the drums flare the figure
+w 1.5
+b F2
+b PLAY
+w 93.94
+s idle

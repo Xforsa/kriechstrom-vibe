@@ -1,0 +1,22 @@
+# the demo with the screen's wear FULL and the master worn: DAMAGE, CHAR, WALL, HISS up, caught on a hit
+w 1.5
+b F2
+b PLAY
+w 1.0
+b MENU
+tile 7
+e E1 1 2
+b K5
+b K5
+b RIGHT
+b RIGHT
+b RIGHT
+b RIGHT
+b RIGHT
+b RIGHT
+e E1 1 110
+e E2 1 40
+e E3 1 50
+e E4 1 20
+w 2.5
+s worn

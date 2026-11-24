@@ -24,7 +24,7 @@ enum { FA_SOUND, FA_ENV, FA_LFO, FA_ARP, FA_FX, FA_SEQ, FA_MENU, FA_N };
 static const char *const FA_NAME[FA_N] = {"SOUND", "ENV", "LFO", "ARP", "FX", "SEQ", "MENU"};
 /* pages of our own, past PAGES' indices */
 enum { PG_BROWSE = 200, PG_MASTER, PG_GRID, PG_MIXER, PG_PROJECT, PG_INPUT, PG_INPUT2, PG_MIDI, PG_USER, PG_DISPLAY,
-       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT, PG_SAMPLER, PG_OUTS, PG_PLIB, PG_PFILES, PG_HUB };
+       PG_PEDALS, PG_PEDALS_IN, PG_PEDALS_M, PG_FOOT, PG_SAMPLER, PG_OUTS, PG_PLIB, PG_PFILES, PG_HUB, PG_PADFX };
 #define IS_PED_PAGE(pg) ((pg) == PG_PEDALS || (pg) == PG_PEDALS_IN || (pg) == PG_PEDALS_M)
 #define IC_PAGE(pg) ((pg) == PG_INPUT ? 0 : (pg) == PG_INPUT2 ? 1 : (pg) == PG_MIDI ? 2 : (pg) == PG_DISPLAY ? 3 : (pg) == PG_FOOT ? 4 : (pg) == PG_OUTS ? 6 : 5)
 #define IS_IC_PAGE(pg) ((pg) == PG_INPUT || (pg) == PG_INPUT2 || (pg) == PG_MIDI || (pg) == PG_DISPLAY || (pg) == PG_FOOT || (pg) == PG_SAMPLER || \
@@ -36,6 +36,8 @@ static int kx_page = PG_BROWSE;                   /* the page shown */
 static int kx_help, kx_shift, kx_in_asked, kx_slot_pick, kx_boot_done, kx_user_pick;
 static int kx_shift_latch, kx_shift_used;         /* SHIFT tapped: it holds for the next control (a mouse has one button) */
 static uint64_t kx_shift_t;
+static int kx_latch_enc = -1;                     /* a tapped SHIFT turning an encoder: it holds while that one turns */
+static uint64_t kx_latch_t;
 static int kx_start = 1, kx_start_sel;
 static uint64_t kx_card_hot[4];
 static uint64_t kx_soft_t[6];                     /* when F1-F6 were last pressed (they flash on the display) */
@@ -137,6 +139,7 @@ static void kx_family_pages(uint32_t fa)
         ADD(PG_MIDI);
         ADD(PG_FOOT);
         ADD(PG_DISPLAY);
+        ADD(PG_PADFX);
         i = (uint32_t)kx_page_index("CLOCK");
         ADD(i);
         break;
@@ -151,10 +154,24 @@ static uint64_t kx_data_t;
 #define KX_BACK 8
 static int16_t kx_back[KX_BACK][3];               /* the pages RETURN goes back through: page, family, its index */
 static int kx_back_n;
-#define KX_HUB_N 9
+#define KX_HUB_N 10
 static const char *const KX_HUB_NAME[KX_HUB_N] = {"PROJECTS", "FILES", "PARTS A-D", "MIXER", "OUTPUTS", "MIDI & CV",
-                                                 "FOOT PEDAL", "DISPLAY", "CLOCK"};
+                                                 "FOOT PEDAL", "DISPLAY", "PAD FX", "CLOCK"};
+static int kx_pfx_sel;                            /* PAD FX: the slot chosen (0-7 pads 9-16, 8-15 the same with SHIFT) */
+static uint64_t kx_pfx_hit[16];                   /* (when a slot's pad was last pressed: it flashes) */
+/* what each hold effect does, in a line (PAD FX) */
+static const char *const PF_WHAT[PF_NFX] = {
+    "repeats the last 1/8 while held", "repeats the last 1/16", "repeats the last 1/32: a buzz",
+    "the last half beat, backwards", "a low-pass closes", "a high-pass opens", "the tape slows to a stop",
+    "holds the sound as it is", "an octave up", "an octave down", "a flanger", "a phaser",
+    "throws into the reverb", "throws into the echo", "a half beat rolled", "chops it into 1/32",
+    "bits crushed, sweeping", "a new effect every 1/16"};
 static void kx_open(uint32_t fa, int next);
+static void kx_menu(void)                         /* MENU: always its tiles (the page it was on is one RETURN away) */
+{
+    kx_fpage[FA_MENU] = 0;
+    kx_open(FA_MENU, 0);
+}
 static void kx_hub_open(int i)                    /* the tile's page: MENU's page 1 + i */
 {
     kx_fam = FA_MENU;
@@ -198,6 +215,7 @@ static const char *kx_title(int pg)
     case PG_OUTS: return "OUTPUTS";
     case PG_PLIB: return "PROJECTS";
     case PG_HUB: return "MENU";
+    case PG_PADFX: return "PAD FX";
     case PG_PFILES: return "PROJECT FILES";
     case PG_PEDALS: return "PEDALS";
     case PG_PEDALS_IN: return "INPUT PEDALS";
@@ -220,7 +238,8 @@ static int kx_knob_page(void)
 {
     if (IS_PED_PAGE(kx_page))
         return kx_page;
-    if (IS_IC_PAGE(kx_page) || kx_page == PG_USER || kx_page == PG_PLIB || kx_page == PG_PFILES || kx_page == PG_HUB)
+    if (IS_IC_PAGE(kx_page) || kx_page == PG_USER || kx_page == PG_PLIB || kx_page == PG_PFILES || kx_page == PG_HUB ||
+        kx_page == PG_PADFX)
         return kx_page;
     if (kx_page >= 0 && kx_page < (int)NPAGES)
         return kx_page;
@@ -313,6 +332,21 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
         param_format(dd, v[slot], c->val, &un);
         c->unit = un;
         c->pos = dd->max > dd->min ? (float)(v[slot] - dd->min) / (float)(dd->max - dd->min) : 0.0f;
+        return;
+    }
+    if (pg == PG_PADFX) {                         /* PAD FX: the pad, its effect */
+        int fx = clamp(kx_ic[IC_PF0 + kx_pfx_sel], 0, PF_NFX - 1);
+        memset(c, 0, sizeof *c);
+        c->unit = "";
+        if (slot == 0u) {
+            c->on = 1, c->label = kx_pfx_sel >= 8 ? "SHIFT + PAD" : "PAD";
+            vg_itoa(9 + (kx_pfx_sel & 7), c->val);
+            c->pos = (float)kx_pfx_sel / 15.0f;
+        } else if (slot == 1u) {
+            c->on = 1, c->label = "EFFECT";
+            str_cpy(c->val, PF_CELL[fx], sizeof c->val);
+            c->pos = (float)fx / (float)(PF_NFX - 1);
+        }
         return;
     }
     if (pg == PG_HUB) {                           /* MENU: the tile */
@@ -559,7 +593,7 @@ static void kx_card_of(int pg, uint32_t slot, kx_card *c)
 static int kx_data_on_cards(void)
 {
     int pg = kx_page;
-    if (pg == PG_BROWSE || pg == PG_MIXER || pg == PG_GRID || pg == PG_HUB || pg == PG_PLIB || pg == PG_PFILES ||
+    if (pg == PG_BROWSE || pg == PG_MIXER || pg == PG_GRID || pg == PG_HUB || pg == PG_PLIB || pg == PG_PFILES || pg == PG_PADFX ||
         pg == PG_PROJECT || pg == PG_USER || IS_PED_PAGE(pg) || kx_knob_page() < 0)
         return 0;
     if (pg >= 0 && pg < (int)NPAGES && (PAGES[pg].scope == SC_STEP || PAGES[pg].graph == GR_SONG ||
@@ -582,9 +616,7 @@ static void kx_data_fix(void)                     /* (the focus on a card that h
 }
 
 /* ---- the controls ----------------------------------------------------------------------------------------------- */
-static const uint8_t PAD_FX[4] = {PF_R16, PF_TAPE, PF_FRZ, PF_GATE};
-static const uint8_t PAD_FX2[4] = {PF_ROLL, PF_RTHR, PF_ETHR, PF_LPF};   /* (SHIFT) */
-static uint8_t kx_pad_fx[4];                      /* the effect a pad started (let go: that one ends) */
+static uint8_t kx_pad_fx[8];                      /* the effect a pad 9-16 started (let go: that one ends) */
 static const char *const PAD_FX_NAME[4] = {"1/16", "STOP", "FREEZE", "GATE"};
 static uint8_t kx_pad_note[16];                   /* a drum pad held: the note it started (+ 1), its track in the high bits */
 
@@ -670,23 +702,15 @@ static void kx_pad(uint32_t id, int down, float vel)
         } else                                    /* DICE: a new part (SHIFT: OOPS, a few of its values at random) */
             kx_post(kx_shift ? KXC_OOPS : KXC_TOOL, col, TL_DICE, 0, 0);
         break;
-    case 2:                                       /* the FX layer's effects, while held (SHIFT: four more) */
-        if (down)
-            kx_pad_fx[col] = kx_shift ? PAD_FX2[col] : PAD_FX[col];
-        kx_post(KXC_PERF, kx_pad_fx[col], down ? 1u : 0u, 0, 0);
-        break;
-    default: {                                    /* the drum lanes KICK SNARE CLAP HAT (SHIFT: OPEN HAT TOM RIM BELL) */
-        int dt = kx_drum_track();
-        if (dt < 0)
-            break;
+    default: {                                    /* pads 9-16: the effects MENU > PAD FX gives them, while held (SHIFT: eight more) */
+        uint32_t slot = (row - 2u) * 4u + col + (kx_shift ? 8u : 0u), k = id - 8u;
         if (down) {
-            uint32_t v = (uint32_t)(vel * 127.0f + 0.5f);
-            kx_pad_note[id] = (uint8_t)(DRUM_LANE_NOTE[col + (kx_shift ? 4u : 0u)] + 1u);
-            kx_post(KXC_HIT, (uint32_t)dt, kx_pad_note[id] - 1u, 0, (int32_t)(v ? v : 1u));
-        } else if (kx_pad_note[id]) {
-            kx_post(KXC_HIT, (uint32_t)dt, kx_pad_note[id] - 1u, 0, 0);
-            kx_pad_note[id] = 0;
+            kx_pad_fx[k] = (uint8_t)clamp(kx_ic[IC_PF0 + slot], 0, PF_NFX - 1);
+            kx_pfx_hit[slot] = vibe_frames() ? vibe_frames() : 1;
+            if (kx_page == PG_PADFX)
+                kx_pfx_sel = (int)slot;           /* (on PAD FX: the pad pressed is the one to choose for) */
         }
+        kx_post(KXC_PERF, kx_pad_fx[k], down ? 1u : 0u, 0, 0);
         break;
     }
     }
@@ -735,7 +759,9 @@ static void kx_soft(uint32_t f)                   /* F1-F6 */
         }
         break;
     case FA_MENU:
-        if (kx_page == PG_PROJECT)
+        if (kx_page == PG_PADFX)                  /* PAD FX: the chosen pad's own effect again */
+            kx_post(KXC_INCFG, IC_PF0 + (uint32_t)kx_pfx_sel, 1, 0, IC_DESC[IC_PF0 + kx_pfx_sel].def);
+        else if (kx_page == PG_PROJECT)
             kx_post(KXC_SLOT, (uint32_t)kx_slot_pick, kx_shift ? 2u : 1u, 0, 0);
         else if (kx_page == PG_PLIB) {
             if (kx_shift)
@@ -767,6 +793,8 @@ static const char *kx_f5_name(void)
             return kx_shift ? "EXPORT" : "SAVE";
         if (kx_page == PG_PFILES)
             return kxp_src[0] ? "REFRESH" : "FOLDER";
+        if (kx_page == PG_PADFX)
+            return "DEFAULT";
         return kx_page == PG_PROJECT ? (kx_shift ? "NEW" : "SAVE") : "";
     case FA_FX:
         if (IS_PED_PAGE(kx_page))
@@ -776,6 +804,11 @@ static const char *kx_f5_name(void)
     }
 }
 
+static void kx_pfx_turn(int n)                    /* PAD FX: the chosen pad's effect, round the 18 */
+{
+    int fx = (kx_ic[IC_PF0 + kx_pfx_sel] + (n > 0 ? 1 : -1) + PF_NFX) % PF_NFX;
+    kx_post(KXC_INCFG, IC_PF0 + (uint32_t)kx_pfx_sel, 1, 0, fx);
+}
 static void kx_turn(uint32_t enc, float detents)
 {
     int32_t n;
@@ -793,6 +826,11 @@ static void kx_turn(uint32_t enc, float detents)
             uint32_t f = enc == VE_1 ? (kx_shift ? PD_MIX : PD_TYPE) : PD_A + (enc - VE_2);
             kx_post(KXC_PED, kx_ped_owner(kx_page), (uint32_t)kx_ped_focus[kx_ped_fi(kx_page)], f,
                     f == PD_TYPE ? (n > 0 ? 1 : -1) : n);
+        } else if (kx_page == PG_PADFX) {       /* ENC 1 the pad, ENC 2 its effect */
+            if (enc == VE_1)
+                kx_pfx_sel = clamp(kx_pfx_sel + (n > 0 ? 1 : -1), 0, 15);
+            else if (enc == VE_2)
+                kx_pfx_turn(n);
         } else if (kx_page == PG_HUB) {
             if (enc == VE_1)
                 kx_hub_sel = clamp(kx_hub_sel + (n > 0 ? 1 : -1), 0, KX_HUB_N - 1);
@@ -845,6 +883,10 @@ static void kx_turn(uint32_t enc, float detents)
         uint32_t g = kx_shift ? G_WALL : G_DMG;
         kx_post(KXC_PARAM, NTRK, g, 0, clamp(song.g[g] + n * 2, GP[g].min, GP[g].max));
     } else if (enc == VE_DATA) {
+        if (kx_shift && kx_fam == FA_SOUND && kx_page != PG_USER && kx_page != PG_SAMPLER) {
+            kx_post(KXC_ENGINE, 0, 0, 0, n > 0 ? 1 : -1);   /* SHIFT + DATA on SOUND's pages: the track's engine */
+            return;
+        }
         if (kx_page == PG_GRID || (kx_page >= 0 && kx_page < (int)NPAGES && PAGES[kx_page].scope == SC_STEP)) {
             int32_t len = clamp(TSEL->p[P_SLEN], 1, NSTEP), c = ((int32_t)ui.cursor + n % len + len) % len;
             kx_post(KXC_CURSOR, 0, 0, 0, c);
@@ -852,6 +894,8 @@ static void kx_turn(uint32_t enc, float detents)
             kx_view_t = vibe_frames();
         } else if (kx_page == PG_HUB) {
             kx_hub_sel = clamp(kx_hub_sel + (n > 0 ? 1 : -1), 0, KX_HUB_N - 1);
+        } else if (kx_page == PG_PADFX) {         /* PAD FX: DATA chooses the effect */
+            kx_pfx_turn(n);
         } else if (kx_page >= 0 && kx_page < (int)NPAGES &&
                    (PAGES[kx_page].graph == GR_SONG || PAGES[kx_page].graph == GR_EVENTS ||
                     PAGES[kx_page].graph == GR_MOD || fop_page(PAGES[kx_page].graph))) {
@@ -913,6 +957,7 @@ static void kx_button(uint32_t b, int down)
         if (down) {
             if (kx_shift_latch) {
                 kx_shift_latch = kx_shift = 0;    /* (tapped again: off) */
+                kx_latch_enc = -1;
                 kx_shift_used = 1;
                 return;
             }
@@ -933,7 +978,7 @@ static void kx_button(uint32_t b, int down)
     case VB_HOME:                                 /* HOME: this page's controls; SHIFT + HOME: MENU (the plugin's Rack
                                                    * view has no MENU key) */
         if (kx_shift)
-            kx_help = 0, kx_open(FA_MENU, 1);
+            kx_help = 0, kx_menu();
         else
             kx_help = !kx_help;
         break;
@@ -955,7 +1000,7 @@ static void kx_button(uint32_t b, int down)
         if (kx_shift)
             kx_hub_open(0);
         else
-            kx_open(FA_MENU, 1);
+            kx_menu();
         break;
     case VB_LEFT: kx_page_step(-1); break;
     case VB_RIGHT: kx_page_step(1); break;
@@ -975,6 +1020,8 @@ static void kx_button(uint32_t b, int down)
             kx_post(KXC_USER, (uint32_t)kx_user_pick, 0, 0, 0);
         else if (kx_page == PG_HUB)
             kx_hub_open(kx_hub_sel);
+        else if (kx_page == PG_PADFX)
+            kx_pfx_sel = (kx_pfx_sel + 1) & 15;   /* (ENTER: the next pad, DATA chooses again) */
         else if (kx_page == PG_PLIB) {            /* LOAD (SHIFT: DELETE): pressed twice, within 3 s */
             static uint64_t armed;
             static int what = -1;
@@ -1016,8 +1063,7 @@ static void kx_button(uint32_t b, int down)
 
 static void kx_ui_init(void)
 {
-    vf_mode(VF_ON_HOLD);                          /* (DATA is the sounds' here: ENTER held 0.6 s = FOCUS) */
-    vf_clicks(1);
+    vf_enable(0);                                 /* (no SDK FOCUS: DATA and ENTER are each page's own, held or not) */
     vibe_device(&kx_dev);
     kx_open(FA_SOUND, 0);
     kx_start_sel = kx_had_session ? 0 : 1;
@@ -1072,7 +1118,7 @@ static void kx_touch(int x, int y)
             tx += w + 12;
         }
         if (x >= tx - 6)
-            kx_open(FA_MENU, 1);
+            kx_menu();
         return;
     }
     if (y < 76) {                                 /* the four tracks: select */
@@ -1130,6 +1176,10 @@ static void kx_touch(int x, int y)
         int k = (x - 4) / 118;
         if (k >= 0 && k < NTRK)
             kx_post(KXC_SEL, (uint32_t)k, 0, 0, 0);
+    } else if (kx_page == PG_PADFX && y >= 108 && y < 190) {   /* a pad of the two maps (kx_draw_padfx) */
+        int half = x >= 240, col = ((x - 4) % 236) / 58, row = (y - 108) / 41;
+        if (col >= 0 && col < 4 && row >= 0 && row < 2)
+            kx_pfx_sel = half * 8 + row * 4 + col;
     } else if (kx_page == PG_HUB) {               /* a tile: its page */
         int col = (x - 4) / 95, row = (y - 96) / 52, i = row * 5 + col;   /* (kx_draw_hub: 89 + 6, 46 + 6) */
         if (col >= 0 && col < 5 && row >= 0 && row < 2 && i < KX_HUB_N)
@@ -1164,7 +1214,6 @@ static void kx_touch(int x, int y)
 static void kx_ui_event_body(const vibe_event *e);
 static void kx_ui_event(const vibe_event *e)
 {
-    int fid;
     if (e->type <= VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE || e->type == VIBE_EV_PEDAL || e->type == VIBE_EV_TOUCH)
         kx_idle_t = vibe_frames() ? vibe_frames() : 1;
     if (e->type == VIBE_EV_BUTTON || e->type == VIBE_EV_PAD || e->type == VIBE_EV_ENCODER || e->type == VIBE_EV_NOTE ||
@@ -1209,8 +1258,6 @@ static void kx_ui_event(const vibe_event *e)
     if (kx_start && kx_boot_done && (e->type == VIBE_EV_PAD || e->type == VIBE_EV_NOTE ||
                                      (e->type == VIBE_EV_BUTTON && e->id == VB_PLAY)))
         kx_start = 0;                             /* (played instead: what is there now stays) */
-    if (vf_event(e, &fid) != VF_NO)               /* FOCUS first (SDK 10) */
-        return;
     {   /* remember the page this event leaves, for RETURN */
         int pg0 = kx_page, fa0 = kx_fam, fp0 = kx_fpage[kx_fam];
         int ret = e->type == VIBE_EV_BUTTON && e->id == VB_RETURN;
@@ -1230,6 +1277,10 @@ static void kx_ui_event(const vibe_event *e)
 }
 static void kx_ui_event_body(const vibe_event *e)
 {
+    if (kx_shift_latch && kx_latch_enc >= 0 &&
+        !(e->type == VIBE_EV_ENCODER && (int)e->id == kx_latch_enc && vibe_frames() - kx_latch_t < (uint64_t)(kx_sr * 0.6f)) &&
+        !(e->type == VIBE_EV_BUTTON && e->id == VB_SHIFT))
+        kx_shift = kx_shift_latch = 0, kx_shift_used = 0, kx_latch_enc = -1;   /* (the turn ended: SHIFT is let go) */
     if (kx_shift && ((e->type == VIBE_EV_BUTTON && e->id != VB_SHIFT && e->down) || (e->type == VIBE_EV_PAD && e->down) ||
                      e->type == VIBE_EV_ENCODER))
         kx_shift_used = 1;
@@ -1271,9 +1322,14 @@ static void kx_ui_event_body(const vibe_event *e)
     default:
         break;
     }
-    if (kx_shift_latch && kx_shift_used) {        /* (a tapped SHIFT did its one control) */
-        kx_shift = kx_shift_latch = 0;
-        kx_shift_used = 0;
+    if (kx_shift_latch && kx_shift_used) {        /* (a tapped SHIFT did its one control; an encoder: its whole turn) */
+        if (e->type == VIBE_EV_ENCODER)
+            kx_latch_enc = (int)e->id, kx_latch_t = vibe_frames();
+        else {
+            kx_shift = kx_shift_latch = 0;
+            kx_shift_used = 0;
+            kx_latch_enc = -1;
+        }
     }
 }
 

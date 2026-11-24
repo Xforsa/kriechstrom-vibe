@@ -13,7 +13,8 @@
  * The host's rate in, 44.1 kHz for the core: resampled as the output is (kx_audio.h), about 1.5 ms of delay. */
 
 enum { IC_LEVEL, IC_DRIVE, IC_PAN, IC_CHO, IC_DLY, IC_REV, IC_GATE, IC_FEED, IC_MODE,
-       IC_MOUT, IC_MCH, IC_CLK, IC_CV, IC_SCREEN, IC_EXPR, IC_FSW, IC_SSRC, IC_SBARS, IC_SSLOT, IC_XOUT, IC_LIGHT, IC_N };   /* (IC_EXPR, IC_FSW: the foot pedal, kx_ui.h) */   /* (IC_SCREEN: the display's wear, kx_wear.h) */   /* (the last four: MIDI OUT and CV, kx_midi.h) */
+       IC_MOUT, IC_MCH, IC_CLK, IC_CV, IC_SCREEN, IC_EXPR, IC_FSW, IC_SSRC, IC_SBARS, IC_SSLOT, IC_XOUT, IC_LIGHT,
+       IC_PF0, IC_PF1, IC_PF2, IC_PF3, IC_PF4, IC_PF5, IC_PF6, IC_PF7, IC_PF8, IC_PF9, IC_PF10, IC_PF11, IC_PF12, IC_PF13, IC_PF14, IC_PF15, IC_N };   /* (IC_EXPR, IC_FSW: the foot pedal, kx_ui.h) */   /* (IC_SCREEN: the display's wear, kx_wear.h) */   /* (the last four: MIDI OUT and CV, kx_midi.h) */
 static const struct { const char *label; int16_t min, max, def; } IC_DESC[IC_N] = {
     {"LEVEL", 0, 127, 100}, {"DRIVE", 0, 127, 0}, {"PAN", -64, 63, 0}, {"CHO", 0, 127, 0}, {"DLY", 0, 127, 0},
     {"REV", 0, 127, 24}, {"GATE", 0, NTRK, 0}, {"FEEDS", 0, NTRK, 0}, {"INPUT", 0, 2, 0},
@@ -22,6 +23,23 @@ static const struct { const char *label; int16_t min, max, def; } IC_DESC[IC_N] 
     {"SOURCE", 0, 1, 0}, {"LENGTH", 0, 3, 2}, {"SLOT", 0, 2, 0},   /* (the sampler, kx_sampler.h) */
     {"MULTI OUT", 0, 1, 1},                           /* (more outputs: kx_outs.h) */
     {"LIGHTNING", 0, 1, 1},                           /* (the live lightning behind the pages: kx_wear.h) */
+    /* the effects pads 9-16 hold (0-7) and with SHIFT (8-15): MENU > PAD FX */
+    {"PAD FX", 0, PF_NFX - 1, PF_R16},
+    {"PAD FX", 0, PF_NFX - 1, PF_TAPE},
+    {"PAD FX", 0, PF_NFX - 1, PF_FRZ},
+    {"PAD FX", 0, PF_NFX - 1, PF_GATE},
+    {"PAD FX", 0, PF_NFX - 1, PF_CRSW},
+    {"PAD FX", 0, PF_NFX - 1, PF_ODN},
+    {"PAD FX", 0, PF_NFX - 1, PF_FLG},
+    {"PAD FX", 0, PF_NFX - 1, PF_RAND},
+    {"PAD FX", 0, PF_NFX - 1, PF_ROLL},
+    {"PAD FX", 0, PF_NFX - 1, PF_RTHR},
+    {"PAD FX", 0, PF_NFX - 1, PF_ETHR},
+    {"PAD FX", 0, PF_NFX - 1, PF_LPF},
+    {"PAD FX", 0, PF_NFX - 1, PF_HPF},
+    {"PAD FX", 0, PF_NFX - 1, PF_OUP},
+    {"PAD FX", 0, PF_NFX - 1, PF_PHS},
+    {"PAD FX", 0, PF_NFX - 1, PF_R32},
 };
 static int16_t kx_ic[IC_N];                       /* the audio flow writes them (KXC_INCFG); the display reads */
 static const char *const IC_TRK[NTRK + 1] = {"OFF", "T1", "T2", "T3", "T4"};

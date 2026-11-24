@@ -126,7 +126,19 @@ static void kx_lt_spawn(int kind, float amt)
 #define LT_BIG 2400
 static lt_seg kx_big[LT_BIG];
 static int kx_big_n;
-static uint64_t kx_big_t0;
+static uint64_t kx_big_t0, kx_big_pt;
+static float kx_big_r2, kx_big_pulse;             /* (the figure's reach squared; the last hit's strength, when) */
+static void kx_big_kick(float a)                  /* a hit: the figure flares and fades in a third of a second */
+{
+    float age = (float)(vibe_frames() - kx_big_pt) / (kx_sr * 0.35f), now = age < 1.0f ? kx_big_pulse * (1.0f - age) : 0.0f;
+    if (a >= now)
+        kx_big_pulse = a, kx_big_pt = vibe_frames() ? vibe_frames() : 1;
+}
+static float kx_big_now(void)
+{
+    float age = (float)(vibe_frames() - kx_big_pt) / (kx_sr * 0.35f);
+    return kx_big_pt && age < 1.0f ? kx_big_pulse * (1.0f - age) * (1.0f - age) : 0.0f;
+}
 static void kx_big_grow(void)
 {
     float dmg = (float)song.g[G_DMG] / 127.0f, wall = (float)song.g[G_WALL] / 127.0f;
@@ -134,26 +146,41 @@ static void kx_big_grow(void)
     kx_big_n = 0;
     lt_out = kx_big, lt_out_n = &kx_big_n, lt_out_cap = LT_BIG;
     lt_rng ^= (uint32_t)vibe_frames() * 2246822519u;
+    float turn = lt_u();                          /* (turned anew each time: never the same arms in the same places) */
     for (a = 0; a < arms; a++)                    /* (krst_art.py splash: arms all round from the centre) */
-        lt_tree(240.0f, 160.0f, (float)a / (float)arms + (lt_u() - 0.5f) * 0.06f, 34.0f + 14.0f * lt_u(),
+        lt_tree(240.0f, 160.0f, turn + (float)a / (float)arms + (lt_u() - 0.5f) * 0.12f, 30.0f + 18.0f * lt_u(),
                 3.4f + wall * 1.6f, 8, 0.42f / 6.2832f * (0.8f + dmg));
+    kx_big_r2 = 1.0f;
+    for (a = 0; a < kx_big_n; a++) {
+        float dx = (float)kx_big[a].x1 - 240.0f, dy = (float)kx_big[a].y1 - 160.0f;
+        if (dx * dx + dy * dy > kx_big_r2)
+            kx_big_r2 = dx * dx + dy * dy;
+    }
     kx_big_t0 = vibe_frames() ? vibe_frames() : 1;
 }
 static void kx_big_draw(float heat, float hit)
 {
-    int j, pass, n;
-    float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.33f);
-    n = g >= 1.0f ? kx_big_n : (int)(g * (float)kx_big_n);
+    int j, pass, n = kx_big_n;
+    float g = (float)(vibe_frames() - kx_big_t0) / (kx_sr * 0.22f), reach;
+    g = g > 1.0f ? 1.0f : g;
+    reach = g * (2.0f - g);                       /* (out from the centre, every arm at once, fast then slowing) */
+    reach = reach * reach * kx_big_r2;
+    hit = hit * 0.4f + kx_big_now();              /* (the drums' own hits: a flare that fades on every one) */
+    hit = hit > 1.0f ? 1.0f : hit;
     for (pass = 0; pass < 2; pass++) {
         for (j = 0; j < n; j++) {
             const lt_seg *s2 = &kx_big[j];
+            float ddx = (float)s2->x1 - 240.0f, ddy = (float)s2->y1 - 160.0f, d2 = ddx * ddx + ddy * ddy;
+            if (g < 1.0f && d2 > reach)
+                continue;
             float w = (float)s2->w * 0.25f;
             /* (red, its thick strands hot as the site's core, the thinnest dark; the growing tip brighter) */
             float t = w > 1.6f ? 0.55f + 0.35f * hit : w > 0.9f ? 0.15f + 0.3f * hit : 0.0f;
             uint32_t c = pass ? vg_mix(w > 0.6f ? 0xE02414 : 0x7A160C, 0xFFE8DC, t + 0.1f * heat)
                               : vg_mix(C_BG, 0x5A140C, 0.5f + 0.5f * hit);
-            if (pass && j > n - 30 && g < 1.0f)
+            if (pass && g < 1.0f && d2 > reach * 0.8f)   /* (the growing tips, white hot) */
                 c = vg_mix(c, 0xFFF0E8, 0.6f);
+            c = vg_mix(C_BG, c, pass ? 0.5f + 0.5f * hit : 0.3f + 0.7f * hit);   /* (it breathes with the hits) */
             if (!pass && w < 0.9f)
                 continue;
             vg_line((float)s2->x0, (float)s2->y0, (float)s2->x1, (float)s2->y1, pass ? w : w * 3.0f + 1.0f, c);
@@ -226,9 +253,9 @@ static void kx_hits_frame(void)                   /* the hits of this frame: the
                     dstep = idx;
                     kick = (ln & 3u) != 0;
                     if (ln & 1u)                  /* (the live lightning: what hit shapes it) */
-                        kx_lt_spawn(0, ac & 1u ? 1.0f : 0.7f);
+                        kx_lt_spawn(0, ac & 1u ? 1.0f : 0.7f), kx_big_kick(ac & 1u ? 1.0f : 0.85f);
                     if (ln & 6u)
-                        kx_lt_spawn(1, ac & 6u ? 1.0f : 0.65f);
+                        kx_lt_spawn(1, ac & 6u ? 1.0f : 0.65f), kx_big_kick(0.6f);
                     if ((ln & 0x18u) && !(ln & 7u))
                         kx_lt_spawn(2, ac & 0x18u ? 0.9f : 0.5f);
                 }
@@ -236,7 +263,7 @@ static void kx_hits_frame(void)                   /* the hits of this frame: the
             }
         }
         if (hn != seen && k == NTRK)               /* (no drum track: a hit in the mix shapes one) */
-            kx_lt_spawn(3, kx_hit_amt);
+            kx_lt_spawn(3, kx_hit_amt), kx_big_kick(kx_hit_amt);
         if (hn != seen || kick) {                 /* a hit (kx_audio.h), or the drums' */
             seen = hn;
             kx_fx_hit = kx_hit_amt > 0.6f ? kx_hit_amt : 0.6f;

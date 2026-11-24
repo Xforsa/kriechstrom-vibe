@@ -3,6 +3,9 @@
  * KRIECHSTROM for VIBE FM: pictures on the pages (the control flow, reading the core): FM6's algorithm as operators and
  * their wires, the mixer's needle meters, the master's tape reels, the drum lanes' glyphs, the idle screen. */
 
+#define TE_INK 0xEDEDF0                           /* (kx_te.h's ink and mid grey, needed here first) */
+#define TE_MID 0xA8A8B0
+
 /* ---- FM6: the algorithm (fm6_core.c FM6_ALG: per operator, the sixth first, its in bus, out bus, add, feedback) drawn as
  * the DX7 draws it: the carriers in a row at the bottom, their modulators stacked above, wires down, feedback as a loop */
 static void kx_draw_fm6(int x, int y, int w, int h, uint32_t tr, int focus_op)
@@ -45,43 +48,72 @@ static void kx_draw_fm6(int x, int y, int w, int h, uint32_t tr, int focus_op)
                 if (col[k] + 1u > ncar)
                     ncar = col[k] + 1u;
             }
-    {
-        int bw = 30, bh = 22, cw = w / (int)(ncar > 0u ? ncar : 1u), rows = 1, ox, oy;
+    {   /* the legend on the left, the picture in the rest */
+        int lx = x, lw = 118, bw = 30, bh = 22, rows = 1, ox, oy, step, cw;
+        float flow = kx_trk_pk[tr % NTRK], ph = (float)(vibe_frames() % 48000u) / 48000.0f;
         char num[2] = {0, 0};
+        x += lw, w -= lw;
+        cw = w / (int)(ncar > 0u ? ncar : 1u);
         for (k = 0; k < 6u; k++)
             rows = depth[k] + 1 > rows ? depth[k] + 1 : rows;
         cw = cw > 70 ? 70 : cw;
         ox = x + (w - cw * (int)ncar) / 2;
-        oy = y + h - bh - 14;
-        vg_rect(ox, y + h - 6, cw * (int)ncar, 2, C_DIM);          /* the output */
-        for (k = 0; k < 6u; k++) {                /* the wires first */
-            int cx = ox + col[k] * cw + cw / 2, cy = oy - (int)depth[k] * (bh + 12);
-            if (tgt[k] != 0xFF) {
-                int tx = ox + col[tgt[k]] * cw + cw / 2, ty = oy - (int)depth[tgt[k]] * (bh + 12);
-                vg_line((float)cx, (float)(cy + bh), (float)tx, (float)ty, 2.0f, 0x55555C);
-            } else
-                vg_line((float)cx, (float)(cy + bh), (float)cx, (float)(y + h - 6), 2.0f, 0x55555C);
+        oy = y + h - bh - 16;
+        step = rows > 1 ? (oy - y - 2) / (rows - 1) : 34;
+        step = step > 34 ? 34 : step;
+        {
+            char b[12] = "ALG ";
+            vg_itoa((int)(fm6_eff[tr % NTRK].alg & 31u) + 1, b + 4);
+            vg_text(b, lx, y, VG_BOLD, C_WHITE, VG_LEFT);
+            vg_round(lx, y + 22, 14, 10, 2, vg_mix(C_BG, TRK_RGB[tr % NTRK], 0.7f));
+            vg_text("HEARD", lx + 20, y + 21, VG_SMALL, TE_INK, VG_LEFT);
+            vg_round(lx, y + 40, 14, 10, 2, 0x3A3A40);
+            vg_text("SHAPES THE", lx + 20, y + 39, VG_SMALL, TE_INK, VG_LEFT);
+            vg_text("ONE BELOW", lx + 20, y + 51, VG_SMALL, TE_INK, VG_LEFT);
+            vg_rect(lx, y + 72, 14, 2, C_RED);
+            vg_text("FEEDBACK", lx + 20, y + 67, VG_SMALL, TE_INK, VG_LEFT);
+        }
+        vg_rect(ox, y + h - 8, cw * (int)ncar, 2, TE_INK);          /* the output */
+        vg_text("OUT", ox + cw * (int)ncar + 4, y + h - 14, VG_SMALL, TE_INK, VG_LEFT);
+        for (k = 0; k < 6u; k++) {                /* the wires first, an arrow where each goes in, the sound along them */
+            float cx = (float)(ox + col[k] * cw + cw / 2), cy = (float)(oy - (int)depth[k] * step + bh), tx, ty;
+            uint32_t wc = tgt[k] != 0xFF ? 0x6A6A72 : vg_mix(C_BG, TRK_RGB[tr % NTRK], 0.8f);
+            if (tgt[k] != 0xFF)
+                tx = (float)(ox + col[tgt[k]] * cw + cw / 2), ty = (float)(oy - (int)depth[tgt[k]] * step);
+            else
+                tx = cx, ty = (float)(y + h - 8);
+            vg_line(cx, cy, tx, ty, 2.0f, wc);
+            {
+                float dx = tx - cx, dy = ty - cy, l = vd_sqrt(dx * dx + dy * dy), ux, uy;
+                if (l > 1.0f) {
+                    ux = dx / l, uy = dy / l;
+                    vg_tri(tx, ty, tx - ux * 7 - uy * 4, ty - uy * 7 + ux * 4, tx - ux * 7 + uy * 4, ty - uy * 7 - ux * 4, wc);
+                    if (flow > 0.02f) {           /* (two dots run down the wire while the track sounds) */
+                        int d;
+                        for (d = 0; d < 2; d++) {
+                            float u = ph * 3.0f + (float)d * 0.5f;
+                            u -= (float)(int)u;
+                            vg_circle(cx + dx * u, cy + dy * u, 2.0f, vg_mix(wc, C_WHITE, flow > 1.0f ? 1.0f : flow));
+                        }
+                    }
+                }
+            }
         }
         for (k = 0; k < 6u; k++) {
-            int cx = ox + col[k] * cw + cw / 2, cy = oy - (int)depth[k] * (bh + 12), opn = 6 - (int)k;
+            int cx = ox + col[k] * cw + cw / 2, cy = oy - (int)depth[k] * step, opn = 6 - (int)k;
             int car = tgt[k] == 0xFF, foc = opn - 1 == focus_op;
-            uint32_t fill = foc ? C_RED : car ? vg_mix(C_BG, TRK_RGB[tr], 0.7f) : 0x26262A;
+            uint32_t fill = foc ? C_RED : car ? vg_mix(C_BG, TRK_RGB[tr % NTRK], 0.7f) : 0x3A3A40;
             vg_round(cx - bw / 2, cy, bw, bh, 3, fill);
             if (foc)
                 vg_frame(cx - bw / 2 - 2, cy - 2, bw + 4, bh + 4, 1, C_WHITE);
             num[0] = (char)('0' + opn);
-            vg_text(num, cx, cy + 3, VG_BOLD, C_WHITE, VG_CENTER);
+            vg_text(num, cx, cy + 3, VG_BOLD, car && !foc ? C_BG : C_WHITE, VG_CENTER);
             if ((a[k] & 0xC0u) == 0xC0u) {        /* feedback: a loop from its top back into it */
                 vg_line((float)(cx + bw / 2), (float)(cy + 4), (float)(cx + bw / 2 + 8), (float)(cy + 4), 2.0f, C_RED);
                 vg_line((float)(cx + bw / 2 + 8), (float)(cy + 4), (float)(cx + bw / 2 + 8), (float)(cy - 6), 2.0f, C_RED);
                 vg_line((float)(cx + bw / 2 + 8), (float)(cy - 6), (float)cx, (float)(cy - 6), 2.0f, C_RED);
                 vg_line((float)cx, (float)(cy - 6), (float)cx, (float)cy, 2.0f, C_RED);
             }
-        }
-        {
-            char b[12] = "ALG ";
-            vg_itoa((int)(fm6_eff[tr % NTRK].alg & 31u) + 1, b + 4);
-            vg_text(b, x + w, y, VG_BOLD, C_DIM, VG_RIGHT);
         }
     }
 }

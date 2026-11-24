@@ -7,8 +7,12 @@
  * reverb a room, a spring or a hall; each pedal what it does to a wave. They move with the transport and the sound.
  * The control flow, reading the core. */
 
+#ifndef TE_INK
 #define TE_INK 0xEDEDF0
+#endif
+#ifndef TE_MID
 #define TE_MID 0xA8A8B0
+#endif
 #define TE_LOW 0x3A3A40
 #define TE_DOT 0x232327
 static float te_t(void) { return (float)vibe_frames() / kx_sr; }

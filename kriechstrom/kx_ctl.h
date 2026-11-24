@@ -55,7 +55,17 @@ static void kx_tool(track_t *t, uint32_t p)
         ui_message("STOP TO EDIT");
         return;
     }
-    m = tl_do(t, p, ui.lane);
+    if (p == TL_DICE) {                           /* (a few MOODs choose from 3 x 3 rhythms: the same part again
+                                                   * looks like nothing happened, so it is thrown again till it differs) */
+        static step_t was[NSTEP];
+        int16_t len0 = t->p[P_SLEN];
+        uint32_t k;
+        memcpy(was, t->step, sizeof was);
+        m = tl_do(t, p, ui.lane);
+        for (k = 0; m && k < 16u && t->p[P_SLEN] == len0 && !memcmp(was, t->step, sizeof was); k++)
+            dice_do(t);
+    } else
+        m = tl_do(t, p, ui.lane);
     if (m && p == TL_DICE) {                      /* "T2 NEW PART: GRIND": which track, in which MOOD */
         char b[24] = {'T', (char)('1' + trk_index(t)), 0};
         str_cpy(b + 2, " NEW PART: ", sizeof b - 2);

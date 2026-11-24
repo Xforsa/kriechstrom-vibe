@@ -1176,12 +1176,12 @@ static void kx_touch(int x, int y)
         int k = (x - 4) / 118;
         if (k >= 0 && k < NTRK)
             kx_post(KXC_SEL, (uint32_t)k, 0, 0, 0);
-    } else if (kx_page == PG_PADFX && y >= 108 && y < 190) {   /* a pad of the two maps (kx_draw_padfx) */
-        int half = x >= 240, col = ((x - 4) % 236) / 58, row = (y - 108) / 41;
+    } else if (kx_page == PG_PADFX && y >= 112 && y < 188) {   /* a pad of the two maps (kx_draw_padfx) */
+        int half = x >= 240, col = ((x - 4) % 236) / 58, row = (y - 112) / 38;
         if (col >= 0 && col < 4 && row >= 0 && row < 2)
             kx_pfx_sel = half * 8 + row * 4 + col;
     } else if (kx_page == PG_HUB) {               /* a tile: its page */
-        int col = (x - 4) / 95, row = (y - 96) / 52, i = row * 5 + col;   /* (kx_draw_hub: 89 + 6, 46 + 6) */
+        int col = (x - 4) / 95, row = (y - 96) / 44, i = row * 5 + col;   /* (kx_draw_hub: 89 + 6, 38 + 6) */
         if (col >= 0 && col < 5 && row >= 0 && row < 2 && i < KX_HUB_N)
             kx_hub_open(i);
     } else if (kx_page == PG_PROJECT && y >= 150) {

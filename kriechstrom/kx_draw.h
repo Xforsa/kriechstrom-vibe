@@ -116,13 +116,17 @@ static void kx_draw_cards(int pg, int y)
         kx_card c;
         int x = 10 + (int)k * 115, w = 108, f = VG_BIG | VG_X2;   /* (the host's knob columns: x 10 + 115 k) */
         kx_card_of(pg, k, &c);
-        int dcard = kx_data_on_cards() && (int)k == kx_data_card && c.on && c.label && c.label[0], ux = x + w;
-        if (dcard) {                              /* (DATA's card: a red line over it, a red DATA plate in it) */
-            int tw = vg_text_width("DATA", VG_BOLD) + 8;
+        int dcard = kx_data_on_cards() && (int)k == kx_data_card && c.on && c.label && c.label[0], ux = x + w, lred = 0;
+        if (dcard) {                              /* (DATA's card: a red line over it, a red DATA plate in it; a long name:
+                                                   * the name itself on red, no room for the word) */
+            int tw = vg_text_width("DATA", VG_BOLD) + 8, uw = c.unit && c.unit[0] ? vg_text_width(c.unit, VG_SMALL) + 6 : 0;
             vg_rect(x - 4, y - 4, w + 8, 2, C_RED);
-            vg_rect(x + w - tw + 2, y, tw, 16, C_RED);   /* (16 high: the 14 px letters whole) */
-            vg_text("DATA", x + w - tw / 2 + 2, y + 1, VG_BOLD, C_BG, VG_CENTER);
-            ux = x + w - tw - 2;
+            if (vg_text_width(c.label, VG_SMALL) + uw + tw + 8 <= w) {
+                vg_rect(x + w - tw + 2, y, tw, 16, C_RED);   /* (16 high: the 14 px letters whole) */
+                vg_text("DATA", x + w - tw / 2 + 2, y + 1, VG_BOLD, C_BG, VG_CENTER);
+                ux = x + w - tw - 4;
+            } else
+                lred = 1;
         }
         if (k)
             vg_rect(x - 5, y + 2, 1, 66, 0x26262A);
@@ -136,7 +140,9 @@ static void kx_draw_cards(int pg, int y)
                 vg_rect(x - 4, y - 3, (int)((float)(w + 8) * a), 2, col);
             }
         }
-        vg_text(c.label, x, y + 2, VG_SMALL, 0xCACAD2, VG_LEFT);
+        if (lred)
+            vg_rect(x - 3, y, vg_text_width(c.label, VG_SMALL) + 6, 16, C_RED);
+        vg_text(c.label, x, y + 2, VG_SMALL, lred ? C_BG : 0xCACAD2, VG_LEFT);
         if (vg_text_width(c.val, f) > w - 4)
             f = VG_BIG;
         vg_text(c.val, x - 1, f == VG_BIG ? y + 28 : y + 16, f, C_WHITE, VG_LEFT);
@@ -474,7 +480,7 @@ static void kx_draw_browse(int x, int y, int w, int h)
     vg_text(nm, x + 2, y + 18, vg_text_width(nm, VG_BIG | VG_X2) < lx - x - 12 ? VG_BIG | VG_X2 : VG_BIG, C_WHITE, VG_LEFT);
     kx_draw_spectrum(x + 4, y + 64, lx - x - 16, h - 66, col);
     vg_rect(lx - 6, y, 1, h, C_LINE);
-    for (r = 0; r < 7u && total; r++) {
+    for (r = 0; r < 6u && total; r++) {           /* (six whole rows: the seventh would be cut by the cards) */
         uint32_t n = preset_visible(cur, total, r), k, e;
         char b[17];
         int ry = y + (int)r * 17;
@@ -491,7 +497,7 @@ static void kx_draw_browse(int x, int y, int w, int h)
             vg_round(lx, ry - 1, 136, 17, 3, vg_mix(C_PANEL, col, 0.3f));
             vg_rect(lx, ry - 1, 3, 17, col);
         }
-        vg_text(b, lx + 8, ry, VG_SMALL, n == cur ? C_WHITE : r == 0u || r == 6u ? 0x7A7A84 : C_DIM, VG_LEFT);
+        vg_text(b, lx + 8, ry, VG_SMALL, n == cur ? C_WHITE : r == 0u || r == 5u ? 0x7A7A84 : C_DIM, VG_LEFT);
     }
 }
 
@@ -687,193 +693,436 @@ static void kx_knob(float cx, float cy, float r, float pos, uint32_t ink)
     vg_circle(cx, cy, r - 2.0f, 0x18181B);
     vg_line(cx + dx * 2.0f, cy + dy * 2.0f, cx + dx * (r - 1.0f), cy + dy * (r - 1.0f), 2.2f, ink);
 }
-/* ---- the pedals' iron: each type built its own way (TE's labels on a NIN stage's gear) --------------------------------
- * finish: 0 brushed steel, 1 hammered paint, 2 rust, 3 matte black, 4 raw aluminium, 5 chipped enamel
- * label:  0 Dymo tape, 1 masking tape, 2 stencil, 3 an engraved plate
- * extra (bits): 1 corner screws, 2 vents, 4 hazard stripes, 8 a toggle, 16 rivets, 32 a crack */
-typedef struct { uint8_t fin, lab, extra, rust; } ped_look;
-static const ped_look PED_LOOK[IT_N] = {
-    {3, 0, 0, 0},                                 /* OFF */
-    {1, 1, 1, 0},                                 /* SOFT  hammered, masking tape, screws */
-    {2, 2, 1 | 32, 70},                           /* HARD  rusted through, stencil, cracked */
-    {0, 0, 2, 0},                                 /* FOLD  brushed, Dymo, vents */
-    {1, 2, 16, 20},                               /* FUZZ  hammered, stencil, rivets */
-    {3, 0, 4, 0},                                 /* CRUSH matte black, hazard */
-    {4, 3, 1 | 8, 0},                             /* PHASR aluminium, plate, toggle */
-    {5, 1, 2, 10},                                /* FLANG chipped enamel, tape, vents */
-    {0, 0, 8 | 1, 0},                             /* CHOR  brushed, Dymo, toggle */
-    {2, 1, 16, 45},                               /* MUFF  rust, tape, rivets */
-    {3, 2, 1 | 2, 0},                             /* BASS  matte black, stencil, vents */
-    {2, 0, 4 | 1, 35},                            /* SMASH rust and hazard */
-    {2, 3, 1 | 32 | 16, 90},                      /* DAMG  the most rust, plate, crack */
-    {5, 2, 2 | 32, 30}};                          /* INFCT chipped, stencil, vents, crack */
+/* ---- the pedals: thirteen, each its own object (a face, a way to turn it, a screen, one thing only it has), in TE's
+ * manner (flat colour, white print, numbered) worn as a NIN stage wears its gear. The controls: what each one is. */
+enum { PK_FLAT, PK_CHICKEN, PK_FADER, PK_SQUARE, PK_DIAL, PK_CREAM, PK_HFADER, PK_BIG };
+typedef struct { uint32_t body, ink; uint8_t knob, shape; } ped_face;   /* shape: 0 box, 1 wedge, 2 notched, 3 pill */
+static const ped_face PED_FACE[IT_N] = {
+    {0x111113, 0xF0F0EC, PK_FLAT, 0},
+    {0xE6E2D8, 0x16161A, PK_FLAT, 3},             /* SOFT  white, the four colours */
+    {0x4A2414, 0xF0E6DC, PK_CHICKEN, 0},          /* HARD  a rusted slab, chicken heads, rivets */
+    {0xB4B6BA, 0x141416, PK_FADER, 2},            /* FOLD  aluminium, three faders, folded */
+    {0x0E1A12, 0xF0F0EC, PK_FLAT, 0},             /* FUZZ  a bare board and its creature */
+    {0x121214, 0xF0F0EC, PK_SQUARE, 0},           /* CRUSH hazard all round, square knobs, a bar of LEDs */
+    {0xFF6A1A, 0x141416, PK_DIAL, 3},             /* PHASR TE orange, dials, a porthole */
+    {0x2A4A8A, 0xF0F0EC, PK_CREAM, 1},            /* FLANG chipped blue enamel, a jet's stripes */
+    {0x7AC8B0, 0x101412, PK_HFADER, 2},           /* CHOR  mint, sliders, a grille of waves */
+    {0x2E1E16, 0xF0E6DC, PK_BIG, 1},              /* MUFF  one big knob, two small, on tape */
+    {0x0C0C0E, 0xE8C060, PK_FLAT, 0},             /* BASS  black and brass, a needle */
+    {0x6A6C70, 0xF0F0EC, PK_CHICKEN, 2},          /* SMASH dented steel, a red stomp */
+    {0x1A1612, 0xF0F0EC, PK_SQUARE, 0},           /* DAMG  a board burnt, cracked, a wire hanging */
+    {0x101A10, 0xB8FF60, PK_DIAL, 3}};            /* INFCT a tube of something green, bubbling */
 static uint32_t ped_h;
 static uint32_t ped_rnd(void) { ped_h = ped_h * 1664525u + 1013904223u; return ped_h >> 8; }
-static void ped_finish(int x, int y, int w, int h, uint32_t col, const ped_look *L, int ty)
+static int ped_rn(int n) { return (int)(ped_rnd() % (uint32_t)(n > 0 ? n : 1)); }
+static void ped_ctl(int kind, float cx, float cy, float pos, uint32_t c, uint32_t body)
 {
+    float a = 0.375f - pos * 0.75f, dx = vd_sin(a + 0.25f), dy = -vd_sin(a);
     int i;
-    uint32_t base;
-    ped_h = 0x9E3779B9u * (uint32_t)(ty + 1);
-    switch (L->fin) {
-    case 0:                                       /* brushed steel: fine strokes along it */
-        vg_round(x, y, w, h, 5, 0x8A8C90);
-        for (i = 2; i < h - 2; i += 2)
-            vg_rect(x + 2 + (int)(ped_rnd() % 6u), y + i, w - 4 - (int)(ped_rnd() % 9u), 1, (ped_rnd() & 1u) ? 0x9A9CA0 : 0x7A7C80);
-        vg_rect(x + 4, y + 2, w - 8, 3, vg_mix(0x8A8C90, col, 0.7f));
+    switch (kind) {
+    case PK_CHICKEN:                              /* a pointer, long */
+        vg_circle(cx, cy + 1.0f, 9.0f, 0x000000);
+        vg_circle(cx, cy, 8.0f, 0x1A1A1C);
+        vg_line(cx - dx * 5.0f, cy - dy * 5.0f, cx + dx * 11.0f, cy + dy * 11.0f, 5.0f, 0x1A1A1C);
+        vg_line(cx, cy, cx + dx * 10.0f, cy + dy * 10.0f, 1.6f, 0xF0F0EC);
         break;
-    case 1:                                       /* hammered paint: dimpled */
-        base = vg_mix(0x18181A, col, 0.55f);
-        vg_round(x, y, w, h, 7, base);
-        for (i = 0; i < 160; i++) {
-            int px = x + 3 + (int)(ped_rnd() % (uint32_t)(w - 6)), py = y + 3 + (int)(ped_rnd() % (uint32_t)(h - 6));
-            vg_rect(px, py, 3, 2, vg_mix(base, 0xFFFFFF, 0.12f));
-            vg_rect(px + 1, py + 2, 2, 1, vg_mix(base, 0x000000, 0.35f));
-        }
-        break;
-    case 2:                                       /* rust: the paint left only in patches */
-        base = vg_mix(0x18181A, col, 0.45f);
-        vg_round(x, y, w, h, 4, 0x5A2C16);
-        for (i = 0; i < 70; i++) {
-            float r = 2.0f + (float)(ped_rnd() % 7u);
-            uint32_t c = (ped_rnd() % 3u) == 0u ? 0x8A4420 : (ped_rnd() & 1u) ? 0x6E3418 : 0x46200E;
-            vg_circle((float)(x + 4 + (int)(ped_rnd() % (uint32_t)(w - 8))), (float)(y + 4 + (int)(ped_rnd() % (uint32_t)(h - 8))), r, c);
-        }
-        for (i = 0; i < 9 - L->rust / 12; i++) {  /* (what paint is left) */
-            int pw = 14 + (int)(ped_rnd() % 30u), ph = 8 + (int)(ped_rnd() % 16u);
-            vg_round(x + 3 + (int)(ped_rnd() % (uint32_t)(w - pw - 6)), y + 3 + (int)(ped_rnd() % (uint32_t)(h - ph - 6)), pw, ph, 4, base);
-        }
-        for (i = 0; i < 40; i++)                  /* pits */
-            vg_rect(x + 3 + (int)(ped_rnd() % (uint32_t)(w - 6)), y + 3 + (int)(ped_rnd() % (uint32_t)(h - 6)), 1, 1, 0x1A0A04);
-        break;
-    case 3:                                       /* matte black, the type's colour only as an edge */
-        vg_round(x, y, w, h, 3, 0x161618);
-        vg_frame(x, y, w, h, 1, vg_mix(0x161618, col, 0.6f));
-        break;
-    case 4:                                       /* raw aluminium, scratched */
-        vg_round(x, y, w, h, 6, 0xA4A6AA);
-        for (i = 0; i < 14; i++) {
-            float x0 = (float)(x + 4 + (int)(ped_rnd() % (uint32_t)(w - 8))), y0 = (float)(y + 4 + (int)(ped_rnd() % (uint32_t)(h - 8)));
-            vg_line(x0, y0, x0 + (float)((int)(ped_rnd() % 30u) - 15), y0 + (float)((int)(ped_rnd() % 10u) - 5), 1.0f, 0xC8CACE);
-        }
-        vg_rect(x + 4, y + 2, w - 8, 3, col);
-        break;
-    default:                                      /* enamel, chipped to the iron at the edges */
-        base = vg_mix(0x101012, col, 0.7f);
-        vg_round(x, y, w, h, 8, base);
-        for (i = 0; i < 26; i++) {
-            int e = (int)(ped_rnd() % 4u), px, py;
-            px = e == 0 ? x + 1 : e == 1 ? x + w - 6 : x + 3 + (int)(ped_rnd() % (uint32_t)(w - 10));
-            py = e >= 2 ? (e == 2 ? y + 1 : y + h - 5) : y + 3 + (int)(ped_rnd() % (uint32_t)(h - 10));
-            vg_round(px, py, 4 + (int)(ped_rnd() % 5u), 3 + (int)(ped_rnd() % 4u), 1, (ped_rnd() & 1u) ? 0x3A3A40 : 0x5A2C16);
-        }
+    case PK_FADER: {                              /* a vertical slot, its cap */
+        int top = (int)cy - 11, len = 22, py = top + (int)((1.0f - pos) * (float)len);
+        vg_rect((int)cx - 1, top, 3, len, 0x141416);
+        vg_rect((int)cx - 7, py - 3, 15, 7, 0x2A2A2E);
+        vg_rect((int)cx - 7, py, 15, 1, 0xF0F0EC);
         break;
     }
-    if (L->extra & 4) {                           /* hazard stripes along the foot */
-        int sx;
-        vg_rect(x + 3, y + h - 34, w - 6, 7, 0xE8C020);
-        for (sx = x + 3; sx < x + w - 8; sx += 10)
-            vg_tri((float)sx, (float)(y + h - 27), (float)(sx + 5), (float)(y + h - 27), (float)(sx + 9), (float)(y + h - 34), 0x101010);
+    case PK_HFADER: {                             /* a horizontal slot */
+        int l = (int)cx - 14, px = l + (int)(pos * 28.0f);
+        vg_rect(l, (int)cy - 1, 29, 3, 0x0C1210);
+        vg_round(px - 4, (int)cy - 7, 9, 15, 2, 0xF0F0EC);
+        vg_rect(px, (int)cy - 5, 1, 11, 0x101412);
+        break;
     }
-    if (L->extra & 2)                             /* vents */
-        for (i = 0; i < 4; i++)
-            vg_round(x + w - 12, y + 44 + i * 5, 8, 3, 1, 0x060607);
-    if (L->extra & 1) {                           /* corner screws */
-        int cx[4] = {x + 5, x + w - 6, x + 5, x + w - 6}, cy[4] = {y + 5, y + 5, y + h - 6, y + h - 6};
-        for (i = 0; i < 4; i++) {
-            vg_circle((float)cx[i], (float)cy[i], 2.6f, 0x2A2A2E);
-            vg_circle((float)cx[i], (float)cy[i], 2.0f, 0xB8B8BC);
-            vg_line((float)cx[i] - 1.6f, (float)cy[i] + 1.0f, (float)cx[i] + 1.6f, (float)cy[i] - 1.0f, 1.0f, 0x3A3A40);
+    case PK_SQUARE:                               /* a square knob */
+        vg_round((int)cx - 9, (int)cy - 8, 19, 19, 3, 0x000000);
+        vg_round((int)cx - 9, (int)cy - 9, 18, 18, 3, c);
+        vg_line(cx, cy, cx + dx * 7.0f, cy + dy * 7.0f, 2.0f, 0x000000);
+        break;
+    case PK_DIAL:                                 /* a dial in a ring of ticks */
+        for (i = 0; i <= 10; i++) {
+            float t = 0.375f - (float)i * 0.075f, tx = vd_sin(t + 0.25f), ty = -vd_sin(t);
+            vg_line(cx + tx * 9.5f, cy + ty * 9.5f, cx + tx * 11.5f, cy + ty * 11.5f, 1.0f, vg_mix(body, 0x000000, 0.6f));
         }
-    }
-    if (L->extra & 16)                            /* rivets down the side */
-        for (i = 0; i < 5; i++)
-            vg_circle((float)(x + 3), (float)(y + 14 + i * 18), 1.6f, 0xC8C8CC);
-    if (L->extra & 32) {                          /* a crack across a corner */
-        float cx0 = (float)(x + w - 30), cy0 = (float)(y + 2);
-        vg_line(cx0, cy0, cx0 + 6, cy0 + 9, 1.2f, 0x050505);
-        vg_line(cx0 + 6, cy0 + 9, cx0 + 3, cy0 + 16, 1.2f, 0x050505);
-        vg_line(cx0 + 6, cy0 + 9, cx0 + 14, cy0 + 13, 1.0f, 0x050505);
+        vg_circle(cx, cy, 8.0f, 0xF0F0EC);
+        vg_line(cx, cy, cx + dx * 7.0f, cy + dy * 7.0f, 2.0f, 0x141416);
+        break;
+    case PK_CREAM:                                /* cream, a dark skirt */
+        vg_circle(cx, cy, 11.0f, 0x141416);
+        vg_circle(cx, cy, 8.0f, 0xE8DCC0);
+        vg_line(cx, cy, cx + dx * 10.0f, cy + dy * 10.0f, 2.0f, 0x141416);
+        break;
+    case PK_BIG:                                  /* (MUFF's first: big) */
+        vg_circle(cx, cy + 1.0f, 14.0f, 0x000000);
+        vg_circle(cx, cy, 13.0f, 0x141416);
+        vg_circle(cx, cy, 10.0f, 0x2A2A2E);
+        vg_line(cx, cy, cx + dx * 12.0f, cy + dy * 12.0f, 2.5f, 0xF0F0EC);
+        break;
+    default:                                      /* flat, one colour */
+        vg_circle(cx, cy + 1.0f, 10.0f, 0x000000);
+        vg_circle(cx, cy, 10.0f, c);
+        vg_circle(cx, cy, 7.0f, vg_mix(c, 0xFFFFFF, 0.18f));
+        vg_circle(cx + dx * 6.0f, cy + dy * 6.0f, 1.8f, c == 0xE8E8E4 ? 0x141416 : 0xFFFFFF);
+        break;
     }
 }
-static void ped_label(int x, int y, int maxw, const char *name, uint32_t col, const ped_look *L)
+static void ped_body(int ty, int x, int y, int w, int h, const ped_face *F, uint32_t col)
 {
-    int tw = vg_text_width(name, VG_BOLD);
-    switch (L->lab) {
-    case 0:                                       /* Dymo tape: black, the letters pressed white */
-        vg_rect(x, y, tw + 12, 18, 0x0A0A0A);
-        vg_rect(x, y + 1, 2, 16, 0x2A2A2A), vg_rect(x + tw + 10, y + 1, 2, 16, 0x2A2A2A);
-        vg_text(name, x + 6, y + 2, VG_BOLD, 0xF4F4F4, VG_LEFT);
+    int i;
+    ped_h = 0x9E3779B9u * (uint32_t)(ty + 7);
+    switch (F->shape) {
+    case 1:                                       /* a wedge: the top slants back */
+        vg_round(x, y + 4, w, h - 4, 5, F->body);
+        vg_tri((float)x, (float)(y + 4), (float)(x + w), (float)y, (float)(x + w), (float)(y + 4), F->body);
+        vg_line((float)x, (float)(y + 4), (float)(x + w), (float)y, 1.0f, vg_mix(F->body, 0xFFFFFF, 0.3f));
+        vg_rect(x, y + h - 4, w, 4, vg_mix(F->body, 0x000000, 0.4f));   /* (its foot, the wedge's thick end) */
         break;
-    case 1:                                       /* masking tape, written on */
-        vg_rect(x, y, tw + 14, 18, 0xD9CFA8);
-        vg_tri((float)(x + tw + 14), (float)y, (float)(x + tw + 18), (float)(y + 6), (float)(x + tw + 14), (float)(y + 12), 0xD9CFA8);
-        vg_text(name, x + 7, y + 2, VG_BOLD, 0x1A1A1A, VG_LEFT);
+    case 2:                                       /* corners cut */
+        vg_rect(x + 6, y, w - 12, h, F->body);
+        vg_rect(x, y + 6, w, h - 12, F->body);
+        vg_tri((float)x, (float)(y + 6), (float)(x + 6), (float)y, (float)(x + 6), (float)(y + 6), F->body);
+        vg_tri((float)(x + w), (float)(y + 6), (float)(x + w - 6), (float)y, (float)(x + w - 6), (float)(y + 6), F->body);
+        vg_tri((float)x, (float)(y + h - 6), (float)(x + 6), (float)(y + h), (float)(x + 6), (float)(y + h - 6), F->body);
+        vg_tri((float)(x + w), (float)(y + h - 6), (float)(x + w - 6), (float)(y + h), (float)(x + w - 6), (float)(y + h - 6), F->body);
         break;
-    case 2:                                       /* stencilled on in the type's colour, on a dark band */
-        vg_rect(x - 2, y - 1, tw + 10, 20, 0x0C0C0E);
-        vg_text(name, x + 3, y + 1, VG_MED, vg_mix(col, 0xFFFFFF, 0.25f), VG_LEFT);
+    case 3: vg_round(x, y, w, h, 14, F->body); break;   /* a pill */
+    default: vg_round(x, y, w, h, 3, F->body); break;
+    }
+    switch (ty) {                                 /* its surface */
+    case 2:                                       /* rust */
+        for (i = 0; i < 60; i++) {
+            uint32_t c = ty == 2 ? ((ped_rnd() % 3u) == 0u ? 0x7A3A1A : (ped_rnd() & 1u) ? 0x5E2C14 : 0x36180A)
+                                 : ((ped_rnd() & 1u) ? 0x0A0806 : 0x2A2018);
+            vg_circle((float)(x + 4 + ped_rn(w - 8)), (float)(y + 4 + ped_rn(h - 8)), 2.0f + (float)ped_rn(6), c);
+        }
         break;
-    default:                                      /* an engraved plate, screwed on */
-        vg_rect(x, y, tw + 18, 18, 0xC8C8C0);
-        vg_frame(x, y, tw + 18, 18, 1, 0x6A6A66);
-        vg_circle((float)(x + 4), (float)(y + 9), 1.5f, 0x5A5A56);
-        vg_circle((float)(x + tw + 14), (float)(y + 9), 1.5f, 0x5A5A56);
-        vg_text(name, x + 9, y + 2, VG_BOLD, 0x16161A, VG_LEFT);
+    case 3:                                       /* brushed, and folded: two creases */
+        for (i = 1; i < h - 1; i += 2)
+            vg_rect(x + 2, y + i, w - 4, 1, (ped_rnd() & 1u) ? 0xBEC0C4 : 0xACAEB2);
+        vg_line((float)(x + 2), (float)(y + h - 30), (float)(x + 50), (float)(y + h - 2), 1.0f, 0x8A8C90);
+        vg_line((float)(x + w - 40), (float)(y + 2), (float)(x + w - 2), (float)(y + 30), 1.0f, 0xD8DADE);
+        break;
+    case 4: case 12: {                            /* a board's traces */
+        uint32_t cu = vg_mix(F->body, 0xB87333, 0.45f);
+        for (i = 0; i < 9; i++) {
+            int x0 = x + 4 + ped_rn(w - 8), y0 = y + 4 + ped_rn(h - 8), x1 = x + 4 + ped_rn(w - 8);
+            vg_line((float)x0, (float)y0, (float)x1, (float)y0, 1.0f, cu);
+            vg_line((float)x1, (float)y0, (float)x1, (float)(y0 + 8), 1.0f, cu);
+            vg_circle((float)x1, (float)(y0 + 8), 1.8f, cu);
+        }
+        for (i = 0; ty == 12 && i < 26; i++)      /* (DAMG's board: burnt) */
+            vg_circle((float)(x + 4 + ped_rn(w - 8)), (float)(y + 4 + ped_rn(h - 8)), 2.0f + (float)ped_rn(7),
+                      (ped_rnd() & 1u) ? 0x050403 : 0x2A2018);
         break;
     }
-    (void)maxw;
+    case 5: {                                     /* hazard stripes all round */
+        int sx;
+        for (sx = x; sx < x + w; sx += 10) {
+            vg_tri((float)sx, (float)(y + h), (float)(sx + 5), (float)(y + h), (float)(sx + 9), (float)(y + h - 5), 0xE8C020);
+        }
+        break;
+    }
+    case 7:                                       /* chipped enamel, a jet's stripes */
+        vg_rect(x, y + h - 36, w, 3, 0xE8DCC0), vg_rect(x, y + h - 31, w, 2, 0xE8DCC0);
+        for (i = 0; i < 18; i++)
+            vg_round(x + (ped_rnd() & 1u ? 1 : w - 6) , y + 8 + ped_rn(h - 14), 5, 4, 1, 0x3A3A40);
+        break;
+    case 8:                                       /* a grille of waves */
+        for (i = 0; i < 4; i++) {
+            int k;
+            for (k = 0; k < 7; k++)
+                vg_line((float)(x + 8 + k * 6), (float)(y + h - 34 + i * 4 + (k & 1) * 2), (float)(x + 14 + k * 6),
+                        (float)(y + h - 34 + i * 4 + ((k + 1) & 1) * 2), 1.0f, 0x4A8A78);
+        }
+        break;
+    case 9:                                       /* felt */
+        for (i = 0; i < 120; i++)
+            vg_rect(x + 2 + ped_rn(w - 4), y + 2 + ped_rn(h - 4), 2, 1, (ped_rnd() & 1u) ? 0x3A281E : 0x24160E);
+        break;
+    case 10:                                      /* a brass edge */
+        vg_frame(x, y, w, h, 2, 0xB8903A);
+        break;
+    case 11:                                      /* dents, and hazard tape across */
+        for (i = 0; i < 6; i++) {
+            float dx = (float)(x + 10 + ped_rn(w - 20)), dy = (float)(y + 10 + ped_rn(h - 20));
+            vg_circle(dx, dy, 6.0f, 0x5A5C60);
+            vg_circle(dx - 1.0f, dy - 1.0f, 4.0f, 0x7A7C80);
+        }
+        vg_tri((float)x, (float)(y + h - 22), (float)(x + 22), (float)(y + h), (float)x, (float)(y + h), 0xE8C020);
+        break;
+    case 13: {                                    /* a tube of green, lit with the sound */
+        vg_round(x + 3, y + 46, w - 6, 32, 10, 0x2A4A1A);
+        break;
+    }
+    case 1:                                       /* white: a grid of dots, a speaker */
+        for (i = 0; i < 12; i++)
+            vg_circle((float)(x + w - 52 + (i % 4) * 4), (float)(y + h - 20 + (i / 4) * 4), 1.0f, 0xA8A49A);
+        break;
+    default: break;
+    }
+}
+static void ped_mark(int ty, int x, int y, int w, int h, float lvl, const ped_face *F)   /* the one thing only it has */
+{
+    float t = te_t();
+    int i;
+    switch (ty) {
+    case 2:                                       /* rivets */
+        for (i = 0; i < 6; i++)
+            vg_circle((float)(i < 3 ? x + 4 : x + w - 5), (float)(y + 12 + (i % 3) * 34), 2.0f, 0xC8B8A8);
+        break;
+    case 4: {                                     /* the fuzz creature: a ball of hair with eyes */
+        float cx = (float)(x + w - 52), cy = (float)(y + h - 14);
+        for (i = 0; i < 10; i++) {
+            float a = (float)i * 0.1f;
+            vg_line(cx, cy, cx + vd_sin(a) * (8.0f + lvl * 3.0f), cy + vd_sin(a + 0.25f) * (8.0f + lvl * 3.0f), 1.0f, 0x9A70D0);
+        }
+        vg_circle(cx, cy, 5.0f, 0x6A40A0);
+        vg_circle(cx - 2.0f, cy - 1.0f, 1.2f, 0xFFFFFF), vg_circle(cx + 2.0f, cy - 1.0f, 1.2f, 0xFFFFFF);
+        break;
+    }
+    case 5:                                       /* a bar of LEDs under the screen, as loud as it is */
+        for (i = 0; i < 10; i++)
+            vg_rect(x + 8 + i * 6, y + h - 25, 4, 2, (float)i < lvl * 10.0f ? (i > 7 ? 0xFF3020 : 0x60D050) : 0x1E2A1E);
+        break;
+    case 10: {                                    /* a needle meter */
+        int mx = x + w - 64, my = y + h - 24;
+        float a = -0.12f + 0.24f * (lvl > 1.0f ? 1.0f : lvl);
+        vg_round(mx, my, 26, 18, 2, 0xE8DCB0);
+        vg_line((float)(mx + 13), (float)(my + 17), (float)(mx + 13) + vd_sin(a) * 14.0f, (float)(my + 17) - vd_sin(a + 0.25f) * 14.0f, 1.0f, 0x141416);
+        break;
+    }
+    case 12:                                      /* a crack and a wire hanging out */
+        vg_line((float)(x + 22), (float)(y + h), (float)(x + 28), (float)(y + h - 10), 1.4f, 0x030303);
+        vg_line((float)(x + 28), (float)(y + h - 10), (float)(x + 24), (float)(y + h - 18), 1.2f, 0x030303);
+        vg_line((float)(x + w - 6), (float)(y + 10), (float)(x + w + 4), (float)(y + 22 + vd_sin(t) * 3.0f), 1.5f, 0xD02A1A);
+        vg_line((float)(x + w + 4), (float)(y + 22 + vd_sin(t) * 3.0f), (float)(x + w + 1), (float)(y + 34), 1.5f, 0xD02A1A);
+        break;
+    case 13:                                      /* bubbles rising in the tube */
+        for (i = 0; i < 5; i++) {
+            float u = te_wrap(t * (0.3f + 0.1f * (float)i) + (float)i * 0.21f);
+            vg_circle((float)(x + 8 + i * 4), (float)(y + 74) - u * 24.0f, 1.5f + lvl, 0x90E050);
+        }
+        break;
+    default: break;
+    }
+    (void)F;
+}
+/* each pedal's screen, in its own way: what it does to a wave (te_shape), drawn as its kind of screen would */
+static void ped_screen(int ty, int x, int y, int w, int h, const int16_t *v, float lv, int on)
+{
+    float t = te_t(), d = (float)clamp(v[1], 0, 127) / 127.0f, amp = (float)h * 0.42f * (0.35f + 0.65f * vd_minf(lv, 1.0f));
+    int n = w / 2, i, cy = y + h / 2, px = x, py = cy;
+    static int vy[200];
+    uint32_t bg = 0x040405, ink = PED_RGB[ty], dim;
+    if (n > 199)
+        n = 199;
+    for (i = 0; i <= n; i++) {
+        float u = (float)i / (float)n, sn = vd_sin(u * 2.0f + t * 0.4f);
+        vy[i] = cy - (int)(vd_clamp(te_shape(ty, sn, t, d, u), -1.1f, 1.1f) * amp);
+    }
+    switch (ty) {                                 /* the screen itself */
+    case 1: bg = 0x9AA88A, ink = 0x1E2A1A; break;                 /* SOFT: a pale LCD */
+    case 2: bg = 0x041008, ink = 0x60FF80; break;                 /* HARD: green phosphor */
+    case 3: bg = 0x140C04, ink = 0xFFB030; break;                 /* FOLD: amber dots */
+    case 4: bg = 0x0A0610, ink = 0xB080F0; break;                 /* FUZZ: a pocket synth's pixels */
+    case 5: bg = 0x050805, ink = 0x60D050; break;                 /* CRUSH: LED columns */
+    case 6: bg = 0x100602, ink = 0xFFFFFF; break;                 /* PHASR: a porthole */
+    case 7: bg = 0x140A02, ink = 0xFFA040; break;                 /* FLANG: an amber tube */
+    case 8: bg = 0x06201A, ink = 0x9AF0D0; break;                 /* CHOR: two waves */
+    case 9: bg = 0x1A0604, ink = 0xFF6A30; break;                 /* MUFF: a valve's glow */
+    case 10: bg = 0x050505, ink = 0xC8A050; break;                /* BASS: the weight under the line */
+    case 11: bg = 0x0A0A0A, ink = 0xE02414; break;                /* SMASH: the peaks flattened */
+    case 12: bg = 0x050303, ink = 0xFF3020; break;                /* DAMG: torn */
+    case 13: bg = 0x061006, ink = 0x90E050; break;                /* INFCT: something green */
+    default: break;
+    }
+    if (!on)
+        ink = vg_mix(bg, ink, 0.3f);
+    dim = vg_mix(bg, ink, 0.18f);
+    if (ty != 6 && ty != 13)
+        vg_rect(x, y, w, h, bg);
+    switch (ty) {
+    case 1:                                       /* LCD: a faint grid of its pixels, a dark line */
+        for (i = x; i < x + w; i += 3) vg_rect(i, y, 1, h, vg_mix(bg, 0x000000, 0.06f));
+        for (i = 1; i <= n; i++) vg_line((float)px, (float)py, (float)(x + i * w / n), (float)vy[i], 2.0f, ink), px = x + i * w / n, py = vy[i];
+        break;
+    case 2:                                       /* a scope: its grid, the trace glowing */
+        for (i = x; i < x + w; i += 10) vg_rect(i, y, 1, h, 0x0C2414);
+        vg_rect(x, cy, w, 1, 0x0C2414);
+        for (i = 1; i <= n; i++) {
+            int nx = x + i * w / n;
+            vg_line((float)px, (float)py, (float)nx, (float)vy[i], 4.0f, vg_mix(bg, ink, 0.3f));
+            vg_line((float)px, (float)py, (float)nx, (float)vy[i], 1.4f, ink);
+            px = nx, py = vy[i];
+        }
+        break;
+    case 3: case 4: {                             /* dots / chunky pixels */
+        int g = ty == 3 ? 3 : 4, xx;
+        for (xx = 0; xx < w; xx += g) {
+            int k = xx * n / w, yy;
+            int q = ((vy[k] - y) / g) * g + y;
+            if (ty == 3)
+                for (yy = y + 1; yy < y + h; yy += g) vg_rect(x + xx, yy, 1, 1, dim);
+            vg_rect(x + xx, q, ty == 3 ? 2 : 3, ty == 3 ? 2 : 3, ink);
+        }
+        if (ty == 4)
+            for (i = y; i < y + h; i += 2) vg_rect(x, i, w, 1, vg_mix(bg, 0x000000, 0.4f));
+        break;
+    }
+    case 5: {                                     /* LED columns from the middle */
+        int xx;
+        for (xx = 0; xx < w; xx += 5) {
+            int k = xx * n / w, top = vy[k] < cy ? vy[k] : cy, hh = vy[k] < cy ? cy - vy[k] : vy[k] - cy;
+            vg_rect(x + xx, top, 4, hh + 1, (vy[k] < y + 5 || vy[k] > y + h - 5) ? 0xFF3020 : ink);
+        }
+        break;
+    }
+    case 6: {                                     /* the porthole: a sweep going round, the trace white */
+        float a = te_wrap(t * 0.25f);
+        vg_rect(x + (int)(a * (float)w), y + 2, 3, h - 4, vg_mix(0x100602, 0xFF6A1A, 0.5f));
+        for (i = 1; i <= n; i++) vg_line((float)px, (float)py, (float)(x + i * w / n), (float)vy[i], 1.8f, ink), px = x + i * w / n, py = vy[i];
+        break;
+    }
+    case 7:                                       /* an amber tube: lines across, the trace glowing */
+        for (i = y; i < y + h; i += 3) vg_rect(x, i, w, 1, vg_mix(bg, ink, 0.07f));
+        for (i = 1; i <= n; i++) {
+            int nx = x + i * w / n;
+            vg_line((float)px, (float)py, (float)nx, (float)vy[i], 5.0f, vg_mix(bg, ink, 0.25f));
+            vg_line((float)px, (float)py, (float)nx, (float)vy[i], 1.6f, ink);
+            px = nx, py = vy[i];
+        }
+        break;
+    case 8: {                                     /* two waves, drifting apart and back */
+        int q;
+        for (q = 0; q < 2; q++) {
+            px = x, py = cy;
+            for (i = 1; i <= n; i++) {
+                float u = (float)i / (float)n, sn = vd_sin(u * 2.0f + t * 0.4f + (float)q * (0.08f + 0.06f * vd_sin(t * (0.5f + d))));
+                int nx = x + i * w / n, ny = cy - (int)(sn * amp);
+                vg_line((float)px, (float)py, (float)nx, (float)ny, q ? 1.4f : 2.2f, q ? vg_mix(bg, ink, 0.55f) : ink);
+                px = nx, py = ny;
+            }
+        }
+        break;
+    }
+    case 9:                                       /* fat and glowing */
+        for (i = 1; i <= n; i++) {
+            int nx = x + i * w / n;
+            vg_line((float)px, (float)py, (float)nx, (float)vy[i], 7.0f, vg_mix(bg, ink, 0.25f));
+            vg_line((float)px, (float)py, (float)nx, (float)vy[i], 3.5f, ink);
+            px = nx, py = vy[i];
+        }
+        break;
+    case 10: case 11: {                           /* filled to the middle; SMASH: its flat tops in white */
+        int xx;
+        for (xx = 0; xx < w; xx += 2) {
+            int k = xx * n / w, top = vy[k] < cy ? vy[k] : cy, hh = vy[k] < cy ? cy - vy[k] : vy[k] - cy;
+            vg_rect(x + xx, top, 2, hh + 1, vg_mix(bg, ink, 0.6f));
+            vg_rect(x + xx, vy[k], 2, 1, ty == 11 && (hh > (int)(amp * 0.8f)) ? 0xFFFFFF : ink);
+        }
+        break;
+    }
+    case 12: {                                    /* torn: pieces shifted, gaps */
+        uint32_t r = (uint32_t)(t * 12.0f) * 2654435761u;
+        for (i = 1; i <= n; i++) {
+            int nx = x + i * w / n, off;
+            r = r * 1664525u + 1013904223u;
+            off = (r >> 28) == 0u && on ? (int)((r >> 20) & 7u) - 3 : 0;
+            if (vy[i] != cy)
+                vg_line((float)px, (float)(py + off), (float)nx, (float)(vy[i] + off), 2.0f, (r >> 27) == 1u ? 0xFFFFFF : ink);
+            px = nx, py = vy[i];
+        }
+        break;
+    }
+    case 13:                                      /* the source's hits, the track following, green */
+        vg_circle((float)(x + 9), (float)cy, 6.0f + 3.0f * lv, C_RED);
+        vg_circle((float)(x + 9), (float)cy, 3.0f, 0x000000);
+        for (i = 1; i <= n; i++) {
+            int nx = x + 20 + i * (w - 20) / n;
+            if (i == 1) px = x + 20;
+            vg_line((float)px, (float)py, (float)nx, (float)vy[i], 2.0f, ink);
+            px = nx, py = vy[i];
+        }
+        break;
+    default:
+        for (i = 1; i <= n; i++) vg_line((float)px, (float)py, (float)(x + i * w / n), (float)vy[i], 2.0f, ink), px = x + i * w / n, py = vy[i];
+        break;
+    }
 }
 static void kx_pedal(int x, int y, int w, int h, const int16_t *v, int focus, float lvl, int num)
 {
     int ty = clamp(v[0], 0, IT_N - 1), k;
     uint32_t col = PED_RGB[ty];
-    const ped_look *L = &PED_LOOK[ty];
-    char n[2] = {(char)('1' + num), 0};
+    const ped_face *F = &PED_FACE[ty];
+    static const uint32_t KC[3] = {0x3A78D8, 0x34B464, 0xE8E8E4};   /* (TE's knob colours, one each) */
     if (!ty) {                                                      /* an empty place on the board */
+        char e[2] = {(char)('1' + num), 0};
         vg_round(x, y, w, h, 6, 0x111113);
         vg_frame(x, y, w, h, 1, focus ? C_RED : 0x2E2E34);
-        vg_text(n, x + 6, y + 4, VG_BOLD, 0x9A9AA4, VG_LEFT);
+        vg_text(e, x + 6, y + 4, VG_BOLD, 0x9A9AA4, VG_LEFT);
         vg_text("EMPTY", x + w / 2, y + h / 2 - 18, VG_BOLD, focus ? TE_INK : 0x9A9AA4, VG_CENTER);
         if (focus)
             vg_text("ENC 1: A PEDAL", x + w / 2, y + h / 2 + 2, VG_SMALL, TE_MID, VG_CENTER);
         return;
     }
     vg_round(x + 2, y + 3, w, h, 6, 0x000000);                      /* (its shadow) */
-    ped_finish(x, y, w, h, col, L, ty);
-    for (k = 0; k < 3; k++) {                                       /* the knobs, their names on dark tags */
+    ped_body(ty, x, y, w, h, F, col);
+    for (k = 0; k < 3; k++) {                                       /* the controls, their names printed */
         const param_desc_t *dd = ins_desc(ty, (uint32_t)k);
         float pos = dd->max > dd->min ? (float)(v[1 + k] - dd->min) / (float)(dd->max - dd->min) : 0.0f;
-        float cx = (float)x + (float)w * (0.2f + 0.3f * (float)k);
+        float cx = (float)x + (float)w * (0.2f + 0.3f * (float)k), cy = (float)y + 32.0f;
+        int kind = F->knob == PK_BIG ? (k ? PK_FLAT : PK_BIG) : F->knob;
         char lb[6];
-        int lw;
+        if (F->knob == PK_BIG)
+            cx = k ? (float)x + (float)w * (0.5f + 0.3f * (float)(k - 1)) + 4.0f : (float)x + 26.0f, cy = (float)y + 32.0f;
         str_cpy(lb, dd->label, sizeof lb);
-        lw = vg_text_width(lb, VG_SMALL);
-        kx_knob(cx, (float)y + 19.0f, 9.0f, pos, C_WHITE);
-        vg_rect((int)cx - lw / 2 - 3, y + 31, lw + 6, 15, 0x0C0C0E);
-        vg_text(lb, (int)cx, y + 31, VG_SMALL, TE_INK, VG_CENTER);
+        ped_ctl(kind, cx, cy, pos, kind == PK_FLAT && F->knob == PK_BIG ? 0x5A4A40 : k == 2 && ty == 1 ? 0xFF6A1A : KC[k], F->body);
+        vg_text(lb, (int)cx, y + 4, VG_SMALL, F->ink, VG_CENTER);   /* (above it: nothing under the name) */
     }
-    if (L->extra & 8) {                                             /* a toggle by the window */
-        vg_round(x + w - 13, y + 52, 9, 12, 2, 0x1A1A1C);
-        vg_line((float)(x + w - 9), (float)(y + 58), (float)(x + w - 6), (float)(y + 49), 2.5f, 0xD8D8DC);
+    {   /* the screen: what it does to a wave (its frame is the pedal's own) */
+        int sx = x + 6, sy = y + 50, sw = w - 12, sh = 24;
+        if (ty == 6)
+            vg_round(sx - 2, sy - 2, sw + 4, sh + 4, 14, 0x141416), vg_round(sx, sy, sw, sh, 12, 0x100602);
+        else if (ty == 13)
+            vg_round(sx + 18, sy, sw - 22, sh, 8, 0x061006);
+        else
+            vg_rect(sx, sy, sw, sh, 0x040405), vg_frame(sx - 1, sy - 1, sw + 2, sh + 2, 1, vg_mix(F->body, 0x000000, 0.5f));
+        ped_screen(ty, sx + (ty == 13 ? 18 : 0), sy, sw - (ty == 13 ? 22 : 0), sh, v, v[PD_MIX] ? lvl : 0.0f, v[PD_MIX] != 0);
+        if (ty == 12 && v[PD_MIX] && lvl > 0.2f)   /* (DAMG's screen tears) */
+            vg_rect(sx, sy + (int)(te_wrap(te_t() * 3.0f) * (float)sh), sw, 2, 0xFF3020);
     }
-    vg_rect(x + 5, y + 49, w - 22, 28, 0x050506);                   /* the window: what it does to a wave */
-    te_ped_icon(ty, x + 8, y + 51, w - 28, 24, v, v[PD_MIX] ? lvl : 0.0f, v[PD_MIX] ? col : 0x4A4A50);
-    ped_label(x + 5, y + h - 22, w - 50, N_ITYPE[ty], col, L);
-    {                                                               /* the number, stamped */
-        vg_rect(x + w - 15, y + 2, 12, 15, 0x0C0C0E);
-        vg_text(n, x + w - 9, y + 2, VG_SMALL, 0xD8D8DC, VG_CENTER);
-    }
-    {                                                               /* the LED: as bright as what it does */
+    ped_mark(ty, x, y, w, h, v[PD_MIX] ? lvl : 0.0f, F);
+    if (ty == 9 || ty == 3) {                                       /* MUFF, FOLD: the name on masking tape */
+        int tw = vg_text_width(N_ITYPE[ty], VG_BOLD);
+        vg_rect(x + 7, y + h - 22, tw + 10, 17, 0xD9CFA8);
+        vg_text(N_ITYPE[ty], x + 12, y + h - 21, VG_BOLD, 0x16161A, VG_LEFT);
+    } else
+        vg_text(N_ITYPE[ty], x + 8, y + h - 21, ty == 2 || ty == 11 ? VG_MED : VG_BOLD, F->ink, VG_LEFT);
+    {                                                               /* the LED */
         float a = lvl > 1.0f ? 1.0f : lvl;
-        float lx = (float)(x + w - 34), ly = (float)(y + h - 13);
-        vg_circle(lx, ly, 4.5f, 0x0C0C0E);
+        int lx = x + w - 40, ly = y + h - 15;
         if (v[PD_MIX] && a > 0.05f)
-            vg_circle(lx, ly, 7.0f, vg_mix(0x26262A, 0xFF3020, 0.5f * a));
-        vg_circle(lx, ly, 3.0f, v[PD_MIX] ? vg_mix(0x501008, 0xFF3020, 0.4f + 0.6f * a) : 0x300606);
+            vg_rect_a(lx - 3, ly - 3, 11, 9, 0xFF3020, 0.35f * a);
+        vg_rect(lx, ly, 5, 3, v[PD_MIX] ? vg_mix(0x501008, 0xFF3020, 0.4f + 0.6f * a) : 0x300606);
     }
-    vg_circle((float)(x + w - 15), (float)(y + h - 13), 9.0f, 0x111113);   /* the footswitch */
-    vg_circle((float)(x + w - 15), (float)(y + h - 13), 7.0f, 0xA8A8B0);
-    vg_circle((float)(x + w - 15), (float)(y + h - 14), 4.0f, 0xD8D8DC);
+    if (ty == 11) {                                                 /* SMASH: a big red stomp */
+        vg_circle((float)(x + w - 17), (float)(y + h - 15), 11.0f, 0x000000);
+        vg_circle((float)(x + w - 17), (float)(y + h - 16), 10.0f, v[PD_MIX] ? 0xE02414 : 0x701008);
+        vg_circle((float)(x + w - 19), (float)(y + h - 18), 4.0f, v[PD_MIX] ? 0xFF6A50 : 0x902018);
+    } else if (F->shape == 3 || ty == 1) {                          /* a round rubber key */
+        vg_circle((float)(x + w - 17), (float)(y + h - 15), 10.0f, 0x0A0A0C);
+        vg_circle((float)(x + w - 17), (float)(y + h - 16), 9.0f, v[PD_MIX] ? 0x5A5A60 : 0x3A3A40);
+    } else {                                                        /* a square one */
+        vg_round(x + w - 28, y + h - 26, 22, 22, 4, 0x0A0A0C);
+        vg_round(x + w - 27, y + h - 26, 20, 19, 4, v[PD_MIX] ? 0x5A5A60 : 0x3A3A40);
+        vg_round(x + w - 25, y + h - 24, 16, 6, 3, v[PD_MIX] ? 0x707078 : 0x48484E);
+    }
     if (focus)                                                      /* (the one the knobs turn) */
         vg_frame(x - 3, y - 3, w + 6, h + 6, 2, C_RED);
 }
@@ -982,19 +1231,19 @@ static void kx_hub_icon(int i, int cx, int cy, uint32_t c)
 }
 static void kx_draw_hub(int x, int y, int w, int h)
 {
-    int i, tw = (w - 4 * 6) / 5, th = (h - 6) / 2;
+    int i, tw = (w - 4 * 6) / 5, th = (h - 6 - 16) / 2;   /* (the hint's line under the tiles) */
     for (i = 0; i < KX_HUB_N; i++) {
         int tx = x + (i % 5) * (tw + 6), ty = y + (i / 5) * (th + 6), on = i == kx_hub_sel;
         char b[4] = {(char)('0' + (i + 1) / 10), (char)('0' + (i + 1) % 10), 0};
         vg_rect(tx, ty, tw, th, on ? 0x2A2A30 : 0x16161A);
         vg_rect(tx, ty, tw, 2, on ? C_RED : 0x2A2A30);
         vg_text(b, tx + 4, ty + 4, VG_SMALL, 0x8A8A94, VG_LEFT);
-        kx_hub_icon(i, tx + tw - 18, ty + 16, on ? TE_INK : 0x8A8A94);
-        vg_text(KX_HUB_NAME[i], tx + 5, ty + th - 20, VG_BOLD, on ? C_WHITE : TE_INK, VG_LEFT);
+        kx_hub_icon(i, tx + tw - 16, ty + 12, on ? TE_INK : 0x8A8A94);   /* (the icon over, the name under: apart) */
+        vg_text(KX_HUB_NAME[i], tx + 5, ty + th - 16, VG_BOLD, on ? C_WHITE : TE_INK, VG_LEFT);
         if (on)
             vg_frame(tx - 1, ty - 1, tw + 2, th + 2, 1, C_RED);
     }
-    vg_text("ENC 1 / DATA, ENTER OR A CLICK OPENS", x + w, y + h - 2, VG_SMALL, 0x8A8A94, VG_RIGHT);
+    vg_text("ENC 1 / DATA, ENTER OR A CLICK OPENS", x + w, y + h - 14, VG_SMALL, 0x8A8A94, VG_RIGHT);
 }
 
 /* PAD FX: pads 9-16 as they lie, and the same with SHIFT; each with the effect it holds, the chosen one red */
@@ -1006,26 +1255,26 @@ static void kx_draw_padfx(int x, int y, int w, int h)
         int hx = x + half * 236;
         vg_text(half ? "SHIFT + PADS 9-16" : "PADS 9-16", hx, y, VG_SMALL, half ? 0xA0A0FF : TE_MID, VG_LEFT);
         for (k = 0; k < 8; k++) {
-            int slot = half * 8 + k, cx = hx + (k & 3) * 58, cy = y + 12 + (k >> 2) * 41, on = slot == sel;
+            int slot = half * 8 + k, cx = hx + (k & 3) * 58, cy = y + 16 + (k >> 2) * 38, on = slot == sel;
             int fx = clamp(kx_ic[IC_PF0 + slot], 0, PF_NFX - 1);
             float age = (float)(vibe_frames() - kx_pfx_hit[slot]) / (kx_sr * 0.4f);
             char b[4];
-            vg_rect(cx, cy, 56, 39, on ? vg_mix(C_BG, C_RED, 0.45f) : 0x16161A);
+            vg_rect(cx, cy, 56, 36, on ? vg_mix(C_BG, C_RED, 0.45f) : 0x16161A);
             vg_rect(cx, cy, 56, 2, on ? C_RED : half ? 0x34344A : 0x2A2A30);
             if (kx_pfx_hit[slot] && age < 1.0f)
-                vg_rect_a(cx, cy, 56, 39, C_WHITE, 0.5f * (1.0f - age));
+                vg_rect_a(cx, cy, 56, 36, C_WHITE, 0.5f * (1.0f - age));
             vg_itoa(9 + k, b);
             vg_text(b, cx + 3, cy + 4, VG_SMALL, on ? C_WHITE : 0x7A7A84, VG_LEFT);
-            vg_text(PF_CELL[fx], cx + 28, cy + 18, VG_BOLD, on ? C_WHITE : TE_INK, VG_CENTER);
+            vg_text(PF_CELL[fx], cx + 28, cy + 17, VG_BOLD, on ? C_WHITE : TE_INK, VG_CENTER);
             if (on)
-                vg_frame(cx - 1, cy - 1, 58, 41, 1, C_RED);
+                vg_frame(cx - 1, cy - 1, 58, 38, 1, C_RED);
         }
     }
     {
         int fx = clamp(kx_ic[IC_PF0 + sel], 0, PF_NFX - 1), tw;
-        tw = vg_text(PF_NAME[fx], x, y + 96, VG_BOLD, C_RED, VG_LEFT);
-        vg_text(PF_WHAT[fx], x + tw + 10, y + 96, VG_SMALL, TE_INK, VG_LEFT);
-        vg_text("HOLD THE PAD TO HEAR", x + w, y + 96, VG_SMALL, TE_MID, VG_RIGHT);
+        tw = vg_text(PF_NAME[fx], x, y + 92, VG_BOLD, C_RED, VG_LEFT);
+        vg_text(PF_WHAT[fx], x + tw + 10, y + 92, VG_SMALL, TE_INK, VG_LEFT);
+        vg_text("HOLD THE PAD TO HEAR", x + w, y + 92, VG_SMALL, TE_MID, VG_RIGHT);
     }
 }
 
@@ -1255,14 +1504,14 @@ static void kx_draw_help(void)
      * that are the same everywhere */
     static const char *const G[] = {
         "KEYS", "the selected track", "PADS 1-4", "mute (SHIFT: solo)", "PADS 5-8", "DICE (SHIFT: OOPS)",
-        "PADS 9-16", "hold effects (MENU > PAD FX)", "SHIFT + 9-16", "eight more effects", "K1-K6", "the page families",
-        "A / B", "level / DMG (SH: WALL)", "F1-F4 / F6", "the track / UNDO", "MENU", "or SHIFT + HOME",
+        "PADS 9-16", "hold effects", "SHIFT + 9-16", "8 more (PAD FX)", "A / B", "level / DAMAGE",
+        "SHIFT + B", "WALL", "F1-F4 / F6", "the track / UNDO", "MENU", "or SHIFT + HOME",
         "SHIFT", "hold, or tap once", "RETURN", "back to the last page",
     };
     static char lab[4][24];
     const char *r[44];
     int n = 0, pg = kx_page, kp = kx_knob_page(), k;
-    const char *f5 = kx_f5_name(), *f5w = "", *dw = kx_data_on_cards() ? "the card marked DATA" :
+    const char *f5 = kx_f5_name(), *f5w = "", *dw = kx_data_on_cards() ? "the DATA card" :
                                                 pg == PG_MIXER ? "the track's level" : "sound (SHIFT: engine)",
                *ew = kx_data_on_cards() ? "DATA to the next card" : "";
     for (k = 0; k < 4; k++) {
@@ -1321,6 +1570,7 @@ static void kx_draw_help(void)
         f5w = "look again / pick a folder";
     else if (kx_streq(f5, "SAVE") || kx_streq(f5, "NEW") || kx_streq(f5, "ERASE"))
         f5w = pg == PG_PROJECT ? "save (SHIFT: new)" : "save (SHIFT: erase)";
+    else if (pg == PG_PADFX) f5w = "the pad's own again";
     else if (f5[0]) f5w = "the input's mode";
     {   /* how this page's effect goes on and off */
         static const char *const OO[][2] = {
@@ -1345,7 +1595,6 @@ static void kx_draw_help(void)
     if (f5w[0])
         r[n++] = "F5", r[n++] = f5w;
     r[n++] = "< >", r[n++] = "this family's pages";
-    r[n++] = "ENTER held", r[n++] = "FOCUS (DATA walks)";
     while (n < 22)                                /* (the page's column, then the right one) */
         r[n++] = "", r[n++] = "";
     for (k = 0; k < (int)(sizeof G / sizeof G[0]) && n < 44; k++)

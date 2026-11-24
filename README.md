@@ -45,7 +45,9 @@ mark grows behind every page as the master wears the mix out.
   echoes, the reverb a room, a spring or a hall, the slicer its pattern, the clock its beats. MENU > DISPLAY sets how much the screen wears: OFF, LOW (the default), FULL.
   The pages slide, a value turned lights up, and the pages move with the sound: the spectrum, the envelope and the
   LFO where they are, the playhead's trail.
-- **The pads:** mute and DICE per track; pads 9-16 hold effects, with SHIFT eight more, each of the sixteen chosen
+- **The pads:** mute and DICE per track; pads 9-16 hold effects, at first eight of this firmware's own (PRESS, SHRED,
+  BLACKOUT, SHORTWAVE, CORRODE, HAMMER, VOID, STROBE, each with its picture on the display and the stage), with SHIFT
+  eight more, each of the sixteen chosen
   from eighteen on MENU > PAD FX; on the SEQ page the pads are the 16 steps shown, lit as they play. A controller with an 8 x 8 grid (a
   Launchpad) has all 64 steps. The steps can be clicked on the display.
 - **A foot pedal (MENU > FOOT PEDAL):** the expression pedal turns DAMAGE, WALL or the track's level (the page shows
@@ -88,7 +90,7 @@ mark grows behind every page as the master wears the mix out.
 | keys | play the selected track (its chord keys and arpeggiator) |
 | pads 1-4 | mute a track (SHIFT: solo it; again: all back) |
 | pads 5-8 | DICE: a new part for that track in the MOOD (SHIFT: OOPS on it); on MASTER: DAMAGE, WALL, SPLICE, HAUNT on and off; on a pedalboard: pedal 1-3 bypassed, 4 all |
-| pads 9-16 | held: an effect each, chosen on MENU > PAD FX (at first 1/16, TAPE STOP, FREEZE, GATE, CRUSH SWEEP, OCT DOWN, FLANGER, RANDOM; SHIFT: ROLL, REV THROW, ECHO THROW, LPF, HPF, OCT UP, PHASER, 1/32) |
+| pads 9-16 | held: an effect each, chosen on MENU > PAD FX from 26 (at first PRESS, SHRED, BLACKOUT, SHORTWAVE, CORRODE, HAMMER, VOID, STROBE (SHIFT: 1/16, TAPE STOP, FREEZE, GATE, CRUSH SWEEP, OCT DOWN, FLANGER, RANDOM)) |
 | SOUND ENV LFO ARP FX SEQ | the pages; the same key again: the next page of that family |
 | ◀ ▶ | the family's pages |
 | encoders 1-4 | the four values on the page |

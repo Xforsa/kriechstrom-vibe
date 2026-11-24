@@ -150,7 +150,7 @@ static void kx_punch_block(int32_t *o, uint32_t n)
             }
             if ((a = kx_pn_lv[PN_PRESS]) > 0.0f) {         /* PRESS: squeezed, ducked at each beat */
                 float duck = ph < 0.5f ? 0.12f + 0.88f * vd_sqrt(ph * 2.0f) : 1.0f;
-                float pl = vd_tanh(l * 4.0f) * 0.7f * duck, pr = vd_tanh(r * 4.0f) * 0.7f * duck;
+                float pl = vd_tanh(l * 4.0f) * 0.42f * duck, pr = vd_tanh(r * 4.0f) * 0.42f * duck;
                 l += (pl - l) * a, r += (pr - r) * a;
             }
             if ((kx_pn_held >> PN_BLACKOUT) & 1u || pn_pow < 1.0f) {   /* BLACKOUT: the tape slows to nothing */
@@ -226,7 +226,7 @@ static void kx_punch_block(int32_t *o, uint32_t n)
             if ((a = kx_pn_lv[PN_VOID]) > 0.0f || pn_v_energy > 1e-5f) {   /* VOID: only the dark tail */
                 float y = pn_void((l + r) * 0.5f * a);
                 pn_v_energy = pn_v_energy * 0.9999f + y * y * 0.0001f;
-                l = l * (1.0f - a) + y * 1.6f, r = r * (1.0f - a) + y * 1.6f;
+                l = l * (1.0f - a) + y * 1.25f, r = r * (1.0f - a) + y * 1.25f;
             }
             if ((a = kx_pn_lv[PN_STROBE]) > 0.0f) {        /* STROBE: cut at 1/32 */
                 float s32 = ph * 8.0f;

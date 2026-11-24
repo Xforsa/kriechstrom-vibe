@@ -1928,6 +1928,7 @@ static void kx_ui_draw(void)
             vibe_link_encoder(VE_1 + (int)k, c.on ? c.label : "", c.on ? c.val : "");
         }
     }
+    kx_fx_badge();                                /* (a held effect's picture, in the corner) */
     kx_wear_fx(kx_fb, 480, 320);
     if (kx_shift_latch && kx_latch_enc >= 0 && vibe_frames() - kx_latch_t > (uint64_t)(kx_sr * 0.6f))
         kx_shift = kx_shift_latch = 0, kx_shift_used = 0, kx_latch_enc = -1;   /* (a tapped SHIFT's turn is over) */

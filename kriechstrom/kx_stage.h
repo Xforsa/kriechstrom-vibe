@@ -383,6 +383,13 @@ void vibe_on_stage(uint16_t *fb, int w, int h)
         uint32_t bb = song.playing ? trk[song.sel].seq_idx / 16u : bar;   /* (stopped: the figure stays as it is) */
         if (bb != bar || !kx_big_n)
             bar = bb, kx_big_grow();
+        if (kx_fx_top() >= 0) {                   /* an effect held: its own picture in the middle, its name under */
+            int fx = kx_fx_top(), tw;
+            kx_fx_art(fx, (float)SR_CX, (float)SR_CY - 8.0f, 86.0f, (float)(vibe_frames() - kx_fx_t0[fx]) / kx_sr, 1.0f);
+            tw = vg_text_width(kx_fx_name(fx), VG_BOLD) + 16;
+            vg_rect(SR_CX - tw / 2, SR_CY + 72, tw, 20, C_RED);
+            vg_text(kx_fx_name(fx), SR_CX, SR_CY + 74, VG_BOLD, C_WHITE, VG_CENTER);
+        } else
         kx_big_draw_at(heat > 1.0f ? 1.0f : heat, 0.35f + 0.65f * (kx_fx_hit > 1.0f ? 1.0f : kx_fx_hit), (float)SR_CX,
                        (float)SR_CY, 1.15f);   /* (as big as the ring round it, never dim) */
     }
@@ -513,7 +520,7 @@ static void kx_stage_event(const vibe_event *e)
         if (st_ptr[p] >= 200) {
             int slot = st_ptr[p] - 200;
             st_fx_down[slot] = 0;
-            kx_post(KXC_PERF, (uint32_t)clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1), 0, 0, 0);
+            kx_fx_post(clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1), 0);
         }
         st_ptr[p] = -1;
         return;
@@ -574,7 +581,7 @@ static void kx_stage_event(const vibe_event *e)
             st_fx_down[slot] = 1;
             st_ptr[p] = 200 + slot;
             kx_pfx_hit[slot] = vibe_frames() ? vibe_frames() : 1;
-            kx_post(KXC_PERF, (uint32_t)clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1), 1, 0, 0);
+            kx_fx_post(clamp(kx_ic[IC_PF0 + slot], 0, KX_NFX - 1), 1);
         }
         return;
     }

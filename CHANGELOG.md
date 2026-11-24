@@ -5,6 +5,20 @@ All notable changes to KRIECHSTROM for VIBE FM. The format follows
 
 ## [Unreleased]
 
+## [0.5.16] - 2026-11-24
+
+On KRIECHSTROM 0.5.2 for the FM-1.
+
+### Added
+- eight punch-in effects of the VIBE's own, on the whole mix after the master (the FM-1's core untouched): PRESS,
+  SHRED, BLACKOUT, SHORTWAVE, CORRODE, HAMMER, VOID, STROBE; first on pads 9-16 and the stage, the core's best on SHIFT,
+  all 26 on MENU > PAD FX
+- each held effect, the core's too, shows its own moving picture: in the display's corner and in the stage's middle
+
+### Changed
+- the lightning follows what is heard while an effect is held (a tape stopped, it stops)
+- the stage's SCREEN WEAR: OFF, LOW, FULL as buttons (in place of the wear's number)
+
 ## [0.5.15] - 2026-11-24
 
 On KRIECHSTROM 0.5.2 for the FM-1.

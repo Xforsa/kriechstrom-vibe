@@ -30,6 +30,7 @@
 #include "kx_live.h"
 #include "kx_pics.h"
 #include "kx_te.h"
+#include "kx_fxart.h"
 #include "kx_draw.h"
 #include "kx_stage.h"
 #include "kx_main.h"

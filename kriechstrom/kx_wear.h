@@ -271,7 +271,8 @@ static void kx_hits_frame(void)                   /* the hits of this frame: the
         uint32_t hn = __atomic_load_n(&kx_hits, __ATOMIC_ACQUIRE);
         static uint32_t dstep = 0xFFFFFFFFu;
         uint32_t k, kick = 0;
-        for (k = 0; k < NTRK && song.playing; k++) {   /* the drums' KICK or SNARE on the step playing now */
+        int fx = kx_fx_any();                     /* (an effect held: what is heard decides, not the steps) */
+        for (k = 0; k < NTRK && song.playing && !fx; k++) {   /* the drums' KICK or SNARE on the step playing now */
             const track_t *t = &trk[k];
             if (drum_track(t) && !t->p[P_MUTE]) {
                 uint32_t idx = t->seq_idx % NSTEP | k << 8;
@@ -290,7 +291,7 @@ static void kx_hits_frame(void)                   /* the hits of this frame: the
                 break;
             }
         }
-        if (hn != seen && k == NTRK)               /* (no drum track: a hit in the mix shapes one) */
+        if (hn != seen && (k == NTRK || fx))       /* (no drum track, or an effect held: a hit in the mix shapes one) */
             kx_lt_spawn(3, kx_hit_amt), kx_big_kick(kx_hit_amt);
         if (hn != seen || kick) {                 /* a hit (kx_audio.h), or the drums' */
             seen = hn;

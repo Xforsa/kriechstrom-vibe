@@ -711,7 +711,7 @@ static void kx_pad(uint32_t id, int down, float vel)
             if (kx_page == PG_PADFX)
                 kx_pfx_sel = (int)slot;           /* (on PAD FX: the pad pressed is the one to choose for) */
         }
-        kx_post(KXC_PERF, kx_pad_fx[k], down ? 1u : 0u, 0, 0);
+        kx_fx_post(kx_pad_fx[k], down);
         break;
     }
     }
@@ -947,8 +947,8 @@ static void kx_foot_switch(int down)
     switch (kx_ic[IC_FSW]) {
     case 0: if (down) kx_post(KXC_PLAY, 3, 0, 0, 0); break;
     case 1: if (down) kx_post(KXC_TOOL, song.sel, TL_DICE, 0, 0); break;
-    case 2: kx_post(KXC_PERF, PF_TAPE, down ? 1u : 0u, 0, 0); break;
-    default: kx_post(KXC_PERF, PF_FRZ, down ? 1u : 0u, 0, 0); break;
+    case 2: kx_fx_post(PF_TAPE, down); break;
+    default: kx_fx_post(PF_FRZ, down); break;
     }
 }
 
